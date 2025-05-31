@@ -148,11 +148,17 @@ async function createPeerConnection(socketId, isInitiator) {
     // Handle connection state changes
     peerConnection.onconnectionstatechange = () => {
         console.log(`Connection state for ${socketId}:`, peerConnection.connectionState);
+        if (peerConnection.connectionState === 'failed') {
+            peerConnection.restartIce();
+        }
     };
 
     // Handle ICE connection state changes
     peerConnection.oniceconnectionstatechange = () => {
         console.log(`ICE connection state for ${socketId}:`, peerConnection.iceConnectionState);
+        if (peerConnection.iceConnectionState === 'failed') {
+            peerConnection.restartIce();
+        }
     };
 
     // Handle incoming tracks
@@ -169,7 +175,8 @@ async function createPeerConnection(socketId, isInitiator) {
     if (isInitiator) {
         try {
             const offer = await peerConnection.createOffer({
-                offerToReceiveAudio: true
+                offerToReceiveAudio: true,
+                voiceActivityDetection: true
             });
             await peerConnection.setLocalDescription(offer);
             socket.emit('offer', {
@@ -186,10 +193,20 @@ async function createPeerConnection(socketId, isInitiator) {
 
 async function handleOffer(data) {
     try {
-        const peerConnection = await createPeerConnection(data.socketId, false);
+        let peerConnection = peerConnections[data.socketId];
+        if (!peerConnection) {
+            peerConnection = await createPeerConnection(data.socketId, false);
+        }
+        
+        if (peerConnection.signalingState !== 'stable') {
+            console.log('Connection not stable, waiting...');
+            return;
+        }
+
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await peerConnection.createAnswer({
-            offerToReceiveAudio: true
+            offerToReceiveAudio: true,
+            voiceActivityDetection: true
         });
         await peerConnection.setLocalDescription(answer);
         socket.emit('answer', {
@@ -202,24 +219,44 @@ async function handleOffer(data) {
 }
 
 async function handleAnswer(data) {
-    const peerConnection = peerConnections[data.socketId];
-    if (peerConnection) {
-        try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-        } catch (error) {
-            console.error('Error handling answer:', error);
+    try {
+        const peerConnection = peerConnections[data.socketId];
+        if (!peerConnection) {
+            console.error('No peer connection found for:', data.socketId);
+            return;
         }
+
+        if (peerConnection.signalingState !== 'have-local-offer') {
+            console.error('Invalid signaling state:', peerConnection.signalingState);
+            return;
+        }
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    } catch (error) {
+        console.error('Error handling answer:', error);
     }
 }
 
 async function handleIceCandidate(data) {
-    const peerConnection = peerConnections[data.socketId];
-    if (peerConnection) {
-        try {
-            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (error) {
-            console.error('Error handling ICE candidate:', error);
+    try {
+        const peerConnection = peerConnections[data.socketId];
+        if (!peerConnection) {
+            console.error('No peer connection found for:', data.socketId);
+            return;
         }
+
+        if (peerConnection.remoteDescription) {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } else {
+            console.log('Remote description not set, queuing ICE candidate');
+            // Queue the ICE candidate to be added when remote description is set
+            if (!peerConnection.queuedIceCandidates) {
+                peerConnection.queuedIceCandidates = [];
+            }
+            peerConnection.queuedIceCandidates.push(data.candidate);
+        }
+    } catch (error) {
+        console.error('Error handling ICE candidate:', error);
     }
 }
 
@@ -285,6 +322,7 @@ joinBtn.addEventListener('click', async () => {
         
         // Wait for socket connection before joining room
         socket.on('connect', () => {
+            console.log('Socket connected, joining room...');
             socket.emit('join-room', { displayName });
             welcomeSection.classList.add('hidden');
             channelSection.classList.remove('hidden');
