@@ -133,9 +133,9 @@ async function createPeerConnection(socketId, isInitiator) {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             {
-                urls: 'turn:numb.viagenie.ca',
-                username: 'webrtc@live.com',
-                credential: 'muazkh'
+                urls: 'turn:relay1.expressturn.com:3480',
+                username: '000000002064061488',
+                credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
             }
         ],
         iceCandidatePoolSize: 10
