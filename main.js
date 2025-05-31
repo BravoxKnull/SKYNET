@@ -53,12 +53,22 @@ function setupAudioContext() {
     checkVoiceActivity();
 }
 
-// Initialize Socket.io connection
+// Initialize Socket.io
 function initializeSocket() {
-    socket = io();
+    socket = io(window.location.origin, {
+        path: '/socket.io/',
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+    });
 
     socket.on('connect', () => {
         console.log('Connected to signaling server');
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        showWarning('Failed to connect to server. Please try again later.');
     });
 
     socket.on('user-joined', async (data) => {
