@@ -132,9 +132,13 @@ async function createPeerConnection(socketId, isInitiator) {
     const configuration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
-        ]
+            {
+                urls: 'turn:numb.viagenie.ca',
+                username: 'webrtc@live.com',
+                credential: 'muazkh'
+            }
+        ],
+        iceCandidatePoolSize: 10
     };
 
     const peerConnection = new RTCPeerConnection(configuration);
@@ -181,19 +185,22 @@ async function createPeerConnection(socketId, isInitiator) {
         audioElement.srcObject = event.streams[0];
         audioElement.autoplay = true;
         audioElement.muted = isDeafened;
-
+        
         audioElement.onloadedmetadata = () => {
             audioElement.play().catch(error => {
                 console.error('Error playing audio:', error);
             });
         };
-
+        
         document.body.appendChild(audioElement);
     };
 
     if (isInitiator) {
         try {
-            const offer = await peerConnection.createOffer();
+            const offer = await peerConnection.createOffer({
+                offerToReceiveAudio: true,
+                voiceActivityDetection: true
+            });
             await peerConnection.setLocalDescription(offer);
             socket.emit('offer', {
                 socketId,
@@ -222,7 +229,6 @@ async function handleOffer(data) {
             answer
         });
 
-        // Add queued ICE candidates after setting remote description
         if (peerConnection.queuedIceCandidates) {
             for (const candidate of peerConnection.queuedIceCandidates) {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -245,7 +251,6 @@ async function handleAnswer(data) {
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
 
-        // Add queued ICE candidates
         if (peerConnection.queuedIceCandidates) {
             for (const candidate of peerConnection.queuedIceCandidates) {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
