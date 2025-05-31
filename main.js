@@ -20,8 +20,16 @@ let socket = null;
 // Initialize WebRTC
 async function initializeWebRTC() {
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            },
+            video: false
+        });
         setupAudioContext();
+        console.log('Audio stream initialized:', localStream.getAudioTracks()[0].label);
     } catch (error) {
         showWarning('Error accessing microphone. Please check your permissions.');
         console.error('Error accessing microphone:', error);
@@ -131,6 +139,7 @@ async function createPeerConnection(socketId, isInitiator) {
     // Add local stream
     if (localStream) {
         localStream.getTracks().forEach(track => {
+            console.log('Adding track to peer connection:', track.kind, track.enabled);
             peerConnection.addTrack(track, localStream);
         });
     }
@@ -138,6 +147,7 @@ async function createPeerConnection(socketId, isInitiator) {
     // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
+            console.log('Sending ICE candidate:', event.candidate);
             socket.emit('ice-candidate', {
                 socketId,
                 candidate: event.candidate
@@ -163,12 +173,20 @@ async function createPeerConnection(socketId, isInitiator) {
 
     // Handle incoming tracks
     peerConnection.ontrack = (event) => {
-        console.log('Received remote track:', event);
+        console.log('Received remote track:', event.track.kind, event.track.enabled);
         const audioElement = document.createElement('audio');
         audioElement.id = `audio-${socketId}`;
         audioElement.srcObject = event.streams[0];
         audioElement.autoplay = true;
         audioElement.muted = isDeafened;
+        
+        // Ensure audio is playing
+        audioElement.onloadedmetadata = () => {
+            audioElement.play().catch(error => {
+                console.error('Error playing audio:', error);
+            });
+        };
+        
         document.body.appendChild(audioElement);
     };
 
@@ -336,9 +354,12 @@ joinBtn.addEventListener('click', async () => {
 
 muteBtn.addEventListener('click', () => {
     isMuted = !isMuted;
-    localStream.getAudioTracks().forEach(track => {
-        track.enabled = !isMuted;
-    });
+    if (localStream) {
+        localStream.getAudioTracks().forEach(track => {
+            track.enabled = !isMuted;
+            console.log('Track enabled state:', track.enabled);
+        });
+    }
     muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
     muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
 });
@@ -347,6 +368,7 @@ deafenBtn.addEventListener('click', () => {
     isDeafened = !isDeafened;
     document.querySelectorAll('audio').forEach(audio => {
         audio.muted = isDeafened;
+        console.log('Audio muted state:', audio.muted);
     });
     deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
     deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
