@@ -50,11 +50,11 @@ function setupAudioContext() {
     function checkVoiceActivity() {
         analyser.getByteFrequencyData(dataArray);
         const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-        
+
         if (average > 30 && !isMuted) {
             socket.emit('speaking', { displayName });
         }
-        
+
         requestAnimationFrame(checkVoiceActivity);
     }
 
@@ -89,7 +89,7 @@ function initializeSocket() {
         console.log('Existing users:', users);
         for (const user of users) {
             addUserToList(user.displayName);
-            await createPeerConnection(user.socketId, true);
+            await createPeerConnection(user.socketId, false);
         }
     });
 
@@ -97,6 +97,10 @@ function initializeSocket() {
         console.log('User left:', data);
         removeUserFromList(data.displayName);
         closePeerConnection(data.socketId);
+        const audioElement = document.getElementById(`audio-${data.socketId}`);
+        if (audioElement) {
+            audioElement.remove();
+        }
     });
 
     socket.on('offer', async (data) => {
@@ -139,7 +143,6 @@ async function createPeerConnection(socketId, isInitiator) {
     // Add local stream
     if (localStream) {
         localStream.getTracks().forEach(track => {
-            console.log('Adding track to peer connection:', track.kind, track.enabled);
             peerConnection.addTrack(track, localStream);
         });
     }
@@ -147,7 +150,6 @@ async function createPeerConnection(socketId, isInitiator) {
     // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-            console.log('Sending ICE candidate:', event.candidate);
             socket.emit('ice-candidate', {
                 socketId,
                 candidate: event.candidate
@@ -179,23 +181,19 @@ async function createPeerConnection(socketId, isInitiator) {
         audioElement.srcObject = event.streams[0];
         audioElement.autoplay = true;
         audioElement.muted = isDeafened;
-        
-        // Ensure audio is playing
+
         audioElement.onloadedmetadata = () => {
             audioElement.play().catch(error => {
                 console.error('Error playing audio:', error);
             });
         };
-        
+
         document.body.appendChild(audioElement);
     };
 
     if (isInitiator) {
         try {
-            const offer = await peerConnection.createOffer({
-                offerToReceiveAudio: true,
-                voiceActivityDetection: true
-            });
+            const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
             socket.emit('offer', {
                 socketId,
@@ -215,22 +213,23 @@ async function handleOffer(data) {
         if (!peerConnection) {
             peerConnection = await createPeerConnection(data.socketId, false);
         }
-        
-        if (peerConnection.signalingState !== 'stable') {
-            console.log('Connection not stable, waiting...');
-            return;
-        }
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await peerConnection.createAnswer({
-            offerToReceiveAudio: true,
-            voiceActivityDetection: true
-        });
+        const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         socket.emit('answer', {
             socketId: data.socketId,
             answer
         });
+
+        // Add queued ICE candidates after setting remote description
+        if (peerConnection.queuedIceCandidates) {
+            for (const candidate of peerConnection.queuedIceCandidates) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+            peerConnection.queuedIceCandidates = [];
+        }
+
     } catch (error) {
         console.error('Error handling offer:', error);
     }
@@ -244,12 +243,16 @@ async function handleAnswer(data) {
             return;
         }
 
-        if (peerConnection.signalingState !== 'have-local-offer') {
-            console.error('Invalid signaling state:', peerConnection.signalingState);
-            return;
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+
+        // Add queued ICE candidates
+        if (peerConnection.queuedIceCandidates) {
+            for (const candidate of peerConnection.queuedIceCandidates) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+            peerConnection.queuedIceCandidates = [];
         }
 
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
     } catch (error) {
         console.error('Error handling answer:', error);
     }
@@ -266,8 +269,6 @@ async function handleIceCandidate(data) {
         if (peerConnection.remoteDescription) {
             await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
         } else {
-            console.log('Remote description not set, queuing ICE candidate');
-            // Queue the ICE candidate to be added when remote description is set
             if (!peerConnection.queuedIceCandidates) {
                 peerConnection.queuedIceCandidates = [];
             }
@@ -328,7 +329,7 @@ function updateUserSpeakingStatus(name, isSpeaking) {
 // Event Listeners
 joinBtn.addEventListener('click', async () => {
     displayName = displayNameInput.value.trim();
-    
+
     if (!displayName) {
         showWarning('Please enter a display name');
         return;
@@ -337,8 +338,7 @@ joinBtn.addEventListener('click', async () => {
     try {
         await initializeWebRTC();
         initializeSocket();
-        
-        // Wait for socket connection before joining room
+
         socket.on('connect', () => {
             console.log('Socket connected, joining room...');
             socket.emit('join-room', { displayName });
@@ -357,7 +357,6 @@ muteBtn.addEventListener('click', () => {
     if (localStream) {
         localStream.getAudioTracks().forEach(track => {
             track.enabled = !isMuted;
-            console.log('Track enabled state:', track.enabled);
         });
     }
     muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
@@ -368,7 +367,6 @@ deafenBtn.addEventListener('click', () => {
     isDeafened = !isDeafened;
     document.querySelectorAll('audio').forEach(audio => {
         audio.muted = isDeafened;
-        console.log('Audio muted state:', audio.muted);
     });
     deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
     deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
@@ -378,7 +376,7 @@ leaveBtn.addEventListener('click', () => {
     if (socket) {
         socket.disconnect();
     }
-    
+
     Object.keys(peerConnections).forEach(socketId => {
         closePeerConnection(socketId);
         const audioElement = document.getElementById(`audio-${socketId}`);
@@ -386,20 +384,20 @@ leaveBtn.addEventListener('click', () => {
             audioElement.remove();
         }
     });
-    
+
     if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
     }
-    
+
     welcomeSection.classList.remove('hidden');
     channelSection.classList.add('hidden');
     usersList.innerHTML = '';
     displayNameInput.value = '';
-    
+
     localStream = null;
     peerConnections = {};
     isMuted = false;
     isDeafened = false;
     displayName = '';
     socket = null;
-}); 
+});
