@@ -77,6 +77,14 @@ function initializeSocket() {
         await createPeerConnection(data.socketId, true);
     });
 
+    socket.on('existing-users', async (users) => {
+        console.log('Existing users:', users);
+        for (const user of users) {
+            addUserToList(user.displayName);
+            await createPeerConnection(user.socketId, true);
+        }
+    });
+
     socket.on('user-left', (data) => {
         console.log('User left:', data);
         removeUserFromList(data.displayName);
@@ -111,7 +119,9 @@ function initializeSocket() {
 async function createPeerConnection(socketId, isInitiator) {
     const configuration = {
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
         ]
     };
 
@@ -119,9 +129,11 @@ async function createPeerConnection(socketId, isInitiator) {
     peerConnections[socketId] = peerConnection;
 
     // Add local stream
-    localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-    });
+    if (localStream) {
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+    }
 
     // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
@@ -133,9 +145,21 @@ async function createPeerConnection(socketId, isInitiator) {
         }
     };
 
+    // Handle connection state changes
+    peerConnection.onconnectionstatechange = () => {
+        console.log(`Connection state for ${socketId}:`, peerConnection.connectionState);
+    };
+
+    // Handle ICE connection state changes
+    peerConnection.oniceconnectionstatechange = () => {
+        console.log(`ICE connection state for ${socketId}:`, peerConnection.iceConnectionState);
+    };
+
     // Handle incoming tracks
     peerConnection.ontrack = (event) => {
+        console.log('Received remote track:', event);
         const audioElement = document.createElement('audio');
+        audioElement.id = `audio-${socketId}`;
         audioElement.srcObject = event.streams[0];
         audioElement.autoplay = true;
         audioElement.muted = isDeafened;
@@ -144,7 +168,9 @@ async function createPeerConnection(socketId, isInitiator) {
 
     if (isInitiator) {
         try {
-            const offer = await peerConnection.createOffer();
+            const offer = await peerConnection.createOffer({
+                offerToReceiveAudio: true
+            });
             await peerConnection.setLocalDescription(offer);
             socket.emit('offer', {
                 socketId,
@@ -159,10 +185,12 @@ async function createPeerConnection(socketId, isInitiator) {
 }
 
 async function handleOffer(data) {
-    const peerConnection = await createPeerConnection(data.socketId, false);
     try {
+        const peerConnection = await createPeerConnection(data.socketId, false);
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await peerConnection.createAnswer();
+        const answer = await peerConnection.createAnswer({
+            offerToReceiveAudio: true
+        });
         await peerConnection.setLocalDescription(answer);
         socket.emit('answer', {
             socketId: data.socketId,
@@ -255,12 +283,13 @@ joinBtn.addEventListener('click', async () => {
         await initializeWebRTC();
         initializeSocket();
         
-        socket.emit('join-room', { displayName });
-        
-        welcomeSection.classList.add('hidden');
-        channelSection.classList.remove('hidden');
-        
-        addUserToList(displayName);
+        // Wait for socket connection before joining room
+        socket.on('connect', () => {
+            socket.emit('join-room', { displayName });
+            welcomeSection.classList.add('hidden');
+            channelSection.classList.remove('hidden');
+            addUserToList(displayName);
+        });
     } catch (error) {
         showWarning('Error joining room. Please try again.');
         console.error('Error joining room:', error);
@@ -292,6 +321,10 @@ leaveBtn.addEventListener('click', () => {
     
     Object.keys(peerConnections).forEach(socketId => {
         closePeerConnection(socketId);
+        const audioElement = document.getElementById(`audio-${socketId}`);
+        if (audioElement) {
+            audioElement.remove();
+        }
     });
     
     if (localStream) {
