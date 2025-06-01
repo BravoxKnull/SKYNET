@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKYNET - Authentication</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -310,15 +311,19 @@
 
                 console.log('Attempting login with display name:', displayName)
                 
-                // First find the user by display name
+                // First find the user by display name with proper headers
                 const { data: foundUser, error: userError } = await supabase
                     .from('users')
-                    .select('*')
+                    .select('id, display_name')
                     .eq('display_name', displayName)
                     .single()
 
                 if (userError) {
                     console.error('User lookup error:', userError)
+                    throw new Error('Invalid display name or password')
+                }
+
+                if (!foundUser) {
                     throw new Error('Invalid display name or password')
                 }
 
@@ -336,10 +341,14 @@
                 console.log('Login successful, updating last login...')
 
                 // Update last login
-                await supabase
+                const { error: updateError } = await supabase
                     .from('users')
                     .update({ last_login: new Date().toISOString() })
                     .eq('id', foundUser.id)
+
+                if (updateError) {
+                    console.error('Failed to update last login:', updateError)
+                }
 
                 // Store user data with session
                 const userData = {
