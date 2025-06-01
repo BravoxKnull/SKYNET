@@ -169,8 +169,8 @@
                     return;
                 }
 
-                // If not in localStorage, try to get from Supabase
-                const response = await fetch(`https://skynet-mdy7.onrender.com/api/avatars/${user.id}`, {
+                // If not in localStorage, try to get from Supabase storage bucket
+                const response = await fetch(`https://skynet-mdy7.onrender.com/storage/v1/object/public/avatars/${user.id}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${user.token}`
@@ -178,15 +178,14 @@
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
-                    if (data.avatar_url) {
-                        document.getElementById('avatarPreview').src = data.avatar_url;
-                        // Update user object with avatar URL
-                        user.avatar_url = data.avatar_url;
-                        localStorage.setItem('user', JSON.stringify(user));
-                    }
+                    const blob = await response.blob();
+                    const avatarUrl = URL.createObjectURL(blob);
+                    document.getElementById('avatarPreview').src = avatarUrl;
+                    // Update user object with avatar URL
+                    user.avatar_url = avatarUrl;
+                    localStorage.setItem('user', JSON.stringify(user));
                 } else {
-                    console.log('No avatar found in Supabase, using default');
+                    console.log('No avatar found in Supabase storage, using default');
                     // Use default avatar if none found
                     document.getElementById('avatarPreview').src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
                 }
@@ -231,13 +230,14 @@
             try {
                 let avatar_url = user.avatar_url
                 
-                // If new avatar is selected, upload to Supabase
+                // If new avatar is selected, upload to Supabase storage
                 if (avatarFile) {
                     const formData = new FormData()
-                    formData.append('avatar', avatarFile)
-                    formData.append('userId', user.id)
+                    formData.append('file', avatarFile)
+                    formData.append('bucket', 'avatars')
+                    formData.append('path', user.id)
                     
-                    const response = await fetch('https://skynet-mdy7.onrender.com/api/avatars/upload', {
+                    const response = await fetch('https://skynet-mdy7.onrender.com/storage/v1/object/avatars', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${user.token}`
@@ -249,14 +249,12 @@
                         throw new Error('Failed to upload avatar')
                     }
                     
-                    const data = await response.json()
-                    if (data.avatar_url) {
-                        avatar_url = data.avatar_url
-                        // Update preview immediately
-                        document.getElementById('avatarPreview').src = avatar_url
-                    } else {
-                        throw new Error('No avatar URL in response')
-                    }
+                    // Get the public URL for the uploaded avatar
+                    const publicUrl = `https://skynet-mdy7.onrender.com/storage/v1/object/public/avatars/${user.id}`
+                    avatar_url = publicUrl
+                    
+                    // Update preview immediately
+                    document.getElementById('avatarPreview').src = avatar_url
                 }
                 
                 // Update user data
