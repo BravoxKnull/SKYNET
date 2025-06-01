@@ -62,14 +62,27 @@ body {
     animation: pulse 2s infinite;
 }
 
-.header h1 {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2rem;
-    background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+/* User Info in Header */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-color);
+}
+
+#userDisplayName {
+    font-weight: 500;
+    color: var(--text-color);
 }
 
 /* Hamburger Menu */
@@ -158,29 +171,6 @@ body {
 .nav-link.active {
     background: rgba(100, 255, 218, 0.1);
     border-left: 3px solid var(--primary-color);
-}
-
-/* User Info in Navigation */
-.user-info {
-    margin-top: auto;
-    padding: 1rem;
-    border-top: 1px solid rgba(100, 255, 218, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.nav-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--primary-color);
-}
-
-#userDisplayName {
-    font-weight: 500;
-    color: var(--text-color);
 }
 
 /* Overlay when menu is open */
@@ -781,6 +771,23 @@ body {
     .user-status {
         font-size: 0.75rem;
     }
+
+    .header {
+        padding: 1rem;
+    }
+
+    .user-info {
+        padding: 4px 8px;
+    }
+
+    .nav-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    #userDisplayName {
+        font-size: 0.9rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -806,6 +813,23 @@ body {
 
     .user-status {
         font-size: 0.7rem;
+    }
+
+    .header {
+        padding: 0.75rem;
+    }
+
+    .user-info {
+        padding: 3px 6px;
+    }
+
+    .nav-avatar {
+        width: 24px;
+        height: 24px;
+    }
+
+    #userDisplayName {
+        font-size: 0.8rem;
     }
 }
 
