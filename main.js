@@ -308,14 +308,18 @@ function addUserToList(name) {
         <div class="user-status"></div>
         <span>${name}</span>
     `;
-    userItem.dataset.name = name;
     usersList.appendChild(userItem);
 }
 
 function removeUserFromList(name) {
-    const userItem = usersList.querySelector(`[data-name="${name}"]`);
-    if (userItem) {
-        userItem.remove();
+    const userItems = usersList.getElementsByClassName('user-item');
+    for (const item of userItems) {
+        if (item.textContent.trim() === name) {
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(20px)';
+            setTimeout(() => item.remove(), 300);
+            break;
+        }
     }
 }
 
@@ -333,27 +337,44 @@ function updateUserSpeakingStatus(name, isSpeaking) {
 
 // Event Listeners
 joinBtn.addEventListener('click', async () => {
-    displayName = displayNameInput.value.trim();
-
-    if (!displayName) {
-        showWarning('Please enter a display name');
+    const name = displayNameInput.value.trim();
+    if (!name) {
+        showWarning('Please enter your display name');
         return;
     }
 
+    // Add loading state to button
+    joinBtn.classList.add('loading');
+    joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
+
     try {
+        // Initialize WebRTC and Socket.io
         await initializeWebRTC();
         initializeSocket();
 
-        socket.on('connect', () => {
-            console.log('Socket connected, joining room...');
-            socket.emit('join-room', { displayName });
-            welcomeSection.classList.add('hidden');
-            channelSection.classList.remove('hidden');
-            addUserToList(displayName);
-        });
+        // Join the room
+        socket.emit('join-room', { displayName: name });
+        displayName = name;
+
+        // Animate welcome section out
+        welcomeSection.classList.add('hidden');
+        
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Show channel section
+        channelSection.classList.remove('hidden');
+        channelSection.classList.add('visible');
+
+        // Update UI
+        displayNameInput.disabled = true;
+        joinBtn.disabled = true;
+        warningMessage.textContent = '';
     } catch (error) {
-        showWarning('Error joining room. Please try again.');
-        console.error('Error joining room:', error);
+        console.error('Error joining channel:', error);
+        showWarning('Failed to join channel. Please try again.');
+        joinBtn.classList.remove('loading');
+        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
     }
 });
 
@@ -378,31 +399,39 @@ deafenBtn.addEventListener('click', () => {
 });
 
 leaveBtn.addEventListener('click', () => {
-    if (socket) {
-        socket.disconnect();
-    }
-
-    Object.keys(peerConnections).forEach(socketId => {
-        closePeerConnection(socketId);
-        const audioElement = document.getElementById(`audio-${socketId}`);
-        if (audioElement) {
-            audioElement.remove();
-        }
-    });
-
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-    }
-
-    welcomeSection.classList.remove('hidden');
+    // Animate channel section out
+    channelSection.classList.remove('visible');
     channelSection.classList.add('hidden');
-    usersList.innerHTML = '';
-    displayNameInput.value = '';
 
-    localStream = null;
-    peerConnections = {};
-    isMuted = false;
-    isDeafened = false;
-    displayName = '';
-    socket = null;
+    // Wait for animation to complete
+    setTimeout(() => {
+        // Reset UI
+        displayNameInput.disabled = false;
+        joinBtn.disabled = false;
+        joinBtn.classList.remove('loading');
+        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+        usersList.innerHTML = '';
+        warningMessage.textContent = '';
+
+        // Show welcome section
+        welcomeSection.classList.remove('hidden');
+
+        // Clean up connections
+        Object.keys(peerConnections).forEach(socketId => {
+            closePeerConnection(socketId);
+        });
+        peerConnections = {};
+
+        // Disconnect socket
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+        }
+
+        // Stop local stream
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+    }, 500);
 });
