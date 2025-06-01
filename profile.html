@@ -29,124 +29,126 @@
         <!-- Profile Section -->
         <main class="profile-container">
             <div class="profile-card">
-                <div class="profile-header">
-                    <div class="avatar-section">
-                        <div class="avatar-preview">
-                            <img id="avatarPreview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+" alt="Avatar Preview">
+                <form id="profileForm" class="profile-form">
+                    <div class="profile-header">
+                        <div class="avatar-section">
+                            <div class="avatar-preview">
+                                <img id="avatarPreview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+" alt="Avatar Preview">
+                            </div>
+                            <div class="avatar-upload">
+                                <label for="avatar" class="upload-btn">
+                                    <i class="fas fa-camera"></i> Change Avatar
+                                </label>
+                                <input type="file" id="avatar" accept="image/*" style="display: none;">
+                            </div>
                         </div>
-                        <div class="avatar-upload">
-                            <label for="avatar" class="upload-btn">
-                                <i class="fas fa-camera"></i> Change Avatar
-                            </label>
-                            <input type="file" id="avatar" accept="image/*" style="display: none;">
+                        <div class="profile-info">
+                            <h2 id="profileDisplayName"></h2>
+                            <div class="status-selector">
+                                <select id="statusSelect">
+                                    <option value="online">Online</option>
+                                    <option value="away">Away</option>
+                                    <option value="offline">Offline</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="profile-info">
-                        <h2 id="profileDisplayName"></h2>
-                        <div class="status-selector">
-                            <select id="statusSelect">
-                                <option value="online">Online</option>
-                                <option value="away">Away</option>
-                                <option value="offline">Offline</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="profile-sections">
-                    <section class="profile-section">
-                        <h3>Profile Information</h3>
-                        <div class="form-group">
-                            <label for="displayName">Display Name</label>
-                            <input type="text" id="displayName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="bioInput">Bio</label>
-                            <textarea id="bioInput" rows="3" placeholder="Tell us about yourself..."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="customStatus">Custom Status</label>
-                            <div class="status-input">
-                                <input type="text" id="customStatus" placeholder="Set a custom status...">
-                                <button id="emojiPicker" class="emoji-btn">
-                                    <i class="far fa-smile"></i>
+                    <div class="profile-sections">
+                        <section class="profile-section">
+                            <h3>Profile Information</h3>
+                            <div class="form-group">
+                                <label for="displayName">Display Name</label>
+                                <input type="text" id="displayName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="bioInput">Bio</label>
+                                <textarea id="bioInput" rows="3" placeholder="Tell us about yourself..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="customStatus">Custom Status</label>
+                                <div class="status-input">
+                                    <input type="text" id="customStatus" placeholder="Set a custom status...">
+                                    <button type="button" id="emojiPicker" class="emoji-btn">
+                                        <i class="far fa-smile"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="profile-section">
+                            <h3>Preferences</h3>
+                            <div class="preferences-grid">
+                                <div class="preference-item">
+                                    <label class="switch">
+                                        <input type="checkbox" id="notificationsToggle" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Notifications</span>
+                                </div>
+                                <div class="preference-item">
+                                    <label class="switch">
+                                        <input type="checkbox" id="soundToggle" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Sound</span>
+                                </div>
+                                <div class="preference-item">
+                                    <label class="switch">
+                                        <input type="checkbox" id="voiceActivityToggle" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Voice Activity</span>
+                                </div>
+                                <div class="preference-item">
+                                    <label class="switch">
+                                        <input type="checkbox" id="pushToTalkToggle">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Push to Talk</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="profile-section">
+                            <h3>Appearance</h3>
+                            <div class="form-group">
+                                <label for="themeSelect">Theme</label>
+                                <select id="themeSelect">
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="languageSelect">Language</label>
+                                <select id="languageSelect">
+                                    <option value="en">English</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Français</option>
+                                    <option value="de">Deutsch</option>
+                                </select>
+                            </div>
+                        </section>
+
+                        <section class="profile-section">
+                            <h3>Account</h3>
+                            <div class="account-info">
+                                <p>Member since: <span id="memberSince"></span></p>
+                                <p>Last login: <span id="lastLogin"></span></p>
+                            </div>
+                            <div class="account-actions">
+                                <button type="button" id="changePasswordBtn" class="btn-secondary">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                                <button type="button" id="deleteAccountBtn" class="btn-danger">
+                                    <i class="fas fa-trash"></i> Delete Account
                                 </button>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    </div>
 
-                    <section class="profile-section">
-                        <h3>Preferences</h3>
-                        <div class="preferences-grid">
-                            <div class="preference-item">
-                                <label class="switch">
-                                    <input type="checkbox" id="notificationsToggle" checked>
-                                    <span class="slider"></span>
-                                </label>
-                                <span>Notifications</span>
-                            </div>
-                            <div class="preference-item">
-                                <label class="switch">
-                                    <input type="checkbox" id="soundToggle" checked>
-                                    <span class="slider"></span>
-                                </label>
-                                <span>Sound</span>
-                            </div>
-                            <div class="preference-item">
-                                <label class="switch">
-                                    <input type="checkbox" id="voiceActivityToggle" checked>
-                                    <span class="slider"></span>
-                                </label>
-                                <span>Voice Activity</span>
-                            </div>
-                            <div class="preference-item">
-                                <label class="switch">
-                                    <input type="checkbox" id="pushToTalkToggle">
-                                    <span class="slider"></span>
-                                </label>
-                                <span>Push to Talk</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="profile-section">
-                        <h3>Appearance</h3>
-                        <div class="form-group">
-                            <label for="themeSelect">Theme</label>
-                            <select id="themeSelect">
-                                <option value="dark">Dark</option>
-                                <option value="light">Light</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="languageSelect">Language</label>
-                            <select id="languageSelect">
-                                <option value="en">English</option>
-                                <option value="es">Español</option>
-                                <option value="fr">Français</option>
-                                <option value="de">Deutsch</option>
-                            </select>
-                        </div>
-                    </section>
-
-                    <section class="profile-section">
-                        <h3>Account</h3>
-                        <div class="account-info">
-                            <p>Member since: <span id="memberSince"></span></p>
-                            <p>Last login: <span id="lastLogin"></span></p>
-                        </div>
-                        <div class="account-actions">
-                            <button id="changePasswordBtn" class="btn-secondary">
-                                <i class="fas fa-key"></i> Change Password
-                            </button>
-                            <button id="deleteAccountBtn" class="btn-danger">
-                                <i class="fas fa-trash"></i> Delete Account
-                            </button>
-                        </div>
-                    </section>
-                </div>
-
-                <div id="successMessage" class="success-message" style="display: none;"></div>
+                    <div id="successMessage" class="success-message" style="display: none;"></div>
+                </form>
             </div>
         </main>
     </div>
@@ -159,10 +161,34 @@
         }
 
         // Set current values
-        document.getElementById('displayName').value = user.displayName
-        document.getElementById('profileDisplayName').textContent = user.displayName
+        document.getElementById('displayName').value = user.displayName || ''
+        document.getElementById('profileDisplayName').textContent = user.displayName || 'User'
+        document.getElementById('bioInput').value = user.bio || ''
+        document.getElementById('customStatus').value = user.customStatus || ''
+        document.getElementById('statusSelect').value = user.status || 'online'
+        document.getElementById('themeSelect').value = user.theme || 'dark'
+        document.getElementById('languageSelect').value = user.language || 'en'
+        
+        // Set preferences
+        if (user.preferences) {
+            document.getElementById('notificationsToggle').checked = user.preferences.notifications ?? true
+            document.getElementById('soundToggle').checked = user.preferences.sound ?? true
+            document.getElementById('voiceActivityToggle').checked = user.preferences.voiceActivity ?? true
+            document.getElementById('pushToTalkToggle').checked = user.preferences.pushToTalk ?? false
+        }
+
+        // Set dates
+        document.getElementById('memberSince').textContent = user.memberSince || new Date().toLocaleDateString()
+        document.getElementById('lastLogin').textContent = user.lastLogin || new Date().toLocaleDateString()
+
+        // Set avatar if exists
         if (user.avatar_url) {
-            document.getElementById('avatarPreview').src = user.avatar_url
+            const avatarPreview = document.getElementById('avatarPreview');
+            avatarPreview.src = user.avatar_url;
+            avatarPreview.onerror = function() {
+                // If avatar fails to load, use default avatar
+                this.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
+            };
         }
 
         // Handle form submission
@@ -208,7 +234,8 @@
                         sound: document.getElementById('soundToggle').checked,
                         voiceActivity: document.getElementById('voiceActivityToggle').checked,
                         pushToTalk: document.getElementById('pushToTalkToggle').checked
-                    }
+                    },
+                    lastLogin: new Date().toLocaleDateString()
                 }
                 
                 // Save to localStorage
@@ -232,15 +259,21 @@
 
         // Preview avatar before upload
         document.getElementById('avatar').addEventListener('change', (e) => {
-            const file = e.target.files[0]
+            const file = e.target.files[0];
             if (file) {
-                const reader = new FileReader()
-                reader.onload = (e) => {
-                    document.getElementById('avatarPreview').src = e.target.result
+                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                    alert('File size too large. Please choose an image under 5MB.');
+                    return;
                 }
-                reader.readAsDataURL(file)
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const avatarPreview = document.getElementById('avatarPreview');
+                    avatarPreview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
             }
-        })
+        });
 
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
