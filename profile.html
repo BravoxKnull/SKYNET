@@ -179,6 +179,13 @@
                     return null
                 }
 
+                // Set the session in Supabase client
+                const { error: setSessionError } = await supabase.auth.setSession(storedUser.session)
+                if (setSessionError) {
+                    console.error('Error setting session:', setSessionError)
+                    return null
+                }
+
                 // Try to get current session
                 const { data: { session }, error } = await supabase.auth.getSession()
                 
@@ -252,9 +259,16 @@
 
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', async () => {
-            await supabase.auth.signOut()
-            localStorage.removeItem('user')
-            window.location.href = 'auth.html'
+            try {
+                await supabase.auth.signOut()
+                localStorage.removeItem('user')
+                window.location.href = 'auth.html'
+            } catch (error) {
+                console.error('Logout error:', error)
+                // Still clear local storage and redirect even if there's an error
+                localStorage.removeItem('user')
+                window.location.href = 'auth.html'
+            }
         })
 
         // Load user profile data
@@ -264,6 +278,7 @@
                 const session = await checkAuth()
                 if (!session) {
                     console.log('No session in loadProfile')
+                    window.location.href = 'auth.html'
                     return
                 }
 
@@ -286,9 +301,9 @@
                     document.getElementById('avatarPreview').src = data.avatar_url
                 }
                 document.getElementById('bioInput').value = data.bio || ''
-                document.getElementById('statusSelect').value = data.status
-                document.getElementById('themeSelect').value = data.theme
-                document.getElementById('languageSelect').value = data.language
+                document.getElementById('statusSelect').value = data.status || 'online'
+                document.getElementById('themeSelect').value = data.theme || 'dark'
+                document.getElementById('languageSelect').value = data.language || 'en'
                 document.getElementById('memberSince').textContent = new Date(data.created_at).toLocaleDateString()
                 document.getElementById('lastLogin').textContent = new Date(data.last_login).toLocaleDateString()
 
@@ -302,6 +317,7 @@
                 }
             } catch (error) {
                 console.error('Error loading profile:', error)
+                window.location.href = 'auth.html'
             }
         }
 
@@ -463,6 +479,7 @@
                 await loadProfile()
             } catch (error) {
                 console.error('Page init error:', error)
+                window.location.href = 'auth.html'
             }
         }
 
