@@ -62,6 +62,23 @@ body {
     animation: pulse 2s infinite;
 }
 
+.header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+}
+
+/* Header Right Section */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 /* User Info in Header */
 .user-info {
     display: flex;
@@ -776,6 +793,14 @@ body {
         padding: 1rem;
     }
 
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .logo {
+        height: 30px;
+    }
+
     .user-info {
         padding: 4px 8px;
     }
@@ -817,6 +842,14 @@ body {
 
     .header {
         padding: 0.75rem;
+    }
+
+    .header h1 {
+        font-size: 1.2rem;
+    }
+
+    .logo {
+        height: 25px;
     }
 
     .user-info {
