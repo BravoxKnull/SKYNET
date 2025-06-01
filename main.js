@@ -73,6 +73,10 @@ function initializeSocket() {
     socket.on('connect', () => {
         console.log('Connected to signaling server');
         socket.emit('join-room', { displayName });
+        
+        joinBtn.classList.remove('loading');
+        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Connected';
+        joinBtn.disabled = true;
     });
 
     socket.on('connect_error', (error) => {
@@ -80,6 +84,7 @@ function initializeSocket() {
         showWarning('Failed to connect to server. Please try again later.');
         joinBtn.classList.remove('loading');
         joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+        joinBtn.disabled = false;
     });
 
     socket.on('user-joined', async (data) => {
@@ -353,6 +358,7 @@ joinBtn.addEventListener('click', async () => {
     // Add loading state to button
     joinBtn.classList.add('loading');
     joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
+    joinBtn.disabled = true;
 
     try {
         // Initialize WebRTC and Socket.io
@@ -375,13 +381,13 @@ joinBtn.addEventListener('click', async () => {
 
         // Update UI
         displayNameInput.disabled = true;
-        joinBtn.disabled = true;
         warningMessage.textContent = '';
     } catch (error) {
         console.error('Error joining channel:', error);
         showWarning('Failed to join channel. Please try again.');
         joinBtn.classList.remove('loading');
         joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+        joinBtn.disabled = false;
     }
 });
 
