@@ -162,27 +162,47 @@
 
         // Check authentication and redirect if not authenticated
         async function checkAuth() {
-            const { data: { session }, error } = await supabase.auth.getSession()
-            if (error || !session) {
-                window.location.href = 'auth.html'
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession()
+                if (error) {
+                    console.error('Auth error:', error)
+                    return null
+                }
+                if (!session) {
+                    console.log('No session found')
+                    return null
+                }
+                return session
+            } catch (error) {
+                console.error('Auth check error:', error)
                 return null
             }
-            return session
         }
 
         // Set user display name
         async function setUserDisplay() {
-            const session = await checkAuth()
-            if (!session) return
+            try {
+                const session = await checkAuth()
+                if (!session) {
+                    console.log('No session, redirecting to auth')
+                    window.location.href = 'auth.html'
+                    return
+                }
 
-            const { data: { user }, error } = await supabase.auth.getUser()
-            if (error || !user) {
+                const { data: { user }, error } = await supabase.auth.getUser()
+                if (error || !user) {
+                    console.error('User fetch error:', error)
+                    window.location.href = 'auth.html'
+                    return
+                }
+
+                const displayName = user.user_metadata?.full_name || user.email || 'User'
+                document.getElementById('userDisplayName').textContent = displayName
+                document.getElementById('profileDisplayName').textContent = displayName
+            } catch (error) {
+                console.error('Display name error:', error)
                 window.location.href = 'auth.html'
-                return
             }
-
-            document.getElementById('userDisplayName').textContent = user.user_metadata?.full_name || user.email
-            document.getElementById('profileDisplayName').textContent = user.user_metadata?.full_name || user.email
         }
 
         // Handle logout
@@ -360,8 +380,13 @@
 
         // Initialize page
         async function initPage() {
-            await setUserDisplay()
-            await loadProfile()
+            try {
+                await setUserDisplay()
+                await loadProfile()
+            } catch (error) {
+                console.error('Page init error:', error)
+                window.location.href = 'auth.html'
+            }
         }
 
         // Load profile on page load
