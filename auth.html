@@ -320,17 +320,12 @@
                 // Find user by display name
                 const { data: foundUser, error: userError } = await supabase
                     .from('users')
-                    .select('id, display_name, password')
+                    .select('id, display_name')
                     .eq('display_name', displayName)
                     .single()
 
                 if (userError || !foundUser) {
                     console.error('User lookup error:', userError)
-                    throw new Error('Invalid display name or password')
-                }
-
-                // Verify password
-                if (foundUser.password !== password) {
                     throw new Error('Invalid display name or password')
                 }
 
@@ -407,14 +402,13 @@
                 // Generate a unique ID for the user
                 const userId = crypto.randomUUID()
 
-                // Create user profile directly
+                // Create user profile
                 const { error: profileError } = await supabase
                     .from('users')
                     .insert([
                         {
                             id: userId,
                             display_name: displayName,
-                            password: password, // Store password directly (not recommended for production)
                             created_at: new Date().toISOString(),
                             last_login: new Date().toISOString()
                         }
