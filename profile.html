@@ -325,12 +325,13 @@
                 const avatarPreview = document.getElementById('avatarPreview')
                 avatarPreview.style.opacity = '0.5'
 
+                // Create a unique file name
                 const fileExt = file.name.split('.').pop()
-                const fileName = `${storedUser.id}-${Math.random()}.${fileExt}`
-                const filePath = `${storedUser.id}/${fileName}`
+                const fileName = `${storedUser.id}-${Date.now()}.${fileExt}`
+                const filePath = `public/${fileName}`
 
                 console.log('Uploading avatar...')
-                const { error: uploadError } = await supabase.storage
+                const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('avatars')
                     .upload(filePath, file, {
                         cacheControl: '3600',
@@ -350,7 +351,10 @@
                 console.log('Updating user profile...')
                 const { error: updateError } = await supabase
                     .from('users')
-                    .update({ avatar_url: publicUrl })
+                    .update({ 
+                        avatar_url: publicUrl,
+                        updated_at: new Date().toISOString()
+                    })
                     .eq('id', storedUser.id)
 
                 if (updateError) {
@@ -372,7 +376,11 @@
                 avatarPreview.src = originalAvatarSrc
                 avatarPreview.style.opacity = '1'
                 
-                showMessage('Error uploading avatar. Please try again.', 'error')
+                let errorMessage = 'Error uploading avatar. Please try again.'
+                if (error.message?.includes('row-level security policy')) {
+                    errorMessage = 'Permission denied. Please try logging out and back in.'
+                }
+                showMessage(errorMessage, 'error')
             }
         })
 
