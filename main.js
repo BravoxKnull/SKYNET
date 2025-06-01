@@ -72,11 +72,14 @@ function initializeSocket() {
 
     socket.on('connect', () => {
         console.log('Connected to signaling server');
+        socket.emit('join-room', { displayName });
     });
 
     socket.on('connect_error', (error) => {
         console.error('Connection error:', error);
         showWarning('Failed to connect to server. Please try again later.');
+        joinBtn.classList.remove('loading');
+        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
     });
 
     socket.on('user-joined', async (data) => {
@@ -304,6 +307,7 @@ function showWarning(message) {
 function addUserToList(name) {
     const userItem = document.createElement('div');
     userItem.className = 'user-item';
+    userItem.dataset.name = name;
     userItem.innerHTML = `
         <div class="user-status"></div>
         <span>${name}</span>
@@ -324,13 +328,16 @@ function removeUserFromList(name) {
 }
 
 function updateUserSpeakingStatus(name, isSpeaking) {
-    const userItem = usersList.querySelector(`[data-name="${name}"]`);
-    if (userItem) {
-        const statusIndicator = userItem.querySelector('.user-status');
-        if (isSpeaking) {
-            statusIndicator.classList.add('speaking');
-        } else {
-            statusIndicator.classList.remove('speaking');
+    const userItems = usersList.getElementsByClassName('user-item');
+    for (const item of userItems) {
+        if (item.dataset.name === name) {
+            const statusIndicator = item.querySelector('.user-status');
+            if (isSpeaking) {
+                statusIndicator.classList.add('speaking');
+            } else {
+                statusIndicator.classList.remove('speaking');
+            }
+            break;
         }
     }
 }
@@ -350,11 +357,8 @@ joinBtn.addEventListener('click', async () => {
     try {
         // Initialize WebRTC and Socket.io
         await initializeWebRTC();
-        initializeSocket();
-
-        // Join the room
-        socket.emit('join-room', { displayName: name });
         displayName = name;
+        initializeSocket();
 
         // Animate welcome section out
         welcomeSection.classList.add('hidden');
@@ -365,6 +369,9 @@ joinBtn.addEventListener('click', async () => {
         // Show channel section
         channelSection.classList.remove('hidden');
         channelSection.classList.add('visible');
+
+        // Add current user to the list
+        addUserToList(displayName);
 
         // Update UI
         displayNameInput.disabled = true;
