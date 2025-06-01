@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYNET - About</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        /* About Page Specific Styles */
+        .about-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            padding: 4rem 2rem;
+            position: relative;
+            margin-bottom: 4rem;
+        }
+
+        .hero-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            color: var(--secondary-color);
+            text-shadow: var(--neon-glow);
+            margin-bottom: 1.5rem;
+            animation: glitch 2s infinite;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .mission-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 4rem;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mission-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(5, 217, 232, 0.1), transparent);
+            animation: gradient-shift 8s infinite;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            text-shadow: var(--neon-glow);
+            margin-bottom: 2rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--secondary-color), transparent);
+            animation: line-expand 2s infinite;
+        }
+
+        .mission-content {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .mission-text {
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .mission-image {
+            width: 100%;
+            height: 300px;
+            background: rgba(5, 217, 232, 0.1);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mission-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, var(--secondary-color), transparent);
+            opacity: 0.1;
+            animation: pulse 4s infinite;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--secondary-color);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            text-shadow: var(--neon-glow);
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+        }
+
+        .feature-description {
+            color: var(--accent-color);
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .timeline-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 4rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .timeline {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: var(--secondary-color);
+            box-shadow: var(--neon-glow);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 3rem;
+            width: 50%;
+            padding: 0 2rem;
+        }
+
+        .timeline-item:nth-child(odd) {
+            left: 0;
+        }
+
+        .timeline-item:nth-child(even) {
+            left: 50%;
+        }
+
+        .timeline-content {
+            background: rgba(5, 217, 232, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-content:hover {
+            transform: translateX(10px);
+            border-color: var(--secondary-color);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .timeline-date {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--secondary-color);
+            text-shadow: var(--neon-glow);
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-title {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-description {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        @keyframes gradient-shift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes line-expand {
+            0% {
+                transform: scaleX(0);
+            }
+            50% {
+                transform: scaleX(1);
+            }
+            100% {
+                transform: scaleX(0);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .mission-content {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .timeline::before {
+                left: 0;
+            }
+
+            .timeline-item {
+                width: 100%;
+                left: 0 !important;
+                padding-left: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Animation -->
+    <div class="loading" id="loading"></div>
+
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-container">
+                <img src="logo.svg" alt="SKYNET Logo" class="logo">
+                <h1>SKYNET</h1>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    HOME
+                </a>
+                <a href="devs.html" class="nav-link">
+                    <i class="fas fa-code"></i>
+                    DEVS
+                </a>
+                <a href="about.html" class="nav-link active">
+                    <i class="fas fa-info-circle"></i>
+                    ABOUT
+                </a>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="about-container">
+                <!-- Hero Section -->
+                <section class="hero-section">
+                    <h1 class="hero-title">ABOUT SKYNET</h1>
+                    <p class="hero-subtitle">
+                        Revolutionizing real-time voice communication with cutting-edge technology and unparalleled user experience.
+                    </p>
+                </section>
+
+                <!-- Mission Section -->
+                <section class="mission-section">
+                    <h2 class="section-title">OUR MISSION</h2>
+                    <div class="mission-content">
+                        <div class="mission-text">
+                            <p>
+                                At SKYNET, we're on a mission to transform the way people communicate in real-time. 
+                                Our platform combines state-of-the-art WebRTC technology with an immersive cyberpunk-inspired 
+                                interface to create a voice chat experience like no other.
+                            </p>
+                            <p>
+                                We believe in pushing the boundaries of what's possible in web-based communication, 
+                                delivering crystal-clear voice quality, minimal latency, and a visually stunning 
+                                environment that makes every interaction memorable.
+                            </p>
+                        </div>
+                        <div class="mission-image"></div>
+                    </div>
+                </section>
+
+                <!-- Features Section -->
+                <section class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-bolt feature-icon"></i>
+                        <h3 class="feature-title">Real-Time Communication</h3>
+                        <p class="feature-description">
+                            Experience ultra-low latency voice chat powered by advanced WebRTC technology.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <h3 class="feature-title">End-to-End Encryption</h3>
+                        <p class="feature-description">
+                            Your conversations are protected with military-grade encryption for maximum security.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-paint-brush feature-icon"></i>
+                        <h3 class="feature-title">Immersive Design</h3>
+                        <p class="feature-description">
+                            Dive into our cyberpunk-inspired interface with stunning visual effects and animations.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-users feature-icon"></i>
+                        <h3 class="feature-title">Dynamic Channels</h3>
+                        <p class="feature-description">
+                            Create and join channels instantly with our intuitive channel management system.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-tachometer-alt feature-icon"></i>
+                        <h3 class="feature-title">Performance Optimized</h3>
+                        <p class="feature-description">
+                            Built for speed and efficiency, ensuring smooth operation on any device.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-code feature-icon"></i>
+                        <h3 class="feature-title">Open Source</h3>
+                        <p class="feature-description">
+                            Join our community of developers and contribute to the future of voice chat.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Timeline Section -->
+                <section class="timeline-section">
+                    <h2 class="section-title">OUR JOURNEY</h2>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-date">2023</div>
+                                <h3 class="timeline-title">Project Inception</h3>
+                                <p class="timeline-description">
+                                    SKYNET was born from a vision to revolutionize voice chat technology.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-date">2024 Q1</div>
+                                <h3 class="timeline-title">Beta Launch</h3>
+                                <p class="timeline-description">
+                                    Released our first beta version with core voice chat functionality.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-date">2024 Q2</div>
+                                <h3 class="timeline-title">UI Overhaul</h3>
+                                <p class="timeline-description">
+                                    Implemented our signature cyberpunk design system.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-date">Present</div>
+                                <h3 class="timeline-title">Growing Community</h3>
+                                <p class="timeline-description">
+                                    Building a thriving community of users and developers.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 SKYNET. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#"><i class="fas fa-shield-alt"></i> Privacy Policy</a>
+                    <a href="#"><i class="fas fa-file-contract"></i> Terms of Service</a>
+                    <a href="#"><i class="fas fa-envelope"></i> Contact</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Initialize particles.js with custom configuration
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 100,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: ['#05d9e8', '#ff2a6d', '#d1f7ff']
+                },
+                shape: {
+                    type: ['circle', 'triangle', 'polygon']
+                },
+                opacity: {
+                    value: 0.6,
+                    random: true
+                },
+                size: {
+                    value: 4,
+                    random: true
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#05d9e8',
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 3,
+                    direction: 'none',
+                    random: true,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 140,
+                        line_linked: {
+                            opacity: 0.5
+                        }
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
+        });
+
+        // Handle loading animation
+        window.addEventListener('load', () => {
+            const loading = document.getElementById('loading');
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 500);
+        });
+    </script>
+</body>
+</html> 
