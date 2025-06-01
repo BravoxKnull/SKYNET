@@ -33,6 +33,7 @@ body {
     grid-template-columns: 1fr 300px;
     grid-template-rows: auto 1fr auto;
     min-height: 100vh;
+    overflow: hidden; /* Prevent double scrollbars */
 }
 
 /* Header Styles */
@@ -156,6 +157,8 @@ body {
     grid-area: main;
     padding: 2rem;
     position: relative;
+    overflow-y: auto;
+    height: calc(100vh - 140px); /* Account for header and footer */
 }
 
 /* Welcome Section */
@@ -272,7 +275,8 @@ body {
     padding: 16px;
     overflow-y: auto;
     flex: 1;
-    max-height: calc(100vh - 200px); /* Limit height to prevent unnecessary scrolling */
+    max-height: calc(100vh - 280px); /* Account for header, channel header, and controls */
+    margin-bottom: 80px; /* Space for controls */
 }
 
 .user-item {
@@ -416,6 +420,12 @@ body {
     padding: 16px;
     background: rgba(10, 25, 47, 0.8);
     border-top: 1px solid rgba(100, 255, 218, 0.1);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
 }
 
 .control-btn {
@@ -486,6 +496,8 @@ body {
     background: rgba(10, 25, 47, 0.8);
     padding: 2rem;
     border-left: 1px solid rgba(100, 255, 218, 0.1);
+    overflow-y: auto;
+    height: calc(100vh - 140px);
 }
 
 .join-section {
@@ -585,6 +597,8 @@ body {
     background: rgba(10, 25, 47, 0.95);
     padding: 1.5rem 2rem;
     border-top: 1px solid rgba(100, 255, 218, 0.1);
+    position: relative;
+    z-index: 90;
 }
 
 .footer-content {
@@ -699,203 +713,46 @@ body {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-    .app-container {
-        grid-template-columns: 1fr 250px;
-    }
-
-    .channel-section {
-        padding: 1rem;
+    .main-content {
+        height: calc(100vh - 120px);
     }
 
     .users-grid {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
-        padding: 12px;
-    }
-
-    .user-item {
-        padding: 10px;
-    }
-
-    .user-avatar-container {
-        width: 50px;
-        height: 50px;
+        max-height: calc(100vh - 260px);
+        margin-bottom: 70px;
     }
 }
 
 @media (max-width: 768px) {
-    .app-container {
-        grid-template-areas:
-            "header"
-            "main"
-            "sidebar"
-            "footer";
-        grid-template-columns: 1fr;
-    }
-
-    .header {
-        padding: 1rem;
-    }
-
-    .hamburger-menu {
-        display: flex;
-    }
-
-    .nav-menu {
-        position: fixed;
-        top: 0;
-        right: -100%;
-        width: 280px;
-        height: 100vh;
-        background: rgba(10, 25, 47, 0.98);
-        backdrop-filter: blur(10px);
-        flex-direction: column;
-        padding: 5rem 2rem 2rem;
-        transition: right 0.3s ease;
-        border-left: 1px solid rgba(100, 255, 218, 0.1);
-    }
-
-    .nav-menu.active {
-        right: 0;
-    }
-
-    .nav-links {
-        flex-direction: column;
-        align-items: flex-start;
-        width: 100%;
-    }
-
-    .nav-link {
-        width: 100%;
-        padding: 1rem;
-    }
-
-    .user-info {
-        width: 100%;
-        margin: 1rem 0;
-    }
-
     .main-content {
-        padding: 1rem;
-    }
-
-    .welcome-section {
-        min-height: 40vh;
-    }
-
-    .animated-text {
-        font-size: 2rem;
-    }
-
-    .channel-section {
+        height: calc(100vh - 100px);
         padding: 1rem;
     }
 
     .users-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 10px;
-        padding: 10px;
-        max-height: calc(100vh - 180px);
-    }
-
-    .user-item {
-        padding: 8px;
-        aspect-ratio: auto;
-        min-height: 120px;
-    }
-
-    .user-avatar-container {
-        width: 45px;
-        height: 45px;
-    }
-
-    .user-name {
-        font-size: 0.8rem;
-    }
-
-    .user-status {
-        font-size: 0.7rem;
+        max-height: calc(100vh - 240px);
+        margin-bottom: 60px;
     }
 
     .channel-controls {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .control-btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .sidebar {
-        padding: 1rem;
-    }
-
-    .footer-content {
-        flex-direction: column;
-        gap: 1rem;
-        text-align: center;
-    }
-
-    .footer-links {
-        flex-direction: column;
-        gap: 1rem;
+        padding: 12px;
     }
 }
 
 @media (max-width: 480px) {
-    .header h1 {
-        font-size: 1.5rem;
-    }
-
-    .logo {
-        height: 30px;
-    }
-
-    .welcome-section {
-        min-height: 30vh;
-    }
-
-    .animated-text {
-        font-size: 1.5rem;
+    .main-content {
+        height: calc(100vh - 80px);
+        padding: 0.5rem;
     }
 
     .users-grid {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 8px;
+        max-height: calc(100vh - 220px);
+        margin-bottom: 50px;
         padding: 8px;
     }
 
-    .user-item {
-        padding: 6px;
-        min-height: 100px;
-    }
-
-    .user-avatar-container {
-        width: 40px;
-        height: 40px;
-    }
-
-    .user-name {
-        font-size: 0.75rem;
-    }
-
-    .user-status {
-        font-size: 0.65rem;
-    }
-
-    .user-details {
-        text-align: left;
-    }
-
-    .channel-header {
-        flex-direction: column;
-        gap: 1rem;
-        text-align: center;
-    }
-
     .channel-controls {
-        padding: 1rem;
+        padding: 8px;
     }
 }
 
