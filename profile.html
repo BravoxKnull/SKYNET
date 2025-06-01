@@ -163,15 +163,20 @@
         // Check authentication and redirect if not authenticated
         async function checkAuth() {
             try {
+                console.log('Checking authentication...')
                 const { data: { session }, error } = await supabase.auth.getSession()
+                
                 if (error) {
                     console.error('Auth error:', error)
                     return null
                 }
+
                 if (!session) {
                     console.log('No session found')
                     return null
                 }
+
+                console.log('Session found:', session)
                 return session
             } catch (error) {
                 console.error('Auth check error:', error)
@@ -182,20 +187,31 @@
         // Set user display name
         async function setUserDisplay() {
             try {
+                console.log('Setting user display...')
                 const session = await checkAuth()
+                
                 if (!session) {
-                    console.log('No session, redirecting to auth')
+                    console.log('No session in setUserDisplay, redirecting to auth')
                     window.location.href = 'auth.html'
                     return
                 }
 
+                console.log('Getting user data...')
                 const { data: { user }, error } = await supabase.auth.getUser()
-                if (error || !user) {
+                
+                if (error) {
                     console.error('User fetch error:', error)
                     window.location.href = 'auth.html'
                     return
                 }
 
+                if (!user) {
+                    console.log('No user found')
+                    window.location.href = 'auth.html'
+                    return
+                }
+
+                console.log('User found:', user)
                 const displayName = user.user_metadata?.full_name || user.email || 'User'
                 document.getElementById('userDisplayName').textContent = displayName
                 document.getElementById('profileDisplayName').textContent = displayName
@@ -215,16 +231,26 @@
         // Load user profile data
         async function loadProfile() {
             try {
+                console.log('Loading profile...')
                 const session = await checkAuth()
-                if (!session) return
+                if (!session) {
+                    console.log('No session in loadProfile')
+                    return
+                }
 
+                console.log('Fetching user data from database...')
                 const { data, error } = await supabase
                     .from('users')
                     .select('*, user_settings(*)')
                     .eq('id', session.user.id)
                     .single()
 
-                if (error) throw error
+                if (error) {
+                    console.error('Database error:', error)
+                    throw error
+                }
+
+                console.log('User data loaded:', data)
 
                 // Update profile fields
                 if (data.avatar_url) {
@@ -381,6 +407,7 @@
         // Initialize page
         async function initPage() {
             try {
+                console.log('Initializing page...')
                 await setUserDisplay()
                 await loadProfile()
             } catch (error) {
@@ -389,7 +416,8 @@
             }
         }
 
-        // Load profile on page load
+        // Start initialization
+        console.log('Starting page initialization...')
         initPage()
 
         // Save changes when inputs change
