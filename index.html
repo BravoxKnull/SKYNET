@@ -107,7 +107,13 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/webrtc-adapter@8.2.1/out/adapter.js"></script>
     <script src="main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
         document.getElementById('displayName').value = user.displayName
