@@ -164,6 +164,7 @@
         function createUserListItem(userData) {
             const userItem = document.createElement('div')
             userItem.className = 'user-item'
+            userItem.setAttribute('data-user-id', userData.id)
             
             // Get avatar URL or use default
             const avatarUrl = userData.avatar_url || 'assets/images/default-avatar.svg'
@@ -174,11 +175,11 @@
                          alt="${userData.displayName}'s avatar" 
                          class="user-avatar"
                          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'">
-                    <div class="user-status-indicator speaking"></div>
+                    <div class="user-status-indicator"></div>
                 </div>
                 <div class="user-details">
                     <span class="user-name">${userData.displayName}</span>
-                    <span class="user-status">Speaking...</span>
+                    <span class="user-status">Online</span>
                 </div>
             `
             return userItem
@@ -243,6 +244,27 @@
                     users = usersList
                     updateUsersList(users)
                 })
+
+                // Add speaking state handlers
+                socket.on('userSpeaking', (userId) => {
+                    const userItem = document.querySelector(`[data-user-id="${userId}"]`)
+                    if (userItem) {
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator speaking'
+                        status.textContent = 'Speaking...'
+                    }
+                })
+
+                socket.on('userStoppedSpeaking', (userId) => {
+                    const userItem = document.querySelector(`[data-user-id="${userId}"]`)
+                    if (userItem) {
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator'
+                        status.textContent = 'Online'
+                    }
+                })
             } else {
                 setTimeout(initializeSocketHandlers, 100)
             }
@@ -277,6 +299,7 @@
                 // Show channel section
                 document.getElementById('welcomeSection').classList.add('hidden')
                 document.getElementById('channelSection').classList.remove('hidden')
+                document.getElementById('channelSection').classList.add('visible')
 
                 // Join the channel with avatar
                 socket.emit('joinChannel', {

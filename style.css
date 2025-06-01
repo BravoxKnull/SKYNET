@@ -123,9 +123,7 @@ body {
 }
 
 .welcome-section.hidden {
-    opacity: 0;
-    transform: translateY(-20px);
-    pointer-events: none;
+    display: none;
 }
 
 .animated-text {
@@ -145,7 +143,7 @@ body {
 
 /* Channel Section Styles */
 .channel-section {
-    display: flex;
+    display: none;
     flex-direction: column;
     height: 100%;
     background: #36393f;
@@ -156,6 +154,10 @@ body {
     right: 0;
     bottom: 0;
     z-index: 10;
+}
+
+.channel-section.visible {
+    display: flex;
 }
 
 .channel-header {
