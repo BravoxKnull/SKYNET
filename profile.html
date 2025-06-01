@@ -277,7 +277,7 @@
                 // Create a unique file name
                 const fileExt = file.name.split('.').pop()
                 const fileName = `${storedUser.id}-${Date.now()}.${fileExt}`
-                const filePath = `public/${fileName}`
+                const filePath = fileName // Remove the 'public/' prefix
 
                 console.log('Uploading avatar...')
                 const { data: uploadData, error: uploadError } = await supabase.storage
@@ -301,8 +301,7 @@
                 const { error: updateError } = await supabase
                     .from('users')
                     .update({ 
-                        avatar_url: publicUrl,
-                        updated_at: new Date().toISOString()
+                        avatar_url: publicUrl
                     })
                     .eq('id', storedUser.id)
 
@@ -341,8 +340,7 @@
                     bio: document.getElementById('bioInput').value,
                     status: document.getElementById('statusSelect').value,
                     theme: document.getElementById('themeSelect').value,
-                    language: document.getElementById('languageSelect').value,
-                    updated_at: new Date().toISOString()
+                    language: document.getElementById('languageSelect').value
                 }
 
                 const { error } = await supabase
