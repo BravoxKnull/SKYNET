@@ -252,8 +252,8 @@
                 })
 
                 // Add speaking state handlers
-                socket.on('userSpeaking', (userId) => {
-                    const userItem = document.querySelector(`[data-user-id="${userId}"]`)
+                socket.on('userSpeaking', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
                     if (userItem) {
                         const indicator = userItem.querySelector('.user-status-indicator')
                         const status = userItem.querySelector('.user-status')
@@ -262,8 +262,29 @@
                     }
                 })
 
-                socket.on('userStoppedSpeaking', (userId) => {
-                    const userItem = document.querySelector(`[data-user-id="${userId}"]`)
+                socket.on('userStoppedSpeaking', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    if (userItem) {
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator'
+                        status.textContent = 'Online'
+                    }
+                })
+
+                // Handle mute state
+                socket.on('userMuted', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    if (userItem) {
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator muted'
+                        status.textContent = 'Muted'
+                    }
+                })
+
+                socket.on('userUnmuted', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
                     if (userItem) {
                         const indicator = userItem.querySelector('.user-status-indicator')
                         const status = userItem.querySelector('.user-status')

@@ -146,14 +146,16 @@ body {
     display: none;
     flex-direction: column;
     height: 100%;
-    background: #36393f;
-    color: #fff;
+    background: rgba(10, 25, 47, 0.95);
+    color: var(--text-color);
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 10;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(100, 255, 218, 0.1);
 }
 
 .channel-section.visible {
@@ -165,8 +167,8 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    background: #2f3136;
-    border-bottom: 1px solid #202225;
+    background: rgba(10, 25, 47, 0.8);
+    border-bottom: 1px solid rgba(100, 255, 218, 0.1);
 }
 
 .channel-info {
@@ -178,12 +180,13 @@ body {
 .channel-info h2 {
     font-size: 1.2rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--primary-color);
     margin: 0;
+    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
 }
 
 .channel-type {
-    color: #b9bbbe;
+    color: var(--accent-color);
     font-size: 0.9rem;
 }
 
@@ -199,16 +202,19 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #43b581;
-    color: #fff;
+    background: var(--success-color);
+    color: var(--secondary-color);
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
 }
 
 .status-indicator.muted {
-    background: #f04747;
+    background: var(--danger-color);
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
 }
 
 .status-indicator.deafened {
-    background: #faa61a;
+    background: var(--warning-color);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
 /* Users Grid */
@@ -222,7 +228,7 @@ body {
 }
 
 .user-item {
-    background: #2f3136;
+    background: rgba(10, 25, 47, 0.8);
     border-radius: 8px;
     padding: 16px;
     display: flex;
@@ -233,27 +239,31 @@ body {
     aspect-ratio: 1;
     justify-content: center;
     border: 2px solid transparent;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Different colors for user boxes */
 .user-item:nth-child(3n+1) {
-    background: #2f3136;
-    border-color: #43b581;
+    background: rgba(10, 25, 47, 0.8);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.1);
 }
 
 .user-item:nth-child(3n+2) {
-    background: #36393f;
-    border-color: #7289da;
+    background: rgba(10, 25, 47, 0.8);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(100, 255, 218, 0.1);
 }
 
 .user-item:nth-child(3n+3) {
-    background: #2f3136;
-    border-color: #faa61a;
+    background: rgba(10, 25, 47, 0.8);
+    border-color: var(--warning-color);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
 }
 
 .user-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .user-avatar-container {
@@ -261,14 +271,15 @@ body {
     height: 80px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid #43b581;
+    border: 3px solid var(--primary-color);
     position: relative;
     transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
 }
 
 .user-item:hover .user-avatar-container {
     transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(67, 181, 129, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.4);
 }
 
 .user-avatar {
@@ -284,38 +295,39 @@ body {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: 3px solid #2f3136;
+    border: 3px solid var(--secondary-color);
     transition: all 0.3s ease;
+    background: var(--accent-color);
 }
 
 .user-status-indicator.speaking {
-    background: #43b581;
-    box-shadow: 0 0 10px #43b581;
+    background: var(--primary-color);
+    box-shadow: 0 0 15px var(--primary-color);
     animation: pulse 1.5s infinite;
 }
 
 .user-status-indicator.muted {
-    background: #f04747;
-    box-shadow: 0 0 10px #f04747;
+    background: var(--danger-color);
+    box-shadow: 0 0 15px var(--danger-color);
 }
 
 .user-status-indicator.deafened {
-    background: #faa61a;
-    box-shadow: 0 0 10px #faa61a;
+    background: var(--warning-color);
+    box-shadow: 0 0 15px var(--warning-color);
 }
 
 @keyframes pulse {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(67, 181, 129, 0.4);
+        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.4);
     }
     70% {
         transform: scale(1.1);
-        box-shadow: 0 0 0 10px rgba(67, 181, 129, 0);
+        box-shadow: 0 0 0 10px rgba(0, 255, 157, 0);
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(67, 181, 129, 0);
+        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0);
     }
 }
 
@@ -325,18 +337,19 @@ body {
 
 .user-name {
     font-weight: 600;
-    color: #fff;
+    color: var(--text-color);
     margin-bottom: 4px;
+    text-shadow: 0 0 10px rgba(230, 241, 255, 0.3);
 }
 
 .user-status {
     font-size: 0.8rem;
-    color: #b9bbbe;
+    color: var(--accent-color);
     transition: all 0.3s ease;
 }
 
 .user-item:hover .user-status {
-    color: #fff;
+    color: var(--primary-color);
 }
 
 /* Channel Controls */
@@ -345,8 +358,8 @@ body {
     justify-content: center;
     gap: 16px;
     padding: 16px;
-    background: #2f3136;
-    border-top: 1px solid #202225;
+    background: rgba(10, 25, 47, 0.8);
+    border-top: 1px solid rgba(100, 255, 218, 0.1);
 }
 
 .control-btn {
@@ -355,27 +368,37 @@ body {
     gap: 8px;
     padding: 8px 16px;
     border-radius: 4px;
-    border: none;
-    background: #36393f;
-    color: #fff;
+    border: 1px solid rgba(100, 255, 218, 0.2);
+    background: rgba(10, 25, 47, 0.5);
+    color: var(--text-color);
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .control-btn:hover {
-    background: #40444b;
+    background: rgba(100, 255, 218, 0.1);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
 }
 
 .control-btn.danger {
-    background: #f04747;
+    background: rgba(255, 77, 77, 0.1);
+    border-color: var(--danger-color);
 }
 
 .control-btn.danger:hover {
-    background: #d83c3e;
+    background: rgba(255, 77, 77, 0.2);
+    box-shadow: 0 0 15px rgba(255, 77, 77, 0.2);
 }
 
 .control-btn i {
     font-size: 1.1rem;
+    color: var(--primary-color);
+}
+
+.control-btn.danger i {
+    color: var(--danger-color);
 }
 
 /* User Info in Header */
