@@ -160,8 +160,8 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
-        // Check if user is logged in
-        const storedUser = localStorage.getItem('user')
+        // Get stored user data
+        const storedUser = JSON.parse(localStorage.getItem('user'))
         if (!storedUser) {
             console.log('No user in localStorage, redirecting to auth')
             window.location.href = 'auth.html'
@@ -179,8 +179,13 @@
                 }
 
                 if (!session) {
-                    console.log('No session found')
-                    return null
+                    console.log('No session found, trying to refresh...')
+                    const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession()
+                    if (refreshError || !newSession) {
+                        console.log('Failed to refresh session')
+                        return null
+                    }
+                    return newSession
                 }
 
                 console.log('Session found:', session)
@@ -194,12 +199,6 @@
         // Set user display name
         async function setUserDisplay() {
             try {
-                const storedUser = JSON.parse(localStorage.getItem('user'))
-                if (!storedUser) {
-                    console.log('No stored user found')
-                    return
-                }
-
                 // Set display name from localStorage first
                 document.getElementById('userDisplayName').textContent = storedUser.displayName || 'User'
                 document.getElementById('profileDisplayName').textContent = storedUser.displayName || 'User'
@@ -285,7 +284,10 @@
         async function saveProfile() {
             try {
                 const session = await checkAuth()
-                if (!session) return
+                if (!session) {
+                    console.error('No session available for saving profile')
+                    return
+                }
 
                 const updates = {
                     bio: document.getElementById('bioInput').value,
@@ -299,7 +301,10 @@
                     .update(updates)
                     .eq('id', session.user.id)
 
-                if (error) throw error
+                if (error) {
+                    console.error('Error updating profile:', error)
+                    throw error
+                }
 
                 // Update settings
                 const settings = {
@@ -315,7 +320,10 @@
                     .from('user_settings')
                     .upsert(settings)
 
-                if (settingsError) throw settingsError
+                if (settingsError) {
+                    console.error('Error updating settings:', settingsError)
+                    throw settingsError
+                }
 
                 alert('Profile updated successfully!')
             } catch (error) {
@@ -331,12 +339,16 @@
 
             try {
                 const session = await checkAuth()
-                if (!session) return
+                if (!session) {
+                    console.error('No session available for avatar upload')
+                    return
+                }
 
                 const fileExt = file.name.split('.').pop()
                 const fileName = `${session.user.id}-${Math.random()}.${fileExt}`
                 const filePath = `${session.user.id}/${fileName}`
 
+                console.log('Uploading avatar...')
                 const { error: uploadError } = await supabase.storage
                     .from('avatars')
                     .upload(filePath, file, {
@@ -344,20 +356,29 @@
                         upsert: true
                     })
 
-                if (uploadError) throw uploadError
+                if (uploadError) {
+                    console.error('Upload error:', uploadError)
+                    throw uploadError
+                }
 
+                console.log('Getting public URL...')
                 const { data: { publicUrl } } = supabase.storage
                     .from('avatars')
                     .getPublicUrl(filePath)
 
+                console.log('Updating user profile...')
                 const { error: updateError } = await supabase
                     .from('users')
                     .update({ avatar_url: publicUrl })
                     .eq('id', session.user.id)
 
-                if (updateError) throw updateError
+                if (updateError) {
+                    console.error('Update error:', updateError)
+                    throw updateError
+                }
 
                 document.getElementById('avatarPreview').src = publicUrl
+                alert('Avatar updated successfully!')
             } catch (error) {
                 console.error('Error uploading avatar:', error)
                 alert('Error uploading avatar')
