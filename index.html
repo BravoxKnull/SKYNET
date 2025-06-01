@@ -189,7 +189,15 @@
             const usersList = document.getElementById('usersList')
             usersList.innerHTML = ''
 
-            for (const userData of users) {
+            // Remove duplicates by using a Map
+            const uniqueUsers = new Map()
+            users.forEach(user => {
+                if (!uniqueUsers.has(user.id)) {
+                    uniqueUsers.set(user.id, user)
+                }
+            })
+
+            for (const userData of uniqueUsers.values()) {
                 try {
                     // Get user's avatar from database
                     const { data, error } = await supabase
@@ -323,6 +331,12 @@
             height: 100%;
             background: #36393f;
             color: #fff;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
         }
 
         .channel-header {
@@ -379,7 +393,7 @@
         /* Users Grid */
         .users-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
             padding: 16px;
             overflow-y: auto;
@@ -395,6 +409,8 @@
             align-items: center;
             gap: 12px;
             transition: transform 0.2s ease;
+            aspect-ratio: 1;
+            justify-content: center;
         }
 
         .user-item:hover {
@@ -403,8 +419,8 @@
         }
 
         .user-avatar-container {
-            width: 64px;
-            height: 64px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             overflow: hidden;
             border: 3px solid #43b581;
