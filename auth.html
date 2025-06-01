@@ -317,34 +317,22 @@
 
                 console.log('Attempting login with display name:', displayName)
                 
-                // First find the user by display name with proper headers
+                // Find user by display name
                 const { data: foundUser, error: userError } = await supabase
                     .from('users')
-                    .select('id, display_name')
+                    .select('id, display_name, password')
                     .eq('display_name', displayName)
                     .single()
 
-                if (userError) {
+                if (userError || !foundUser) {
                     console.error('User lookup error:', userError)
                     throw new Error('Invalid display name or password')
                 }
 
-                if (!foundUser) {
+                // Verify password
+                if (foundUser.password !== password) {
                     throw new Error('Invalid display name or password')
                 }
-
-                // Now try to sign in with the found user's ID
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: `${foundUser.id}@skynet.local`,
-                    password: password
-                })
-
-                if (error) {
-                    console.error('Login error details:', error)
-                    throw error
-                }
-
-                console.log('Login successful, updating last login...')
 
                 // Update last login
                 const { error: updateError } = await supabase
@@ -356,11 +344,10 @@
                     console.error('Failed to update last login:', updateError)
                 }
 
-                // Store user data with session
+                // Store user data
                 const userData = {
                     id: foundUser.id,
-                    displayName: displayName,
-                    session: data.session
+                    displayName: displayName
                 }
                 
                 console.log('Storing user data:', userData)
@@ -420,32 +407,14 @@
                 // Generate a unique ID for the user
                 const userId = crypto.randomUUID()
 
-                // Create auth user with a valid email format
-                const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: `user.${userId}@skynet.local`,
-                    password,
-                    options: {
-                        data: {
-                            display_name: displayName,
-                            user_id: userId
-                        }
-                    }
-                })
-
-                if (authError) {
-                    console.error('Signup auth error:', authError)
-                    throw authError
-                }
-
-                console.log('Auth user created, creating profile...')
-
-                // Create user profile
+                // Create user profile directly
                 const { error: profileError } = await supabase
                     .from('users')
                     .insert([
                         {
                             id: userId,
                             display_name: displayName,
+                            password: password, // Store password directly (not recommended for production)
                             created_at: new Date().toISOString(),
                             last_login: new Date().toISOString()
                         }
@@ -458,11 +427,10 @@
 
                 console.log('Profile created successfully')
 
-                // Store user data with session
+                // Store user data
                 const userData = {
                     id: userId,
-                    displayName: displayName,
-                    session: authData.session
+                    displayName: displayName
                 }
                 
                 console.log('Storing user data:', userData)
@@ -479,8 +447,6 @@
                 
                 if (error.message.includes('already taken')) {
                     errorMessage = 'This display name is already taken. Please choose another.'
-                } else if (error.message.includes('Email address')) {
-                    errorMessage = 'Invalid email format. Please try again.'
                 }
                 
                 showMessage(errorMessage, 'error')
