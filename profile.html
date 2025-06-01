@@ -171,6 +171,15 @@
         async function checkAuth() {
             try {
                 console.log('Checking authentication...')
+                
+                // First check if we have a stored session
+                const storedUser = JSON.parse(localStorage.getItem('user'))
+                if (!storedUser || !storedUser.session) {
+                    console.log('No stored session found')
+                    return null
+                }
+
+                // Try to get current session
                 const { data: { session }, error } = await supabase.auth.getSession()
                 
                 if (error) {
@@ -179,8 +188,19 @@
                 }
 
                 if (!session) {
-                    console.log('No session found')
-                    return null
+                    console.log('No active session, trying to refresh...')
+                    // Try to refresh the session
+                    const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
+                    
+                    if (refreshError || !refreshedSession) {
+                        console.log('Failed to refresh session')
+                        return null
+                    }
+                    
+                    // Update stored session
+                    storedUser.session = refreshedSession
+                    localStorage.setItem('user', JSON.stringify(storedUser))
+                    return refreshedSession
                 }
 
                 console.log('Session found:', session)
@@ -194,6 +214,13 @@
         // Set user display name
         async function setUserDisplay() {
             try {
+                const storedUser = JSON.parse(localStorage.getItem('user'))
+                if (!storedUser) {
+                    console.log('No stored user data')
+                    window.location.href = 'auth.html'
+                    return
+                }
+
                 // Set display name from localStorage first
                 document.getElementById('userDisplayName').textContent = storedUser.displayName || 'User'
                 document.getElementById('profileDisplayName').textContent = storedUser.displayName || 'User'
@@ -201,13 +228,15 @@
                 // Then verify with Supabase
                 const session = await checkAuth()
                 if (!session) {
-                    console.log('No Supabase session found')
+                    console.log('No valid session found, redirecting to auth')
+                    window.location.href = 'auth.html'
                     return
                 }
 
                 const { data: { user }, error } = await supabase.auth.getUser()
                 if (error || !user) {
                     console.error('User fetch error:', error)
+                    window.location.href = 'auth.html'
                     return
                 }
 
@@ -217,6 +246,7 @@
                 document.getElementById('profileDisplayName').textContent = displayName
             } catch (error) {
                 console.error('Display name error:', error)
+                window.location.href = 'auth.html'
             }
         }
 

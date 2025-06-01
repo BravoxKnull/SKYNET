@@ -315,11 +315,18 @@
 
                 if (profileError) throw profileError
 
-                // Store user data
+                // Update last login
+                await supabase
+                    .from('users')
+                    .update({ last_login: new Date().toISOString() })
+                    .eq('id', data.user.id)
+
+                // Store user data with session
                 localStorage.setItem('user', JSON.stringify({
                     id: data.user.id,
                     email: data.user.email,
-                    displayName: profile.display_name
+                    displayName: profile.display_name,
+                    session: data.session
                 }))
 
                 window.location.href = 'index.html'
@@ -387,11 +394,12 @@
 
                 if (profileError) throw profileError
 
-                // Store user data
+                // Store user data with session
                 localStorage.setItem('user', JSON.stringify({
                     id: authData.user.id,
                     email: email,
-                    displayName: displayName
+                    displayName: displayName,
+                    session: authData.session
                 }))
 
                 window.location.href = 'index.html'
