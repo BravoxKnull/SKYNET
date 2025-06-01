@@ -7,14 +7,10 @@
 
 :root {
     --primary-color: #00ff9d;
-    --primary-color-hover: #00cc7d;
     --secondary-color: #0a192f;
     --accent-color: #64ffda;
     --text-color: #e6f1ff;
     --background-color: #0a192f;
-    --card-background: rgba(10, 25, 47, 0.8);
-    --input-background: rgba(10, 25, 47, 0.5);
-    --border-color: rgba(100, 255, 218, 0.2);
     --danger-color: #ff4d4d;
     --success-color: #00ff9d;
     --warning-color: #ffd700;
@@ -198,33 +194,10 @@ body {
     background: rgba(100, 255, 218, 0.1);
 }
 
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: rgba(100, 255, 218, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.user-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
 .user-status {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: var(--success-color);
-    margin-left: -20px;
-    margin-top: 20px;
-    position: relative;
-    z-index: 1;
-    border: 2px solid var(--background-color);
 }
 
 .user-status.speaking {
@@ -235,12 +208,6 @@ body {
 
 .user-status.muted {
     background: var(--danger-color);
-}
-
-.user-item span {
-    font-size: 0.9rem;
-    color: var(--text-color);
-    margin-left: 0.5rem;
 }
 
 .channel-controls {
@@ -548,23 +515,6 @@ body {
     margin-right: 1rem;
 }
 
-.user-info .user-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: rgba(100, 255, 218, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.user-info .user-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
 .user-info i {
     color: var(--primary-color);
     font-size: 1.1rem;
@@ -595,185 +545,4 @@ body {
 
 #logoutBtn i {
     font-size: 1.1rem;
-}
-
-/* Profile Page Styles */
-.profile-container {
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    min-height: calc(100vh - 200px);
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-}
-
-.profile-card {
-    background: var(--card-background);
-    border-radius: 8px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 500px;
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--border-color);
-}
-
-.profile-card h2 {
-    color: var(--text-color);
-    margin-bottom: 2rem;
-    font-size: 1.5rem;
-    text-align: center;
-    font-family: 'Orbitron', sans-serif;
-    background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.profile-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.avatar-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.avatar-preview {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: rgba(100, 255, 218, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--primary-color);
-    box-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
-}
-
-.avatar-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.avatar-upload {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.upload-btn {
-    background: var(--primary-color);
-    color: var(--secondary-color);
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    border: none;
-}
-
-.upload-btn:hover {
-    background: var(--primary-color-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.form-group label {
-    color: var(--text-color);
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.form-group input {
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--input-background);
-    color: var(--text-color);
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.form-group input:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.2);
-}
-
-.save-btn {
-    background: var(--primary-color);
-    color: var(--secondary-color);
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    margin-top: 1rem;
-}
-
-.save-btn:hover {
-    background: var(--primary-color-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
-}
-
-.success-message {
-    background: var(--success-color);
-    color: var(--secondary-color);
-    padding: 1rem;
-    border-radius: 4px;
-    text-align: center;
-    animation: fadeIn 0.3s ease;
-    font-weight: 500;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Responsive Profile Page */
-@media (max-width: 768px) {
-    .profile-container {
-        padding: 1rem;
-        margin: 1rem auto;
-    }
-
-    .profile-card {
-        padding: 1.5rem;
-    }
-
-    .avatar-preview {
-        width: 100px;
-        height: 100px;
-    }
-
-    .upload-btn, .save-btn {
-        width: 100%;
-    }
 } 

@@ -2,7 +2,7 @@
 <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
     <!-- Background circle -->
     <circle cx="100" cy="100" r="100" fill="#e0e0e0"/>
-    
+ 
     <!-- User icon -->
     <circle cx="100" cy="80" r="40" fill="#666"/>
     <path d="M100 130 C 60 130, 30 160, 30 200 L 170 200 C 170 160, 140 130, 100 130" fill="#666"/>

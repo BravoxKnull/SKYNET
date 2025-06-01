@@ -26,15 +26,14 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     // Handle user joining a room
-    socket.on('join-room', async (data) => {
-        const { displayName, userId, avatarUrl } = data;
-        connectedUsers.set(socket.id, { displayName, userId, avatarUrl });
+    socket.on('join-room', (data) => {
+        const { displayName } = data;
+        connectedUsers.set(socket.id, { displayName });
 
         // Notify other users in the room
         socket.broadcast.emit('user-joined', {
             socketId: socket.id,
-            displayName,
-            avatarUrl
+            displayName
         });
 
         // Send list of existing users to the new user
@@ -42,8 +41,7 @@ io.on('connection', (socket) => {
             .filter(([id]) => id !== socket.id)
             .map(([id, user]) => ({
                 socketId: id,
-                displayName: user.displayName,
-                avatarUrl: user.avatarUrl
+                displayName: user.displayName
             }));
 
         socket.emit('existing-users', existingUsers);

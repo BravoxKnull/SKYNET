@@ -30,9 +30,7 @@
             </div>
             <nav class="nav-menu">
                 <div class="user-info">
-                    <div class="user-avatar">
-                        <img src="" alt="User Avatar" id="userAvatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'" />
-                    </div>
+                    <i class="fas fa-user"></i>
                     <span id="userDisplayName"></span>
                 </div>
                 <a href="profile.html" class="nav-link">
@@ -110,21 +108,9 @@
     <script src="https://cdn.jsdelivr.net/npm/webrtc-adapter@8.2.1/out/adapter.js"></script>
     <script src="main.js"></script>
     <script>
-        // Set the authenticated user's display name and avatar
-        console.log('User data:', user) // Debug log
-
+        // Set the authenticated user's display name
         document.getElementById('userDisplayName').textContent = user.displayName
         document.getElementById('displayName').value = user.displayName
-        
-        // Set avatar with proper error handling
-        const userAvatar = document.getElementById('userAvatar')
-        if (user && user.avatar_url) {
-            console.log('Setting avatar URL:', user.avatar_url) // Debug log
-            userAvatar.src = user.avatar_url
-        } else {
-            console.log('No avatar URL found, using default') // Debug log
-            userAvatar.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'
-        }
 
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', () => {

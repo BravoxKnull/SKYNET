@@ -89,14 +89,14 @@ function initializeSocket() {
 
     socket.on('user-joined', async (data) => {
         console.log('User joined:', data);
-        addUserToList(data.displayName, data.avatarUrl);
+        addUserToList(data.displayName);
         await createPeerConnection(data.socketId, true);
     });
 
     socket.on('existing-users', async (users) => {
         console.log('Existing users:', users);
         for (const user of users) {
-            addUserToList(user.displayName, user.avatarUrl);
+            addUserToList(user.displayName);
             await createPeerConnection(user.socketId, false);
         }
     });
@@ -309,14 +309,11 @@ function showWarning(message) {
     }, 3000);
 }
 
-function addUserToList(name, avatarUrl) {
+function addUserToList(name) {
     const userItem = document.createElement('div');
     userItem.className = 'user-item';
     userItem.dataset.name = name;
     userItem.innerHTML = `
-        <div class="user-avatar">
-            <img src="${avatarUrl || 'assets/images/default-avatar.svg'}" alt="${name}'s avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'" />
-        </div>
         <div class="user-status"></div>
         <span>${name}</span>
     `;
@@ -367,32 +364,7 @@ joinBtn.addEventListener('click', async () => {
         // Initialize WebRTC and Socket.io
         await initializeWebRTC();
         displayName = name;
-        
-        // Get user data from localStorage
-        const user = JSON.parse(localStorage.getItem('user'));
-        
-        // Initialize socket with user data
-        socket = io(window.location.origin, {
-            path: '/socket.io/',
-            transports: ['websocket', 'polling'],
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
-
-        socket.on('connect', () => {
-            console.log('Connected to signaling server');
-            socket.emit('join-room', { 
-                displayName: name,
-                userId: user.id,
-                avatarUrl: user.avatar_url
-            });
-            
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Connected';
-            joinBtn.disabled = true;
-        });
-
-        // ... rest of the socket event handlers ...
+        initializeSocket();
 
         // Animate welcome section out
         welcomeSection.classList.add('hidden');
@@ -405,7 +377,7 @@ joinBtn.addEventListener('click', async () => {
         channelSection.classList.add('visible');
 
         // Add current user to the list
-        addUserToList(name, user.avatar_url);
+        addUserToList(displayName);
 
         // Update UI
         displayNameInput.disabled = true;
