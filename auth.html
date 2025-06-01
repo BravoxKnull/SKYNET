@@ -258,6 +258,13 @@
         // Initialize Supabase client
         const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
+        
+        // Check if Supabase is loaded
+        if (!window.supabase) {
+            console.error('Supabase client not loaded!')
+            alert('Error: Supabase client not loaded. Please refresh the page.')
+        }
+
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
         // DOM Elements
@@ -299,12 +306,19 @@
                 loginBtn.disabled = true
                 loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...'
 
+                console.log('Attempting login with email:', email)
+                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password
                 })
 
-                if (error) throw error
+                if (error) {
+                    console.error('Login error details:', error)
+                    throw error
+                }
+
+                console.log('Login successful, fetching profile...')
 
                 // Get user profile
                 const { data: profile, error: profileError } = await supabase
@@ -313,7 +327,12 @@
                     .eq('id', data.user.id)
                     .single()
 
-                if (profileError) throw profileError
+                if (profileError) {
+                    console.error('Profile fetch error:', profileError)
+                    throw profileError
+                }
+
+                console.log('Profile fetched successfully')
 
                 // Update last login
                 await supabase
@@ -322,18 +341,30 @@
                     .eq('id', data.user.id)
 
                 // Store user data with session
-                localStorage.setItem('user', JSON.stringify({
+                const userData = {
                     id: data.user.id,
                     email: data.user.email,
                     displayName: profile.display_name,
                     session: data.session
-                }))
+                }
+                
+                console.log('Storing user data:', userData)
+                localStorage.setItem('user', JSON.stringify(userData))
 
+                console.log('Redirecting to index.html...')
                 window.location.href = 'index.html'
 
             } catch (error) {
                 console.error('Login error:', error)
-                showMessage(error.message || 'Login failed. Please try again.', 'error')
+                let errorMessage = 'Login failed. Please try again.'
+                
+                if (error.message === 'Invalid login credentials') {
+                    errorMessage = 'Invalid email or password. Please try again.'
+                } else if (error.message.includes('Email not confirmed')) {
+                    errorMessage = 'Please confirm your email before logging in.'
+                }
+                
+                showMessage(errorMessage, 'error')
             } finally {
                 loginBtn.disabled = false
                 loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login'
@@ -366,6 +397,8 @@
                 signupBtn.disabled = true
                 signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...'
 
+                console.log('Creating new account for:', email)
+
                 // Create auth user
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email,
@@ -377,7 +410,12 @@
                     }
                 })
 
-                if (authError) throw authError
+                if (authError) {
+                    console.error('Signup auth error:', authError)
+                    throw authError
+                }
+
+                console.log('Auth user created, creating profile...')
 
                 // Create user profile
                 const { error: profileError } = await supabase
@@ -392,21 +430,38 @@
                         }
                     ])
 
-                if (profileError) throw profileError
+                if (profileError) {
+                    console.error('Profile creation error:', profileError)
+                    throw profileError
+                }
+
+                console.log('Profile created successfully')
 
                 // Store user data with session
-                localStorage.setItem('user', JSON.stringify({
+                const userData = {
                     id: authData.user.id,
                     email: email,
                     displayName: displayName,
                     session: authData.session
-                }))
+                }
+                
+                console.log('Storing user data:', userData)
+                localStorage.setItem('user', JSON.stringify(userData))
 
-                window.location.href = 'index.html'
+                showMessage('Account created successfully! Redirecting...', 'success')
+                setTimeout(() => {
+                    window.location.href = 'index.html'
+                }, 2000)
 
             } catch (error) {
                 console.error('Signup error:', error)
-                showMessage(error.message || 'Signup failed. Please try again.', 'error')
+                let errorMessage = 'Signup failed. Please try again.'
+                
+                if (error.message.includes('already registered')) {
+                    errorMessage = 'This email is already registered. Please login instead.'
+                }
+                
+                showMessage(errorMessage, 'error')
             } finally {
                 signupBtn.disabled = false
                 signupBtn.innerHTML = '<i class="fas fa-user-plus"></i> Sign Up'
