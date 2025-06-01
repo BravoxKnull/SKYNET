@@ -160,6 +160,33 @@
             window.location.href = 'auth.html'
         }
 
+        // Load avatar from Supabase
+        async function loadAvatarFromSupabase() {
+            try {
+                const response = await fetch(`https://skynet-mdy7.onrender.com/get-avatar/${user.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.avatar_url) {
+                        document.getElementById('avatarPreview').src = data.avatar_url;
+                        // Update user object with avatar URL
+                        user.avatar_url = data.avatar_url;
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading avatar:', error);
+            }
+        }
+
+        // Load avatar when page loads
+        loadAvatarFromSupabase();
+
         // Set current values
         document.getElementById('displayName').value = user.displayName || ''
         document.getElementById('profileDisplayName').textContent = user.displayName || 'User'
@@ -181,16 +208,6 @@
         document.getElementById('memberSince').textContent = user.memberSince || new Date().toLocaleDateString()
         document.getElementById('lastLogin').textContent = user.lastLogin || new Date().toLocaleDateString()
 
-        // Set avatar if exists
-        if (user.avatar_url) {
-            const avatarPreview = document.getElementById('avatarPreview');
-            avatarPreview.src = user.avatar_url;
-            avatarPreview.onerror = function() {
-                // If avatar fails to load, use default avatar
-                this.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
-            };
-        }
-
         // Handle form submission
         document.getElementById('profileForm').addEventListener('submit', async (e) => {
             e.preventDefault()
@@ -201,13 +218,16 @@
             try {
                 let avatar_url = user.avatar_url
                 
-                // If new avatar is selected, upload it
+                // If new avatar is selected, upload to Supabase
                 if (avatarFile) {
                     const formData = new FormData()
                     formData.append('avatar', avatarFile)
                     
-                    const response = await fetch('/upload-avatar', {
+                    const response = await fetch('https://skynet-mdy7.onrender.com/upload-avatar', {
                         method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${user.token}`
+                        },
                         body: formData
                     })
                     
@@ -259,21 +279,21 @@
 
         // Preview avatar before upload
         document.getElementById('avatar').addEventListener('change', (e) => {
-            const file = e.target.files[0];
+            const file = e.target.files[0]
             if (file) {
                 if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                    alert('File size too large. Please choose an image under 5MB.');
-                    return;
+                    alert('File size too large. Please choose an image under 5MB.')
+                    return
                 }
                 
-                const reader = new FileReader();
+                const reader = new FileReader()
                 reader.onload = (e) => {
-                    const avatarPreview = document.getElementById('avatarPreview');
-                    avatarPreview.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
+                    const avatarPreview = document.getElementById('avatarPreview')
+                    avatarPreview.src = e.target.result
+                }
+                reader.readAsDataURL(file)
             }
-        });
+        })
 
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
