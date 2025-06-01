@@ -214,8 +214,8 @@
             <div class="auth-form" id="loginForm">
                 <h2>Login to SKYNET</h2>
                 <div class="input-group">
-                    <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" class="input-field" placeholder="Enter your email">
+                    <label for="loginDisplayName">Display Name</label>
+                    <input type="text" id="loginDisplayName" class="input-field" placeholder="Enter your display name">
                 </div>
                 <div class="input-group">
                     <label for="loginPassword">Password</label>
@@ -229,10 +229,6 @@
             <!-- Signup Form -->
             <div class="auth-form" id="signupForm" style="display: none;">
                 <h2>Create Account</h2>
-                <div class="input-group">
-                    <label for="signupEmail">Email</label>
-                    <input type="email" id="signupEmail" class="input-field" placeholder="Enter your email">
-                </div>
                 <div class="input-group">
                     <label for="signupDisplayName">Display Name</label>
                     <input type="text" id="signupDisplayName" class="input-field" placeholder="Choose a display name">
@@ -294,10 +290,10 @@
 
         // Login function
         async function handleLogin() {
-            const email = document.getElementById('loginEmail').value.trim()
+            const displayName = document.getElementById('loginDisplayName').value.trim()
             const password = document.getElementById('loginPassword').value
 
-            if (!email || !password) {
+            if (!displayName || !password) {
                 showMessage('Please fill in all fields', 'error')
                 return
             }
@@ -306,11 +302,24 @@
                 loginBtn.disabled = true
                 loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...'
 
-                console.log('Attempting login with email:', email)
+                console.log('Attempting login with display name:', displayName)
                 
+                // First find the user by display name
+                const { data: foundUser, error: userError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('display_name', displayName)
+                    .single()
+
+                if (userError) {
+                    console.error('User lookup error:', userError)
+                    throw new Error('Invalid display name or password')
+                }
+
+                // Now try to sign in with the found user's ID
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password
+                    email: `${displayName}@skynet.local`, // Use a dummy email
+                    password: password
                 })
 
                 if (error) {
@@ -319,20 +328,6 @@
                 }
 
                 console.log('Login successful, fetching profile...')
-
-                // Get user profile
-                const { data: profile, error: profileError } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', data.user.id)
-                    .single()
-
-                if (profileError) {
-                    console.error('Profile fetch error:', profileError)
-                    throw profileError
-                }
-
-                console.log('Profile fetched successfully')
 
                 // Update last login
                 await supabase
@@ -343,8 +338,7 @@
                 // Store user data with session
                 const userData = {
                     id: data.user.id,
-                    email: data.user.email,
-                    displayName: profile.display_name,
+                    displayName: displayName,
                     session: data.session
                 }
                 
@@ -356,14 +350,7 @@
 
             } catch (error) {
                 console.error('Login error:', error)
-                let errorMessage = 'Login failed. Please try again.'
-                
-                if (error.message === 'Invalid login credentials') {
-                    errorMessage = 'Invalid email or password. Please try again.'
-                } else if (error.message.includes('Email not confirmed')) {
-                    errorMessage = 'Please confirm your email before logging in.'
-                }
-                
+                let errorMessage = 'Invalid display name or password'
                 showMessage(errorMessage, 'error')
             } finally {
                 loginBtn.disabled = false
@@ -373,12 +360,11 @@
 
         // Signup function
         async function handleSignup() {
-            const email = document.getElementById('signupEmail').value.trim()
             const displayName = document.getElementById('signupDisplayName').value.trim()
             const password = document.getElementById('signupPassword').value
             const confirmPassword = document.getElementById('confirmPassword').value
 
-            if (!email || !displayName || !password || !confirmPassword) {
+            if (!displayName || !password || !confirmPassword) {
                 showMessage('Please fill in all fields', 'error')
                 return
             }
@@ -397,11 +383,11 @@
                 signupBtn.disabled = true
                 signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...'
 
-                console.log('Creating new account for:', email)
+                console.log('Creating new account for:', displayName)
 
-                // Create auth user
+                // Create auth user with dummy email
                 const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email,
+                    email: `${displayName}@skynet.local`,
                     password,
                     options: {
                         data: {
@@ -423,7 +409,6 @@
                     .insert([
                         {
                             id: authData.user.id,
-                            email: email,
                             display_name: displayName,
                             created_at: new Date().toISOString(),
                             last_login: new Date().toISOString()
@@ -440,7 +425,6 @@
                 // Store user data with session
                 const userData = {
                     id: authData.user.id,
-                    email: email,
                     displayName: displayName,
                     session: authData.session
                 }
@@ -458,7 +442,7 @@
                 let errorMessage = 'Signup failed. Please try again.'
                 
                 if (error.message.includes('already registered')) {
-                    errorMessage = 'This email is already registered. Please login instead.'
+                    errorMessage = 'This display name is already taken. Please choose another.'
                 }
                 
                 showMessage(errorMessage, 'error')
