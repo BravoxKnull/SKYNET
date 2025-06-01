@@ -160,6 +160,13 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
+        // Check if user is logged in
+        const storedUser = localStorage.getItem('user')
+        if (!storedUser) {
+            console.log('No user in localStorage, redirecting to auth')
+            window.location.href = 'auth.html'
+        }
+
         // Check authentication and redirect if not authenticated
         async function checkAuth() {
             try {
@@ -187,37 +194,35 @@
         // Set user display name
         async function setUserDisplay() {
             try {
-                console.log('Setting user display...')
+                const storedUser = JSON.parse(localStorage.getItem('user'))
+                if (!storedUser) {
+                    console.log('No stored user found')
+                    return
+                }
+
+                // Set display name from localStorage first
+                document.getElementById('userDisplayName').textContent = storedUser.displayName || 'User'
+                document.getElementById('profileDisplayName').textContent = storedUser.displayName || 'User'
+
+                // Then verify with Supabase
                 const session = await checkAuth()
-                
                 if (!session) {
-                    console.log('No session in setUserDisplay, redirecting to auth')
-                    window.location.href = 'auth.html'
+                    console.log('No Supabase session found')
                     return
                 }
 
-                console.log('Getting user data...')
                 const { data: { user }, error } = await supabase.auth.getUser()
-                
-                if (error) {
+                if (error || !user) {
                     console.error('User fetch error:', error)
-                    window.location.href = 'auth.html'
                     return
                 }
 
-                if (!user) {
-                    console.log('No user found')
-                    window.location.href = 'auth.html'
-                    return
-                }
-
-                console.log('User found:', user)
-                const displayName = user.user_metadata?.full_name || user.email || 'User'
+                // Update display name if different from Supabase
+                const displayName = user.user_metadata?.full_name || user.email || storedUser.displayName || 'User'
                 document.getElementById('userDisplayName').textContent = displayName
                 document.getElementById('profileDisplayName').textContent = displayName
             } catch (error) {
                 console.error('Display name error:', error)
-                window.location.href = 'auth.html'
             }
         }
 
@@ -412,7 +417,6 @@
                 await loadProfile()
             } catch (error) {
                 console.error('Page init error:', error)
-                window.location.href = 'auth.html'
             }
         }
 
