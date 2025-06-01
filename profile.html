@@ -160,10 +160,14 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
+        // Global variables
+        let storedUser = null
+        let originalAvatarSrc = null
+
         // Initialize profile page
         function initializeProfile() {
             // Get stored user data
-            const storedUser = JSON.parse(localStorage.getItem('user'))
+            storedUser = JSON.parse(localStorage.getItem('user'))
             if (!storedUser) {
                 console.log('No user in localStorage')
                 window.location.href = 'auth.html'
@@ -209,7 +213,9 @@
 
                     // Update profile fields
                     if (data.avatar_url) {
-                        document.getElementById('avatarPreview').src = data.avatar_url
+                        const avatarPreview = document.getElementById('avatarPreview')
+                        avatarPreview.src = data.avatar_url
+                        originalAvatarSrc = data.avatar_url
                     }
                     document.getElementById('bioInput').value = data.bio || ''
                     document.getElementById('statusSelect').value = data.status || 'online'
@@ -241,6 +247,11 @@
 
         // Save profile changes
         async function saveProfile() {
+            if (!storedUser) {
+                console.error('No user data available')
+                return
+            }
+
             try {
                 const updates = {
                     bio: document.getElementById('bioInput').value,
@@ -278,36 +289,40 @@
                     throw settingsError
                 }
 
-                alert('Profile updated successfully!')
+                showMessage('Profile updated successfully!', 'success')
             } catch (error) {
                 console.error('Error saving profile:', error)
-                alert('Error saving profile changes')
+                showMessage('Error saving profile changes', 'error')
             }
         }
 
         // Handle avatar upload
         document.getElementById('avatarInput').addEventListener('change', async (e) => {
+            if (!storedUser) {
+                console.error('No user data available')
+                return
+            }
+
             const file = e.target.files[0]
             if (!file) return
 
             // Validate file type
             const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
             if (!allowedTypes.includes(file.type)) {
-                alert('Please upload a valid image file (JPEG, PNG, GIF, or WebP)')
+                showMessage('Please upload a valid image file (JPEG, PNG, GIF, or WebP)', 'error')
                 return
             }
 
             // Validate file size (max 5MB)
             const maxSize = 5 * 1024 * 1024 // 5MB in bytes
             if (file.size > maxSize) {
-                alert('Image size should be less than 5MB')
+                showMessage('Image size should be less than 5MB', 'error')
                 return
             }
 
             try {
                 // Show loading state
                 const avatarPreview = document.getElementById('avatarPreview')
-                const originalSrc = avatarPreview.src
                 avatarPreview.style.opacity = '0.5'
 
                 const fileExt = file.name.split('.').pop()
@@ -345,50 +360,41 @@
 
                 // Update avatar with fade effect
                 avatarPreview.src = publicUrl
+                originalAvatarSrc = publicUrl
                 avatarPreview.style.opacity = '1'
                 avatarPreview.style.transition = 'opacity 0.3s ease'
 
-                // Show success message
-                const successMessage = document.createElement('div')
-                successMessage.className = 'success-message'
-                successMessage.textContent = 'Avatar updated successfully!'
-                successMessage.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: var(--success-color);
-                    color: var(--secondary-color);
-                    padding: 10px 20px;
-                    border-radius: 4px;
-                    animation: fadeOut 3s forwards;
-                `
-                document.body.appendChild(successMessage)
-                setTimeout(() => successMessage.remove(), 3000)
-
+                showMessage('Avatar updated successfully!', 'success')
             } catch (error) {
                 console.error('Error uploading avatar:', error)
                 // Restore original avatar
-                avatarPreview.src = originalSrc
+                const avatarPreview = document.getElementById('avatarPreview')
+                avatarPreview.src = originalAvatarSrc
                 avatarPreview.style.opacity = '1'
                 
-                // Show error message
-                const errorMessage = document.createElement('div')
-                errorMessage.className = 'error-message'
-                errorMessage.textContent = 'Error uploading avatar. Please try again.'
-                errorMessage.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: var(--danger-color);
-                    color: white;
-                    padding: 10px 20px;
-                    border-radius: 4px;
-                    animation: fadeOut 3s forwards;
-                `
-                document.body.appendChild(errorMessage)
-                setTimeout(() => errorMessage.remove(), 3000)
+                showMessage('Error uploading avatar. Please try again.', 'error')
             }
         })
+
+        // Helper function to show messages
+        function showMessage(message, type = 'info') {
+            const messageElement = document.createElement('div')
+            messageElement.className = `${type}-message`
+            messageElement.textContent = message
+            messageElement.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'var(--success-color)' : 'var(--danger-color)'};
+                color: ${type === 'success' ? 'var(--secondary-color)' : 'white'};
+                padding: 10px 20px;
+                border-radius: 4px;
+                animation: fadeOut 3s forwards;
+                z-index: 1000;
+            `
+            document.body.appendChild(messageElement)
+            setTimeout(() => messageElement.remove(), 3000)
+        }
 
         // Add CSS for animations
         const style = document.createElement('style')
