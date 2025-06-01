@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYNET - Profile</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="profile.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Auth Check Script -->
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'))
+        if (!user) {
+            window.location.href = 'auth.html'
+        }
+    </script>
+
+    <div class="app-container">
+        <header class="header">
+            <div class="logo-container">
+                <img src="logo.png" alt="SKYNET Logo" class="logo">
+                <h1>SKYNET</h1>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <div class="user-info">
+                    <i class="fas fa-user"></i>
+                    <span id="userDisplayName"></span>
+                </div>
+                <button id="logoutBtn" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img id="avatarPreview" src="default-avatar.png" alt="Profile Avatar">
+                        <div class="avatar-upload">
+                            <label for="avatarInput" class="upload-btn">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                            <input type="file" id="avatarInput" accept="image/*" hidden>
+                        </div>
+                    </div>
+                    <div class="profile-info">
+                        <h2 id="profileDisplayName"></h2>
+                        <div class="status-selector">
+                            <select id="statusSelect">
+                                <option value="online">Online</option>
+                                <option value="away">Away</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-sections">
+                    <section class="profile-section">
+                        <h3>Profile Information</h3>
+                        <div class="form-group">
+                            <label for="bioInput">Bio</label>
+                            <textarea id="bioInput" rows="3" placeholder="Tell us about yourself..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="customStatus">Custom Status</label>
+                            <div class="status-input">
+                                <input type="text" id="customStatus" placeholder="Set a custom status...">
+                                <button id="emojiPicker" class="emoji-btn">
+                                    <i class="far fa-smile"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="profile-section">
+                        <h3>Preferences</h3>
+                        <div class="preferences-grid">
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="notificationsToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Notifications</span>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="soundToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Sound</span>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="voiceActivityToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Voice Activity</span>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="pushToTalkToggle">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Push to Talk</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="profile-section">
+                        <h3>Appearance</h3>
+                        <div class="form-group">
+                            <label for="themeSelect">Theme</label>
+                            <select id="themeSelect">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="languageSelect">Language</label>
+                            <select id="languageSelect">
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                                <option value="fr">Français</option>
+                                <option value="de">Deutsch</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <section class="profile-section">
+                        <h3>Account</h3>
+                        <div class="account-info">
+                            <p>Member since: <span id="memberSince"></span></p>
+                            <p>Last login: <span id="lastLogin"></span></p>
+                        </div>
+                        <div class="account-actions">
+                            <button id="changePasswordBtn" class="btn-secondary">
+                                <i class="fas fa-key"></i> Change Password
+                            </button>
+                            <button id="deleteAccountBtn" class="btn-danger">
+                                <i class="fas fa-trash"></i> Delete Account
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+
+        // Set user display name
+        document.getElementById('userDisplayName').textContent = user.displayName
+        document.getElementById('profileDisplayName').textContent = user.displayName
+
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('user')
+            window.location.href = 'auth.html'
+        })
+
+        // Load user profile data
+        async function loadProfile() {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*, user_settings(*)')
+                    .eq('id', user.id)
+                    .single()
+
+                if (error) throw error
+
+                // Update profile fields
+                if (data.avatar_url) {
+                    document.getElementById('avatarPreview').src = data.avatar_url
+                }
+                document.getElementById('bioInput').value = data.bio || ''
+                document.getElementById('statusSelect').value = data.status
+                document.getElementById('themeSelect').value = data.theme
+                document.getElementById('languageSelect').value = data.language
+                document.getElementById('memberSince').textContent = new Date(data.created_at).toLocaleDateString()
+                document.getElementById('lastLogin').textContent = new Date(data.last_login).toLocaleDateString()
+
+                // Update settings
+                if (data.user_settings) {
+                    document.getElementById('notificationsToggle').checked = data.user_settings.email_notifications
+                    document.getElementById('soundToggle').checked = data.user_settings.sound_enabled
+                    document.getElementById('voiceActivityToggle').checked = data.user_settings.voice_activity
+                    document.getElementById('pushToTalkToggle').checked = data.user_settings.push_to_talk
+                    document.getElementById('customStatus').value = data.user_settings.custom_status || ''
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error)
+            }
+        }
+
+        // Save profile changes
+        async function saveProfile() {
+            try {
+                const updates = {
+                    bio: document.getElementById('bioInput').value,
+                    status: document.getElementById('statusSelect').value,
+                    theme: document.getElementById('themeSelect').value,
+                    language: document.getElementById('languageSelect').value
+                }
+
+                const { error } = await supabase
+                    .from('users')
+                    .update(updates)
+                    .eq('id', user.id)
+
+                if (error) throw error
+
+                // Update settings
+                const settings = {
+                    email_notifications: document.getElementById('notificationsToggle').checked,
+                    sound_enabled: document.getElementById('soundToggle').checked,
+                    voice_activity: document.getElementById('voiceActivityToggle').checked,
+                    push_to_talk: document.getElementById('pushToTalkToggle').checked,
+                    custom_status: document.getElementById('customStatus').value
+                }
+
+                const { error: settingsError } = await supabase
+                    .from('user_settings')
+                    .upsert({ user_id: user.id, ...settings })
+
+                if (settingsError) throw settingsError
+
+                alert('Profile updated successfully!')
+            } catch (error) {
+                console.error('Error saving profile:', error)
+                alert('Error saving profile changes')
+            }
+        }
+
+        // Handle avatar upload
+        document.getElementById('avatarInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0]
+            if (!file) return
+
+            try {
+                const fileExt = file.name.split('.').pop()
+                const fileName = `${user.id}-${Math.random()}.${fileExt}`
+                const filePath = `avatars/${fileName}`
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file)
+
+                if (uploadError) throw uploadError
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath)
+
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ avatar_url: publicUrl })
+                    .eq('id', user.id)
+
+                if (updateError) throw updateError
+
+                document.getElementById('avatarPreview').src = publicUrl
+            } catch (error) {
+                console.error('Error uploading avatar:', error)
+                alert('Error uploading avatar')
+            }
+        })
+
+        // Handle password change
+        document.getElementById('changePasswordBtn').addEventListener('click', async () => {
+            const newPassword = prompt('Enter new password:')
+            if (!newPassword) return
+
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    password: newPassword
+                })
+
+                if (error) throw error
+                alert('Password updated successfully!')
+            } catch (error) {
+                console.error('Error changing password:', error)
+                alert('Error changing password')
+            }
+        })
+
+        // Handle account deletion
+        document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return
+
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .delete()
+                    .eq('id', user.id)
+
+                if (error) throw error
+
+                localStorage.removeItem('user')
+                window.location.href = 'auth.html'
+            } catch (error) {
+                console.error('Error deleting account:', error)
+                alert('Error deleting account')
+            }
+        })
+
+        // Load profile on page load
+        loadProfile()
+
+        // Save changes when inputs change
+        const saveInputs = document.querySelectorAll('input, select, textarea')
+        saveInputs.forEach(input => {
+            input.addEventListener('change', saveProfile)
+        })
+    </script>
+</body>
+</html> 
