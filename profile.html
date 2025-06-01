@@ -171,8 +171,6 @@
         async function checkAuth() {
             try {
                 console.log('Checking authentication...')
-                
-                // First try to get the current session
                 const { data: { session }, error } = await supabase.auth.getSession()
                 
                 if (error) {
@@ -180,29 +178,15 @@
                     return null
                 }
 
-                if (session) {
-                    console.log('Session found:', session)
-                    return session
-                }
-
-                // If no session, try to sign in with stored credentials
-                console.log('No session found, attempting to sign in...')
-                const { data: { session: newSession }, error: signInError } = await supabase.auth.signInWithPassword({
-                    email: storedUser.email,
-                    password: storedUser.password
-                })
-
-                if (signInError || !newSession) {
-                    console.error('Sign in failed:', signInError)
-                    window.location.href = 'auth.html'
+                if (!session) {
+                    console.log('No session found')
                     return null
                 }
 
-                console.log('Successfully signed in:', newSession)
-                return newSession
+                console.log('Session found:', session)
+                return session
             } catch (error) {
                 console.error('Auth check error:', error)
-                window.location.href = 'auth.html'
                 return null
             }
         }
@@ -228,7 +212,7 @@
                 }
 
                 // Update display name if different from Supabase
-                const displayName = user.user_metadata?.full_name || user.email || storedUser.displayName || 'User'
+                const displayName = user.user_metadata?.display_name || user.email || storedUser.displayName || 'User'
                 document.getElementById('userDisplayName').textContent = displayName
                 document.getElementById('profileDisplayName').textContent = displayName
             } catch (error) {

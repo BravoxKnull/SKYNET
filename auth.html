@@ -214,8 +214,8 @@
             <div class="auth-form" id="loginForm">
                 <h2>Login to SKYNET</h2>
                 <div class="input-group">
-                    <label for="loginDisplayName">Display Name</label>
-                    <input type="text" id="loginDisplayName" class="input-field" placeholder="Enter your display name">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" class="input-field" placeholder="Enter your email">
                 </div>
                 <div class="input-group">
                     <label for="loginPassword">Password</label>
@@ -229,6 +229,10 @@
             <!-- Signup Form -->
             <div class="auth-form" id="signupForm" style="display: none;">
                 <h2>Create Account</h2>
+                <div class="input-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" class="input-field" placeholder="Enter your email">
+                </div>
                 <div class="input-group">
                     <label for="signupDisplayName">Display Name</label>
                     <input type="text" id="signupDisplayName" class="input-field" placeholder="Choose a display name">
@@ -283,10 +287,10 @@
 
         // Login function
         async function handleLogin() {
-            const displayName = document.getElementById('loginDisplayName').value.trim()
+            const email = document.getElementById('loginEmail').value.trim()
             const password = document.getElementById('loginPassword').value
 
-            if (!displayName || !password) {
+            if (!email || !password) {
                 showMessage('Please fill in all fields', 'error')
                 return
             }
@@ -295,34 +299,34 @@
                 loginBtn.disabled = true
                 loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...'
 
-                const { data: users, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('display_name', displayName)
-                    .single()
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                })
 
                 if (error) throw error
 
-                if (!users) {
-                    showMessage('User not found', 'error')
-                    return
-                }
+                // Get user profile
+                const { data: profile, error: profileError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', data.user.id)
+                    .single()
 
-                if (users.password !== password) {
-                    showMessage('Invalid password', 'error')
-                    return
-                }
+                if (profileError) throw profileError
 
+                // Store user data
                 localStorage.setItem('user', JSON.stringify({
-                    id: users.id,
-                    displayName: users.display_name
+                    id: data.user.id,
+                    email: data.user.email,
+                    displayName: profile.display_name
                 }))
 
                 window.location.href = 'index.html'
 
             } catch (error) {
                 console.error('Login error:', error)
-                showMessage('Login failed. Please try again.', 'error')
+                showMessage(error.message || 'Login failed. Please try again.', 'error')
             } finally {
                 loginBtn.disabled = false
                 loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login'
@@ -331,11 +335,12 @@
 
         // Signup function
         async function handleSignup() {
+            const email = document.getElementById('signupEmail').value.trim()
             const displayName = document.getElementById('signupDisplayName').value.trim()
             const password = document.getElementById('signupPassword').value
             const confirmPassword = document.getElementById('confirmPassword').value
 
-            if (!displayName || !password || !confirmPassword) {
+            if (!email || !displayName || !password || !confirmPassword) {
                 showMessage('Please fill in all fields', 'error')
                 return
             }
@@ -354,40 +359,46 @@
                 signupBtn.disabled = true
                 signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...'
 
-                const { data: existingUser } = await supabase
-                    .from('users')
-                    .select('display_name')
-                    .eq('display_name', displayName)
-                    .single()
+                // Create auth user
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            display_name: displayName
+                        }
+                    }
+                })
 
-                if (existingUser) {
-                    showMessage('Display name already taken', 'error')
-                    return
-                }
+                if (authError) throw authError
 
-                const { data: newUser, error } = await supabase
+                // Create user profile
+                const { error: profileError } = await supabase
                     .from('users')
                     .insert([
                         {
+                            id: authData.user.id,
+                            email: email,
                             display_name: displayName,
-                            password: password
+                            created_at: new Date().toISOString(),
+                            last_login: new Date().toISOString()
                         }
                     ])
-                    .select()
-                    .single()
 
-                if (error) throw error
+                if (profileError) throw profileError
 
+                // Store user data
                 localStorage.setItem('user', JSON.stringify({
-                    id: newUser.id,
-                    displayName: newUser.display_name
+                    id: authData.user.id,
+                    email: email,
+                    displayName: displayName
                 }))
 
                 window.location.href = 'index.html'
 
             } catch (error) {
                 console.error('Signup error:', error)
-                showMessage('Signup failed. Please try again.', 'error')
+                showMessage(error.message || 'Signup failed. Please try again.', 'error')
             } finally {
                 signupBtn.disabled = false
                 signupBtn.innerHTML = '<i class="fas fa-user-plus"></i> Sign Up'
