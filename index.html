@@ -9,16 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Add WebRTC adapter for better browser compatibility -->
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <!-- Add Particles.js -->
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 </head>
 <body>
-    <!-- Loading Animation -->
-    <div class="loading" id="loading"></div>
-
-    <!-- Particle Background -->
-    <div id="particles-js"></div>
-
     <div class="app-container">
         <!-- Header -->
         <header class="header">
@@ -27,18 +19,9 @@
                 <h1>SKYNET</h1>
             </div>
             <nav class="nav-menu">
-                <a href="#" class="nav-link active">
-                    <i class="fas fa-home"></i>
-                    HOME
-                </a>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-code"></i>
-                    DEVS
-                </a>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-info-circle"></i>
-                    ABOUT
-                </a>
+                <a href="#" class="nav-link active">HOME</a>
+                <a href="#" class="nav-link">DEVS</a>
+                <a href="#" class="nav-link">ABOUT</a>
             </nav>
         </header>
 
@@ -48,7 +31,6 @@
             <section class="welcome-section" id="welcomeSection">
                 <div class="animated-text">
                     <span class="glitch-text">WELCOME TO SKYNET</span>
-                    <div class="subtitle">Real-Time Voice Communication</div>
                 </div>
             </section>
 
@@ -56,16 +38,6 @@
             <section class="channel-section hidden" id="channelSection">
                 <div class="channel-header">
                     <h2>Channel: <span id="channelName">#public-chat</span></h2>
-                    <div class="channel-stats">
-                        <span class="stat">
-                            <i class="fas fa-users"></i>
-                            <span id="userCount">0</span> Online
-                        </span>
-                        <span class="stat">
-                            <i class="fas fa-signal"></i>
-                            <span id="connectionStatus">Connected</span>
-                        </span>
-                    </div>
                 </div>
                 <div class="users-list" id="usersList">
                     <!-- Users will be added here dynamically -->
@@ -91,10 +63,7 @@
         <aside class="sidebar">
             <div class="join-section">
                 <div class="input-group">
-                    <label for="displayName">
-                        <i class="fas fa-user"></i>
-                        Display Name
-                    </label>
+                    <label for="displayName">Display Name</label>
                     <input type="text" id="displayName" placeholder="Enter your name" class="input-field">
                 </div>
                 <button id="joinBtn" class="join-btn">
@@ -103,18 +72,6 @@
                 </button>
                 <div id="warningMessage" class="warning-message"></div>
             </div>
-            <div class="sidebar-info">
-                <div class="info-card">
-                    <i class="fas fa-shield-alt"></i>
-                    <h3>Secure Connection</h3>
-                    <p>End-to-end encrypted voice chat</p>
-                </div>
-                <div class="info-card">
-                    <i class="fas fa-bolt"></i>
-                    <h3>Real-Time</h3>
-                    <p>Ultra-low latency communication</p>
-                </div>
-            </div>
         </aside>
 
         <!-- Footer -->
@@ -122,9 +79,9 @@
             <div class="footer-content">
                 <p>&copy; 2024 SKYNET. All rights reserved.</p>
                 <div class="footer-links">
-                    <a href="#"><i class="fas fa-shield-alt"></i> Privacy Policy</a>
-                    <a href="#"><i class="fas fa-file-contract"></i> Terms of Service</a>
-                    <a href="#"><i class="fas fa-envelope"></i> Contact</a>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Contact</a>
                 </div>
             </div>
         </footer>
@@ -134,84 +91,5 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/webrtc-adapter@8.2.1/out/adapter.js"></script>
     <script src="main.js"></script>
-    <script>
-        // Initialize particles.js
-        particlesJS('particles-js', {
-            particles: {
-                number: {
-                    value: 80,
-                    density: {
-                        enable: true,
-                        value_area: 800
-                    }
-                },
-                color: {
-                    value: '#05d9e8'
-                },
-                shape: {
-                    type: 'circle'
-                },
-                opacity: {
-                    value: 0.5,
-                    random: true
-                },
-                size: {
-                    value: 3,
-                    random: true
-                },
-                line_linked: {
-                    enable: true,
-                    distance: 150,
-                    color: '#05d9e8',
-                    opacity: 0.2,
-                    width: 1
-                },
-                move: {
-                    enable: true,
-                    speed: 2,
-                    direction: 'none',
-                    random: true,
-                    straight: false,
-                    out_mode: 'out',
-                    bounce: false
-                }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: {
-                    onhover: {
-                        enable: true,
-                        mode: 'grab'
-                    },
-                    onclick: {
-                        enable: true,
-                        mode: 'push'
-                    },
-                    resize: true
-                },
-                modes: {
-                    grab: {
-                        distance: 140,
-                        line_linked: {
-                            opacity: 0.5
-                        }
-                    },
-                    push: {
-                        particles_nb: 4
-                    }
-                }
-            },
-            retina_detect: true
-        });
-
-        // Handle loading animation
-        window.addEventListener('load', () => {
-            const loading = document.getElementById('loading');
-            loading.style.opacity = '0';
-            setTimeout(() => {
-                loading.style.display = 'none';
-            }, 500);
-        });
-    </script>
 </body>
 </html> 
