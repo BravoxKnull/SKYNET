@@ -318,7 +318,7 @@
 
                 // Now try to sign in with the found user's ID
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email: `${displayName}@skynet.local`, // Use a dummy email
+                    email: `${foundUser.id}@skynet.local`, // Use user ID as email
                     password: password
                 })
 
@@ -327,7 +327,7 @@
                     throw error
                 }
 
-                console.log('Login successful, fetching profile...')
+                console.log('Login successful, updating last login...')
 
                 // Update last login
                 await supabase
@@ -385,6 +385,17 @@
 
                 console.log('Creating new account for:', displayName)
 
+                // Check if display name is already taken
+                const { data: existingUser, error: checkError } = await supabase
+                    .from('users')
+                    .select('display_name')
+                    .eq('display_name', displayName)
+                    .single()
+
+                if (existingUser) {
+                    throw new Error('This display name is already taken')
+                }
+
                 // Create auth user with dummy email
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: `${displayName}@skynet.local`,
@@ -441,7 +452,7 @@
                 console.error('Signup error:', error)
                 let errorMessage = 'Signup failed. Please try again.'
                 
-                if (error.message.includes('already registered')) {
+                if (error.message.includes('already taken')) {
                     errorMessage = 'This display name is already taken. Please choose another.'
                 }
                 
