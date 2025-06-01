@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKYNET - Profile</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="profile.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
@@ -28,8 +29,7 @@
         <!-- Profile Section -->
         <main class="profile-container">
             <div class="profile-card">
-                <h2>Profile Settings</h2>
-                <form id="profileForm" class="profile-form">
+                <div class="profile-header">
                     <div class="avatar-section">
                         <div class="avatar-preview">
                             <img id="avatarPreview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+" alt="Avatar Preview">
@@ -41,20 +41,112 @@
                             <input type="file" id="avatar" accept="image/*" style="display: none;">
                         </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="displayName">Display Name</label>
-                        <input type="text" id="displayName" required>
+                    <div class="profile-info">
+                        <h2 id="profileDisplayName"></h2>
+                        <div class="status-selector">
+                            <select id="statusSelect">
+                                <option value="online">Online</option>
+                                <option value="away">Away</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        </div>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <button type="submit" class="save-btn">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                    </div>
+                <div class="profile-sections">
+                    <section class="profile-section">
+                        <h3>Profile Information</h3>
+                        <div class="form-group">
+                            <label for="displayName">Display Name</label>
+                            <input type="text" id="displayName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="bioInput">Bio</label>
+                            <textarea id="bioInput" rows="3" placeholder="Tell us about yourself..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="customStatus">Custom Status</label>
+                            <div class="status-input">
+                                <input type="text" id="customStatus" placeholder="Set a custom status...">
+                                <button id="emojiPicker" class="emoji-btn">
+                                    <i class="far fa-smile"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
 
-                    <div id="successMessage" class="success-message" style="display: none;"></div>
-                </form>
+                    <section class="profile-section">
+                        <h3>Preferences</h3>
+                        <div class="preferences-grid">
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="notificationsToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Notifications</span>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="soundToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Sound</span>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="voiceActivityToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Voice Activity</span>
+                            </div>
+                            <div class="preference-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="pushToTalkToggle">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Push to Talk</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="profile-section">
+                        <h3>Appearance</h3>
+                        <div class="form-group">
+                            <label for="themeSelect">Theme</label>
+                            <select id="themeSelect">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="languageSelect">Language</label>
+                            <select id="languageSelect">
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                                <option value="fr">Français</option>
+                                <option value="de">Deutsch</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <section class="profile-section">
+                        <h3>Account</h3>
+                        <div class="account-info">
+                            <p>Member since: <span id="memberSince"></span></p>
+                            <p>Last login: <span id="lastLogin"></span></p>
+                        </div>
+                        <div class="account-actions">
+                            <button id="changePasswordBtn" class="btn-secondary">
+                                <i class="fas fa-key"></i> Change Password
+                            </button>
+                            <button id="deleteAccountBtn" class="btn-danger">
+                                <i class="fas fa-trash"></i> Delete Account
+                            </button>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="successMessage" class="success-message" style="display: none;"></div>
             </div>
         </main>
     </div>
@@ -68,6 +160,7 @@
 
         // Set current values
         document.getElementById('displayName').value = user.displayName
+        document.getElementById('profileDisplayName').textContent = user.displayName
         if (user.avatar_url) {
             document.getElementById('avatarPreview').src = user.avatar_url
         }
@@ -104,7 +197,18 @@
                 const updatedUser = {
                     ...user,
                     displayName,
-                    avatar_url
+                    avatar_url,
+                    bio: document.getElementById('bioInput').value,
+                    status: document.getElementById('statusSelect').value,
+                    customStatus: document.getElementById('customStatus').value,
+                    theme: document.getElementById('themeSelect').value,
+                    language: document.getElementById('languageSelect').value,
+                    preferences: {
+                        notifications: document.getElementById('notificationsToggle').checked,
+                        sound: document.getElementById('soundToggle').checked,
+                        voiceActivity: document.getElementById('voiceActivityToggle').checked,
+                        pushToTalk: document.getElementById('pushToTalkToggle').checked
+                    }
                 }
                 
                 // Save to localStorage
@@ -142,6 +246,15 @@
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('user')
             window.location.href = 'auth.html'
+        })
+
+        // Save changes when inputs change
+        const saveInputs = document.querySelectorAll('input, select, textarea')
+        saveInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                const form = document.getElementById('profileForm')
+                form.dispatchEvent(new Event('submit'))
+            })
         })
     </script>
 </body>
