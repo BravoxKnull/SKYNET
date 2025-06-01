@@ -163,98 +163,14 @@
         // Get stored user data
         const storedUser = JSON.parse(localStorage.getItem('user'))
         if (!storedUser) {
-            console.log('No user in localStorage, redirecting to auth')
-            window.location.href = 'auth.html'
-        }
-
-        // Check authentication and redirect if not authenticated
-        async function checkAuth() {
-            try {
-                console.log('Checking authentication...')
-                
-                // First check if we have a stored session
-                const storedUser = JSON.parse(localStorage.getItem('user'))
-                if (!storedUser || !storedUser.session) {
-                    console.log('No stored session found')
-                    return null
-                }
-
-                // Set the session in Supabase client
-                const { error: setSessionError } = await supabase.auth.setSession(storedUser.session)
-                if (setSessionError) {
-                    console.error('Error setting session:', setSessionError)
-                    return null
-                }
-
-                // Try to get current session
-                const { data: { session }, error } = await supabase.auth.getSession()
-                
-                if (error) {
-                    console.error('Auth error:', error)
-                    return null
-                }
-
-                if (!session) {
-                    console.log('No active session, trying to refresh...')
-                    // Try to refresh the session
-                    const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
-                    
-                    if (refreshError || !refreshedSession) {
-                        console.log('Failed to refresh session')
-                        return null
-                    }
-                    
-                    // Update stored session
-                    storedUser.session = refreshedSession
-                    localStorage.setItem('user', JSON.stringify(storedUser))
-                    return refreshedSession
-                }
-
-                console.log('Session found:', session)
-                return session
-            } catch (error) {
-                console.error('Auth check error:', error)
-                return null
-            }
+            console.log('No user in localStorage')
+            return
         }
 
         // Set user display name
-        async function setUserDisplay() {
-            try {
-                const storedUser = JSON.parse(localStorage.getItem('user'))
-                if (!storedUser) {
-                    console.log('No stored user data')
-                    window.location.href = 'auth.html'
-                    return
-                }
-
-                // Set display name from localStorage first
-                document.getElementById('userDisplayName').textContent = storedUser.displayName || 'User'
-                document.getElementById('profileDisplayName').textContent = storedUser.displayName || 'User'
-
-                // Then verify with Supabase
-                const session = await checkAuth()
-                if (!session) {
-                    console.log('No valid session found, redirecting to auth')
-                    window.location.href = 'auth.html'
-                    return
-                }
-
-                const { data: { user }, error } = await supabase.auth.getUser()
-                if (error || !user) {
-                    console.error('User fetch error:', error)
-                    window.location.href = 'auth.html'
-                    return
-                }
-
-                // Update display name if different from Supabase
-                const displayName = user.user_metadata?.display_name || user.email || storedUser.displayName || 'User'
-                document.getElementById('userDisplayName').textContent = displayName
-                document.getElementById('profileDisplayName').textContent = displayName
-            } catch (error) {
-                console.error('Display name error:', error)
-                window.location.href = 'auth.html'
-            }
+        function setUserDisplay() {
+            document.getElementById('userDisplayName').textContent = storedUser.displayName || 'User'
+            document.getElementById('profileDisplayName').textContent = storedUser.displayName || 'User'
         }
 
         // Handle logout
@@ -275,18 +191,10 @@
         async function loadProfile() {
             try {
                 console.log('Loading profile...')
-                const session = await checkAuth()
-                if (!session) {
-                    console.log('No session in loadProfile')
-                    window.location.href = 'auth.html'
-                    return
-                }
-
-                console.log('Fetching user data from database...')
                 const { data, error } = await supabase
                     .from('users')
                     .select('*, user_settings(*)')
-                    .eq('id', session.user.id)
+                    .eq('id', storedUser.id)
                     .single()
 
                 if (error) {
@@ -317,19 +225,12 @@
                 }
             } catch (error) {
                 console.error('Error loading profile:', error)
-                window.location.href = 'auth.html'
             }
         }
 
         // Save profile changes
         async function saveProfile() {
             try {
-                const session = await checkAuth()
-                if (!session) {
-                    console.error('No session available for saving profile')
-                    return
-                }
-
                 const updates = {
                     bio: document.getElementById('bioInput').value,
                     status: document.getElementById('statusSelect').value,
@@ -340,7 +241,7 @@
                 const { error } = await supabase
                     .from('users')
                     .update(updates)
-                    .eq('id', session.user.id)
+                    .eq('id', storedUser.id)
 
                 if (error) {
                     console.error('Error updating profile:', error)
@@ -349,7 +250,7 @@
 
                 // Update settings
                 const settings = {
-                    user_id: session.user.id,
+                    user_id: storedUser.id,
                     email_notifications: document.getElementById('notificationsToggle').checked,
                     sound_enabled: document.getElementById('soundToggle').checked,
                     voice_activity: document.getElementById('voiceActivityToggle').checked,
@@ -379,15 +280,9 @@
             if (!file) return
 
             try {
-                const session = await checkAuth()
-                if (!session) {
-                    console.error('No session available for avatar upload')
-                    return
-                }
-
                 const fileExt = file.name.split('.').pop()
-                const fileName = `${session.user.id}-${Math.random()}.${fileExt}`
-                const filePath = `${session.user.id}/${fileName}`
+                const fileName = `${storedUser.id}-${Math.random()}.${fileExt}`
+                const filePath = `${storedUser.id}/${fileName}`
 
                 console.log('Uploading avatar...')
                 const { error: uploadError } = await supabase.storage
@@ -411,7 +306,7 @@
                 const { error: updateError } = await supabase
                     .from('users')
                     .update({ avatar_url: publicUrl })
-                    .eq('id', session.user.id)
+                    .eq('id', storedUser.id)
 
                 if (updateError) {
                     console.error('Update error:', updateError)
@@ -432,9 +327,6 @@
             if (!newPassword) return
 
             try {
-                const session = await checkAuth()
-                if (!session) return
-
                 const { error } = await supabase.auth.updateUser({
                     password: newPassword
                 })
@@ -452,13 +344,10 @@
             if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return
 
             try {
-                const session = await checkAuth()
-                if (!session) return
-
                 const { error } = await supabase
                     .from('users')
                     .delete()
-                    .eq('id', session.user.id)
+                    .eq('id', storedUser.id)
 
                 if (error) throw error
 
@@ -472,15 +361,10 @@
         })
 
         // Initialize page
-        async function initPage() {
-            try {
-                console.log('Initializing page...')
-                await setUserDisplay()
-                await loadProfile()
-            } catch (error) {
-                console.error('Page init error:', error)
-                window.location.href = 'auth.html'
-            }
+        function initPage() {
+            console.log('Initializing page...')
+            setUserDisplay()
+            loadProfile()
         }
 
         // Start initialization
