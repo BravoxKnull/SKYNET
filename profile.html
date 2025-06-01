@@ -21,7 +21,7 @@
     <div class="app-container">
         <header class="header">
             <div class="logo-container">
-                <img src="logo.png" alt="SKYNET Logo" class="logo">
+                <img src="assets/images/logo.svg" alt="SKYNET Logo" class="logo">
                 <h1>SKYNET</h1>
             </div>
             <nav class="nav-menu">
@@ -42,7 +42,7 @@
             <div class="profile-container">
                 <div class="profile-header">
                     <div class="profile-avatar">
-                        <img id="avatarPreview" src="default-avatar.png" alt="Profile Avatar">
+                        <img id="avatarPreview" src="assets/images/default-avatar.svg" alt="Profile Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'" />
                         <div class="avatar-upload">
                             <label for="avatarInput" class="upload-btn">
                                 <i class="fas fa-camera"></i>
@@ -173,10 +173,13 @@
         // Load user profile data
         async function loadProfile() {
             try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+                if (sessionError) throw sessionError
+
                 const { data, error } = await supabase
                     .from('users')
                     .select('*, user_settings(*)')
-                    .eq('id', user.id)
+                    .eq('id', session.user.id)
                     .single()
 
                 if (error) throw error
@@ -208,6 +211,9 @@
         // Save profile changes
         async function saveProfile() {
             try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+                if (sessionError) throw sessionError
+
                 const updates = {
                     bio: document.getElementById('bioInput').value,
                     status: document.getElementById('statusSelect').value,
@@ -218,12 +224,13 @@
                 const { error } = await supabase
                     .from('users')
                     .update(updates)
-                    .eq('id', user.id)
+                    .eq('id', session.user.id)
 
                 if (error) throw error
 
                 // Update settings
                 const settings = {
+                    user_id: session.user.id,
                     email_notifications: document.getElementById('notificationsToggle').checked,
                     sound_enabled: document.getElementById('soundToggle').checked,
                     voice_activity: document.getElementById('voiceActivityToggle').checked,
@@ -233,7 +240,7 @@
 
                 const { error: settingsError } = await supabase
                     .from('user_settings')
-                    .upsert({ user_id: user.id, ...settings })
+                    .upsert(settings)
 
                 if (settingsError) throw settingsError
 
@@ -250,13 +257,19 @@
             if (!file) return
 
             try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+                if (sessionError) throw sessionError
+
                 const fileExt = file.name.split('.').pop()
-                const fileName = `${user.id}-${Math.random()}.${fileExt}`
-                const filePath = `avatars/${fileName}`
+                const fileName = `${session.user.id}-${Math.random()}.${fileExt}`
+                const filePath = `${session.user.id}/${fileName}`
 
                 const { error: uploadError } = await supabase.storage
                     .from('avatars')
-                    .upload(filePath, file)
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: true
+                    })
 
                 if (uploadError) throw uploadError
 
@@ -267,7 +280,7 @@
                 const { error: updateError } = await supabase
                     .from('users')
                     .update({ avatar_url: publicUrl })
-                    .eq('id', user.id)
+                    .eq('id', session.user.id)
 
                 if (updateError) throw updateError
 
@@ -301,13 +314,17 @@
             if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return
 
             try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+                if (sessionError) throw sessionError
+
                 const { error } = await supabase
                     .from('users')
                     .delete()
-                    .eq('id', user.id)
+                    .eq('id', session.user.id)
 
                 if (error) throw error
 
+                await supabase.auth.signOut()
                 localStorage.removeItem('user')
                 window.location.href = 'auth.html'
             } catch (error) {
