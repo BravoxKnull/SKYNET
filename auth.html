@@ -267,6 +267,12 @@
                 autoRefreshToken: true,
                 persistSession: true,
                 detectSessionInUrl: true
+            },
+            global: {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
             }
         })
 
@@ -414,9 +420,9 @@
                 // Generate a unique ID for the user
                 const userId = crypto.randomUUID()
 
-                // Create auth user with dummy email
+                // Create auth user with a valid email format
                 const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: `${userId}@skynet.local`,
+                    email: `user.${userId}@skynet.local`,
                     password,
                     options: {
                         data: {
@@ -473,6 +479,8 @@
                 
                 if (error.message.includes('already taken')) {
                     errorMessage = 'This display name is already taken. Please choose another.'
+                } else if (error.message.includes('Email address')) {
+                    errorMessage = 'Invalid email format. Please try again.'
                 }
                 
                 showMessage(errorMessage, 'error')
