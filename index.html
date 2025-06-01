@@ -117,6 +117,7 @@
 
         // Global variables
         let users = []
+        let socketInitialized = false
 
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
@@ -125,24 +126,16 @@
         // Load user avatar
         async function loadUserAvatar() {
             try {
-                console.log('Loading avatar for user:', user.id)
                 const { data, error } = await supabase
                     .from('users')
                     .select('avatar_url')
                     .eq('id', user.id)
                     .single()
 
-                if (error) {
-                    console.error('Error fetching avatar:', error)
-                    throw error
-                }
+                if (error) throw error
 
-                console.log('Avatar data:', data)
                 if (data && data.avatar_url) {
-                    console.log('Setting avatar URL:', data.avatar_url)
                     document.getElementById('navAvatar').src = data.avatar_url
-                } else {
-                    console.log('No avatar URL found, using default')
                 }
             } catch (error) {
                 console.error('Error loading avatar:', error)
@@ -160,13 +153,11 @@
 
         // Function to create user list item
         function createUserListItem(userData) {
-            console.log('Creating list item for user:', userData)
             const userItem = document.createElement('div')
             userItem.className = 'user-item'
             
             // Get avatar URL or use default
             const avatarUrl = userData.avatar_url || 'assets/images/default-avatar.svg'
-            console.log('Using avatar URL:', avatarUrl)
             
             userItem.innerHTML = `
                 <div class="user-avatar-container">
@@ -185,13 +176,11 @@
 
         // Function to update users list
         async function updateUsersList(users) {
-            console.log('Updating users list:', users)
             const usersList = document.getElementById('usersList')
             usersList.innerHTML = ''
 
             for (const userData of users) {
                 try {
-                    console.log('Fetching avatar for user:', userData.id)
                     // Get user's avatar from database
                     const { data, error } = await supabase
                         .from('users')
@@ -199,13 +188,8 @@
                         .eq('id', userData.id)
                         .single()
 
-                    if (error) {
-                        console.error('Error fetching avatar:', error)
-                    } else {
-                        console.log('Avatar data for user:', data)
-                        if (data && data.avatar_url) {
-                            userData.avatar_url = data.avatar_url
-                        }
+                    if (!error && data && data.avatar_url) {
+                        userData.avatar_url = data.avatar_url
                     }
 
                     const userItem = createUserListItem(userData)
@@ -218,6 +202,37 @@
             }
         }
 
+        // Function to initialize socket handlers
+        function initializeSocketHandlers() {
+            if (typeof socket !== 'undefined' && socket) {
+                socketInitialized = true
+                
+                socket.on('connect', () => {
+                    console.log('Connected to server')
+                })
+
+                socket.on('userJoined', (userData) => {
+                    users = [...users, userData]
+                    updateUsersList(users)
+                })
+
+                socket.on('userLeft', (userId) => {
+                    users = users.filter(user => user.id !== userId)
+                    updateUsersList(users)
+                })
+
+                socket.on('usersList', (usersList) => {
+                    users = usersList
+                    updateUsersList(users)
+                })
+            } else {
+                setTimeout(initializeSocketHandlers, 100)
+            }
+        }
+
+        // Start initializing socket handlers
+        initializeSocketHandlers()
+
         // Join channel button handler
         document.getElementById('joinBtn').addEventListener('click', async () => {
             const displayName = document.getElementById('displayName').value.trim()
@@ -226,8 +241,12 @@
                 return
             }
 
+            if (!socketInitialized) {
+                document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...'
+                return
+            }
+
             try {
-                console.log('Joining channel for user:', user.id)
                 // Get user's avatar before joining
                 const { data, error } = await supabase
                     .from('users')
@@ -235,12 +254,7 @@
                     .eq('id', user.id)
                     .single()
 
-                if (error) {
-                    console.error('Error fetching avatar:', error)
-                    throw error
-                }
-
-                console.log('Avatar data for join:', data)
+                if (error) throw error
 
                 // Show channel section
                 document.getElementById('welcomeSection').classList.add('hidden')
@@ -259,7 +273,6 @@
                     displayName: displayName,
                     avatar_url: data?.avatar_url || null
                 }
-                console.log('Adding current user to list:', currentUser)
                 users = [currentUser]
                 updateUsersList(users)
 
@@ -268,31 +281,6 @@
                 document.getElementById('warningMessage').textContent = 'Error joining channel'
             }
         })
-
-        // Socket event handlers
-        if (typeof socket !== 'undefined') {
-            socket.on('connect', () => {
-                console.log('Connected to server')
-            })
-
-            socket.on('userJoined', (userData) => {
-                console.log('User joined:', userData)
-                users = [...users, userData]
-                updateUsersList(users)
-            })
-
-            socket.on('userLeft', (userId) => {
-                console.log('User left:', userId)
-                users = users.filter(user => user.id !== userId)
-                updateUsersList(users)
-            })
-
-            socket.on('usersList', (usersList) => {
-                console.log('Received users list:', usersList)
-                users = usersList
-                updateUsersList(users)
-            })
-        }
     </script>
 
     <style>
