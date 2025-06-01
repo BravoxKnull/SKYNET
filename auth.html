@@ -261,7 +261,13 @@
             alert('Error: Supabase client not loaded. Please refresh the page.')
         }
 
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true
+            }
+        })
 
         // DOM Elements
         const loginForm = document.getElementById('loginForm')
@@ -396,13 +402,17 @@
                     throw new Error('This display name is already taken')
                 }
 
+                // Generate a unique ID for the user
+                const userId = crypto.randomUUID()
+
                 // Create auth user with dummy email
                 const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: `${displayName}@skynet.local`,
+                    email: `${userId}@skynet.local`,
                     password,
                     options: {
                         data: {
-                            display_name: displayName
+                            display_name: displayName,
+                            user_id: userId
                         }
                     }
                 })
@@ -419,7 +429,7 @@
                     .from('users')
                     .insert([
                         {
-                            id: authData.user.id,
+                            id: userId,
                             display_name: displayName,
                             created_at: new Date().toISOString(),
                             last_login: new Date().toISOString()
@@ -435,7 +445,7 @@
 
                 // Store user data with session
                 const userData = {
-                    id: authData.user.id,
+                    id: userId,
                     displayName: displayName,
                     session: authData.session
                 }
