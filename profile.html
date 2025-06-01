@@ -245,57 +245,6 @@
         // Start the initialization
         initializeProfile()
 
-        // Save profile changes
-        async function saveProfile() {
-            if (!storedUser) {
-                console.error('No user data available')
-                return
-            }
-
-            try {
-                const updates = {
-                    bio: document.getElementById('bioInput').value,
-                    status: document.getElementById('statusSelect').value,
-                    theme: document.getElementById('themeSelect').value,
-                    language: document.getElementById('languageSelect').value
-                }
-
-                const { error } = await supabase
-                    .from('users')
-                    .update(updates)
-                    .eq('id', storedUser.id)
-
-                if (error) {
-                    console.error('Error updating profile:', error)
-                    throw error
-                }
-
-                // Update settings
-                const settings = {
-                    user_id: storedUser.id,
-                    email_notifications: document.getElementById('notificationsToggle').checked,
-                    sound_enabled: document.getElementById('soundToggle').checked,
-                    voice_activity: document.getElementById('voiceActivityToggle').checked,
-                    push_to_talk: document.getElementById('pushToTalkToggle').checked,
-                    custom_status: document.getElementById('customStatus').value
-                }
-
-                const { error: settingsError } = await supabase
-                    .from('user_settings')
-                    .upsert(settings)
-
-                if (settingsError) {
-                    console.error('Error updating settings:', settingsError)
-                    throw settingsError
-                }
-
-                showMessage('Profile updated successfully!', 'success')
-            } catch (error) {
-                console.error('Error saving profile:', error)
-                showMessage('Error saving profile changes', 'error')
-            }
-        }
-
         // Handle avatar upload
         document.getElementById('avatarInput').addEventListener('change', async (e) => {
             if (!storedUser) {
@@ -376,13 +325,61 @@
                 avatarPreview.src = originalAvatarSrc
                 avatarPreview.style.opacity = '1'
                 
-                let errorMessage = 'Error uploading avatar. Please try again.'
-                if (error.message?.includes('row-level security policy')) {
-                    errorMessage = 'Permission denied. Please try logging out and back in.'
-                }
-                showMessage(errorMessage, 'error')
+                showMessage('Error uploading avatar. Please try again.', 'error')
             }
         })
+
+        // Save profile changes
+        async function saveProfile() {
+            if (!storedUser) {
+                console.error('No user data available')
+                return
+            }
+
+            try {
+                const updates = {
+                    bio: document.getElementById('bioInput').value,
+                    status: document.getElementById('statusSelect').value,
+                    theme: document.getElementById('themeSelect').value,
+                    language: document.getElementById('languageSelect').value,
+                    updated_at: new Date().toISOString()
+                }
+
+                const { error } = await supabase
+                    .from('users')
+                    .update(updates)
+                    .eq('id', storedUser.id)
+
+                if (error) {
+                    console.error('Error updating profile:', error)
+                    throw error
+                }
+
+                // Update settings
+                const settings = {
+                    user_id: storedUser.id,
+                    email_notifications: document.getElementById('notificationsToggle').checked,
+                    sound_enabled: document.getElementById('soundToggle').checked,
+                    voice_activity: document.getElementById('voiceActivityToggle').checked,
+                    push_to_talk: document.getElementById('pushToTalkToggle').checked,
+                    custom_status: document.getElementById('customStatus').value
+                }
+
+                const { error: settingsError } = await supabase
+                    .from('user_settings')
+                    .upsert(settings)
+
+                if (settingsError) {
+                    console.error('Error updating settings:', settingsError)
+                    throw settingsError
+                }
+
+                showMessage('Profile updated successfully!', 'success')
+            } catch (error) {
+                console.error('Error saving profile:', error)
+                showMessage('Error saving profile changes', 'error')
+            }
+        }
 
         // Helper function to show messages
         function showMessage(message, type = 'info') {
