@@ -30,7 +30,7 @@
             </div>
             <nav class="nav-menu">
                 <div class="user-info">
-                    <i class="fas fa-user"></i>
+                    <img id="navAvatar" src="assets/images/default-avatar.svg" alt="User Avatar" class="nav-avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'">
                     <span id="userDisplayName"></span>
                 </div>
                 <a href="profile.html" class="nav-link">
@@ -108,9 +108,31 @@
     <script src="https://cdn.jsdelivr.net/npm/webrtc-adapter@8.2.1/out/adapter.js"></script>
     <script src="main.js"></script>
     <script>
-        // Set the authenticated user's display name
+        // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
         document.getElementById('displayName').value = user.displayName
+
+        // Load user avatar
+        async function loadUserAvatar() {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('avatar_url')
+                    .eq('id', user.id)
+                    .single()
+
+                if (error) throw error
+
+                if (data && data.avatar_url) {
+                    document.getElementById('navAvatar').src = data.avatar_url
+                }
+            } catch (error) {
+                console.error('Error loading avatar:', error)
+            }
+        }
+
+        // Load avatar when page loads
+        loadUserAvatar()
 
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -118,5 +140,29 @@
             window.location.href = 'auth.html'
         })
     </script>
+
+    <style>
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+        }
+
+        #userDisplayName {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+    </style>
 </body>
 </html> 
