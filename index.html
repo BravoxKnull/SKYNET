@@ -3,25 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SKYNET - Real-Time Voice Chat</title>
+    <title>SKYNET - Voice Chat</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Add WebRTC adapter for better browser compatibility -->
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
+    <!-- Auth Check Script -->
+    <script>
+        // Check if user is authenticated
+        const user = JSON.parse(localStorage.getItem('user'))
+        if (!user) {
+            window.location.href = 'auth.html'
+        }
+    </script>
+
     <div class="app-container">
         <!-- Header -->
         <header class="header">
             <div class="logo-container">
-                <img src="logo.svg" alt="SKYNET Logo" class="logo">
+                <img src="logo.png" alt="SKYNET Logo" class="logo">
                 <h1>SKYNET</h1>
             </div>
             <nav class="nav-menu">
-                <a href="#" class="nav-link active">HOME</a>
-                <a href="#" class="nav-link">DEVS</a>
-                <a href="#" class="nav-link">ABOUT</a>
+                <div class="user-info">
+                    <i class="fas fa-user"></i>
+                    <span id="userDisplayName"></span>
+                </div>
+                <button id="logoutBtn" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </nav>
         </header>
 
@@ -30,14 +44,15 @@
             <!-- Welcome Section -->
             <section class="welcome-section" id="welcomeSection">
                 <div class="animated-text">
-                    <span class="glitch-text">WELCOME TO SKYNET</span>
+                    <span class="glitch-text">Welcome to SKYNET</span>
                 </div>
             </section>
 
             <!-- Channel Section (Hidden by default) -->
             <section class="channel-section hidden" id="channelSection">
                 <div class="channel-header">
-                    <h2>Channel: <span id="channelName">#public-chat</span></h2>
+                    <h2>DUNE PC</h2>
+                    <p>Voice Channel</p>
                 </div>
                 <div class="users-list" id="usersList">
                     <!-- Users will be added here dynamically -->
@@ -64,11 +79,10 @@
             <div class="join-section">
                 <div class="input-group">
                     <label for="displayName">Display Name</label>
-                    <input type="text" id="displayName" placeholder="Enter your name" class="input-field">
+                    <input type="text" id="displayName" class="input-field" placeholder="Enter your display name" value="" readonly>
                 </div>
                 <button id="joinBtn" class="join-btn">
-                    <i class="fas fa-sign-in-alt"></i>
-                    Join DUNE PC
+                    <i class="fas fa-sign-in-alt"></i> Join DUNE PC
                 </button>
                 <div id="warningMessage" class="warning-message"></div>
             </div>
@@ -88,8 +102,18 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/webrtc-adapter@8.2.1/out/adapter.js"></script>
     <script src="main.js"></script>
+    <script>
+        // Set the authenticated user's display name
+        document.getElementById('userDisplayName').textContent = user.displayName
+        document.getElementById('displayName').value = user.displayName
+
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('user')
+            window.location.href = 'auth.html'
+        })
+    </script>
 </body>
 </html> 

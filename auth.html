@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYNET - Authentication</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        :root {
+            --primary-color: #00ff9d;
+            --secondary-color: #0a192f;
+            --accent-color: #64ffda;
+            --text-color: #e6f1ff;
+            --background-color: #0a192f;
+            --danger-color: #ff4d4d;
+            --success-color: #00ff9d;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .auth-box {
+            background: rgba(10, 25, 47, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(100, 255, 218, 0.1);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            height: 60px;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .logo-container h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+        }
+
+        .auth-form h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text-color);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 4px;
+            background: rgba(10, 25, 47, 0.5);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 4px;
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
+        }
+
+        .auth-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-color);
+        }
+
+        .auth-switch a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .auth-switch a:hover {
+            color: var(--accent-color);
+        }
+
+        .auth-message {
+            text-align: center;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .auth-message.error {
+            background: rgba(255, 77, 77, 0.1);
+            color: var(--danger-color);
+            opacity: 1;
+        }
+
+        .auth-message.success {
+            background: rgba(0, 255, 157, 0.1);
+            color: var(--success-color);
+            opacity: 1;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .form-switch {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-switch-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .form-switch-btn:hover {
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .form-switch-btn.active {
+            background: rgba(0, 255, 157, 0.2);
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="logo-container">
+                <img src="logo.png" alt="SKYNET Logo" class="logo">
+                <h1>SKYNET</h1>
+            </div>
+            <div class="form-switch">
+                <button class="form-switch-btn active" data-form="login">Login</button>
+                <button class="form-switch-btn" data-form="signup">Sign Up</button>
+            </div>
+            
+            <!-- Login Form -->
+            <div class="auth-form" id="loginForm">
+                <h2>Login to SKYNET</h2>
+                <div class="input-group">
+                    <label for="loginDisplayName">Display Name</label>
+                    <input type="text" id="loginDisplayName" class="input-field" placeholder="Enter your display name">
+                </div>
+                <div class="input-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="input-field" placeholder="Enter your password">
+                </div>
+                <button id="loginBtn" class="auth-btn">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </div>
+
+            <!-- Signup Form -->
+            <div class="auth-form" id="signupForm" style="display: none;">
+                <h2>Create Account</h2>
+                <div class="input-group">
+                    <label for="signupDisplayName">Display Name</label>
+                    <input type="text" id="signupDisplayName" class="input-field" placeholder="Choose a display name">
+                </div>
+                <div class="input-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" class="input-field" placeholder="Create a password">
+                </div>
+                <div class="input-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" class="input-field" placeholder="Confirm your password">
+                </div>
+                <button id="signupBtn" class="auth-btn">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+            </div>
+
+            <div id="authMessage" class="auth-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+
+        // DOM Elements
+        const loginForm = document.getElementById('loginForm')
+        const signupForm = document.getElementById('signupForm')
+        const formSwitchBtns = document.querySelectorAll('.form-switch-btn')
+        const loginBtn = document.getElementById('loginBtn')
+        const signupBtn = document.getElementById('signupBtn')
+        const authMessage = document.getElementById('authMessage')
+
+        // Form switch functionality
+        formSwitchBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const form = btn.dataset.form
+                formSwitchBtns.forEach(b => b.classList.remove('active'))
+                btn.classList.add('active')
+                
+                if (form === 'login') {
+                    loginForm.style.display = 'block'
+                    signupForm.style.display = 'none'
+                } else {
+                    loginForm.style.display = 'none'
+                    signupForm.style.display = 'block'
+                }
+            })
+        })
+
+        // Login function
+        async function handleLogin() {
+            const displayName = document.getElementById('loginDisplayName').value.trim()
+            const password = document.getElementById('loginPassword').value
+
+            if (!displayName || !password) {
+                showMessage('Please fill in all fields', 'error')
+                return
+            }
+
+            try {
+                loginBtn.disabled = true
+                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...'
+
+                const { data: users, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('display_name', displayName)
+                    .single()
+
+                if (error) throw error
+
+                if (!users) {
+                    showMessage('User not found', 'error')
+                    return
+                }
+
+                if (users.password !== password) {
+                    showMessage('Invalid password', 'error')
+                    return
+                }
+
+                localStorage.setItem('user', JSON.stringify({
+                    id: users.id,
+                    displayName: users.display_name
+                }))
+
+                window.location.href = 'index.html'
+
+            } catch (error) {
+                console.error('Login error:', error)
+                showMessage('Login failed. Please try again.', 'error')
+            } finally {
+                loginBtn.disabled = false
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login'
+            }
+        }
+
+        // Signup function
+        async function handleSignup() {
+            const displayName = document.getElementById('signupDisplayName').value.trim()
+            const password = document.getElementById('signupPassword').value
+            const confirmPassword = document.getElementById('confirmPassword').value
+
+            if (!displayName || !password || !confirmPassword) {
+                showMessage('Please fill in all fields', 'error')
+                return
+            }
+
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match', 'error')
+                return
+            }
+
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters', 'error')
+                return
+            }
+
+            try {
+                signupBtn.disabled = true
+                signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...'
+
+                const { data: existingUser } = await supabase
+                    .from('users')
+                    .select('display_name')
+                    .eq('display_name', displayName)
+                    .single()
+
+                if (existingUser) {
+                    showMessage('Display name already taken', 'error')
+                    return
+                }
+
+                const { data: newUser, error } = await supabase
+                    .from('users')
+                    .insert([
+                        {
+                            display_name: displayName,
+                            password: password
+                        }
+                    ])
+                    .select()
+                    .single()
+
+                if (error) throw error
+
+                localStorage.setItem('user', JSON.stringify({
+                    id: newUser.id,
+                    displayName: newUser.display_name
+                }))
+
+                window.location.href = 'index.html'
+
+            } catch (error) {
+                console.error('Signup error:', error)
+                showMessage('Signup failed. Please try again.', 'error')
+            } finally {
+                signupBtn.disabled = false
+                signupBtn.innerHTML = '<i class="fas fa-user-plus"></i> Sign Up'
+            }
+        }
+
+        function showMessage(message, type = 'info') {
+            authMessage.textContent = message
+            authMessage.className = `auth-message ${type}`
+            setTimeout(() => {
+                authMessage.textContent = ''
+                authMessage.className = 'auth-message'
+            }, 3000)
+        }
+
+        // Event Listeners
+        loginBtn.addEventListener('click', handleLogin)
+        signupBtn.addEventListener('click', handleSignup)
+
+        // Handle Enter key
+        document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin()
+        })
+
+        document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSignup()
+        })
+    </script>
+</body>
+</html> 
