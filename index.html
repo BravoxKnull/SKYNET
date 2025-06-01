@@ -323,14 +323,18 @@
         .channel-section {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: calc(100vh - 60px); /* Subtract header height */
             background: var(--background-color);
+            position: relative;
         }
 
         .channel-header {
             padding: 1rem;
             border-bottom: 1px solid var(--border-color);
             background: rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .channel-header h2 {
@@ -349,7 +353,7 @@
             display: flex;
             flex-direction: column;
             flex: 1;
-            overflow: hidden;
+            min-height: 0; /* Important for flex child */
         }
 
         /* Users list styles */
@@ -360,6 +364,7 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+            min-height: 0; /* Important for flex child */
         }
 
         .user-item {
@@ -370,6 +375,7 @@
             border-radius: 4px;
             background: transparent;
             transition: background 0.2s ease;
+            min-height: 48px; /* Fixed height for user items */
         }
 
         .user-item:hover {
@@ -384,24 +390,32 @@
             flex-shrink: 0;
             background: var(--background-color);
             border: 2px solid var(--primary-color);
+            position: relative;
         }
 
         .user-avatar {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         .user-details {
             display: flex;
             flex-direction: column;
             gap: 2px;
+            min-width: 0; /* Allow text truncation */
         }
 
         .user-name {
             font-weight: 500;
             color: var(--text-color);
             font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .user-status {
@@ -416,6 +430,9 @@
             padding: 1rem;
             background: rgba(0, 0, 0, 0.2);
             border-top: 1px solid var(--border-color);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
         }
 
         .control-btn {
@@ -429,6 +446,8 @@
             color: var(--text-color);
             cursor: pointer;
             transition: all 0.2s ease;
+            flex: 1;
+            justify-content: center;
         }
 
         .control-btn:hover {
@@ -446,6 +465,11 @@
 
         .control-btn i {
             font-size: 1.1rem;
+        }
+
+        /* Hide welcome section when channel is shown */
+        .channel-section:not(.hidden) + .welcome-section {
+            display: none;
         }
     </style>
 </body>
