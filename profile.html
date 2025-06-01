@@ -160,12 +160,34 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
+        // Check authentication and redirect if not authenticated
+        async function checkAuth() {
+            const { data: { session }, error } = await supabase.auth.getSession()
+            if (error || !session) {
+                window.location.href = 'auth.html'
+                return null
+            }
+            return session
+        }
+
         // Set user display name
-        document.getElementById('userDisplayName').textContent = user.displayName
-        document.getElementById('profileDisplayName').textContent = user.displayName
+        async function setUserDisplay() {
+            const session = await checkAuth()
+            if (!session) return
+
+            const { data: { user }, error } = await supabase.auth.getUser()
+            if (error || !user) {
+                window.location.href = 'auth.html'
+                return
+            }
+
+            document.getElementById('userDisplayName').textContent = user.user_metadata?.full_name || user.email
+            document.getElementById('profileDisplayName').textContent = user.user_metadata?.full_name || user.email
+        }
 
         // Handle logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabase.auth.signOut()
             localStorage.removeItem('user')
             window.location.href = 'auth.html'
         })
@@ -173,8 +195,8 @@
         // Load user profile data
         async function loadProfile() {
             try {
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-                if (sessionError) throw sessionError
+                const session = await checkAuth()
+                if (!session) return
 
                 const { data, error } = await supabase
                     .from('users')
@@ -211,8 +233,8 @@
         // Save profile changes
         async function saveProfile() {
             try {
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-                if (sessionError) throw sessionError
+                const session = await checkAuth()
+                if (!session) return
 
                 const updates = {
                     bio: document.getElementById('bioInput').value,
@@ -257,8 +279,8 @@
             if (!file) return
 
             try {
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-                if (sessionError) throw sessionError
+                const session = await checkAuth()
+                if (!session) return
 
                 const fileExt = file.name.split('.').pop()
                 const fileName = `${session.user.id}-${Math.random()}.${fileExt}`
@@ -297,6 +319,9 @@
             if (!newPassword) return
 
             try {
+                const session = await checkAuth()
+                if (!session) return
+
                 const { error } = await supabase.auth.updateUser({
                     password: newPassword
                 })
@@ -314,8 +339,8 @@
             if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return
 
             try {
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-                if (sessionError) throw sessionError
+                const session = await checkAuth()
+                if (!session) return
 
                 const { error } = await supabase
                     .from('users')
@@ -333,8 +358,14 @@
             }
         })
 
+        // Initialize page
+        async function initPage() {
+            await setUserDisplay()
+            await loadProfile()
+        }
+
         // Load profile on page load
-        loadProfile()
+        initPage()
 
         // Save changes when inputs change
         const saveInputs = document.querySelectorAll('input, select, textarea')
