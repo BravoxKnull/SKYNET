@@ -115,6 +115,9 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
+        // Global variables
+        let users = []
+
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
         document.getElementById('displayName').value = user.displayName
@@ -192,28 +195,39 @@
             }
         }
 
-        // Socket.IO event handlers
-        socket.on('connect', () => {
-            console.log('Connected to server')
-        })
+        // Wait for socket to be initialized from main.js
+        function initializeSocketHandlers() {
+            if (typeof socket !== 'undefined') {
+                // Socket.IO event handlers
+                socket.on('connect', () => {
+                    console.log('Connected to server')
+                })
 
-        socket.on('userJoined', (userData) => {
-            console.log('User joined:', userData)
-            users = [...users, userData]
-            updateUsersList(users)
-        })
+                socket.on('userJoined', (userData) => {
+                    console.log('User joined:', userData)
+                    users = [...users, userData]
+                    updateUsersList(users)
+                })
 
-        socket.on('userLeft', (userId) => {
-            console.log('User left:', userId)
-            users = users.filter(user => user.id !== userId)
-            updateUsersList(users)
-        })
+                socket.on('userLeft', (userId) => {
+                    console.log('User left:', userId)
+                    users = users.filter(user => user.id !== userId)
+                    updateUsersList(users)
+                })
 
-        socket.on('usersList', (usersList) => {
-            console.log('Received users list:', usersList)
-            users = usersList
-            updateUsersList(users)
-        })
+                socket.on('usersList', (usersList) => {
+                    console.log('Received users list:', usersList)
+                    users = usersList
+                    updateUsersList(users)
+                })
+            } else {
+                // If socket is not ready, try again in 100ms
+                setTimeout(initializeSocketHandlers, 100)
+            }
+        }
+
+        // Start initializing socket handlers
+        initializeSocketHandlers()
 
         // Join channel button handler
         document.getElementById('joinBtn').addEventListener('click', () => {
