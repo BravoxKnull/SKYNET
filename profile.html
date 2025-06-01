@@ -277,12 +277,11 @@
                 // Create a unique file name
                 const fileExt = file.name.split('.').pop()
                 const fileName = `${storedUser.id}-${Date.now()}.${fileExt}`
-                const filePath = fileName // Remove the 'public/' prefix
 
                 console.log('Uploading avatar...')
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('avatars')
-                    .upload(filePath, file, {
+                    .upload(fileName, file, {
                         cacheControl: '3600',
                         upsert: true
                     })
@@ -295,7 +294,7 @@
                 console.log('Getting public URL...')
                 const { data: { publicUrl } } = supabase.storage
                     .from('avatars')
-                    .getPublicUrl(filePath)
+                    .getPublicUrl(fileName)
 
                 console.log('Updating user profile...')
                 const { error: updateError } = await supabase
@@ -324,7 +323,11 @@
                 avatarPreview.src = originalAvatarSrc
                 avatarPreview.style.opacity = '1'
                 
-                showMessage('Error uploading avatar. Please try again.', 'error')
+                let errorMessage = 'Error uploading avatar. Please try again.'
+                if (error.message?.includes('row-level security policy')) {
+                    errorMessage = 'Storage permission error. Please check your Supabase settings.'
+                }
+                showMessage(errorMessage, 'error')
             }
         })
 
