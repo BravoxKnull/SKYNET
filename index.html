@@ -57,22 +57,24 @@
                     <h2>DUNE PC</h2>
                     <p>Voice Channel</p>
                 </div>
-                <div class="users-list" id="usersList">
-                    <!-- Users will be added here dynamically -->
-                </div>
-                <div class="channel-controls">
-                    <button id="muteBtn" class="control-btn">
-                        <i class="fas fa-microphone"></i>
-                        <span>Mute</span>
-                    </button>
-                    <button id="deafenBtn" class="control-btn">
-                        <i class="fas fa-volume-mute"></i>
-                        <span>Deafen</span>
-                    </button>
-                    <button id="leaveBtn" class="control-btn danger">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Leave</span>
-                    </button>
+                <div class="channel-content">
+                    <div class="users-list" id="usersList">
+                        <!-- Users will be added here dynamically -->
+                    </div>
+                    <div class="channel-controls">
+                        <button id="muteBtn" class="control-btn">
+                            <i class="fas fa-microphone"></i>
+                            <span>Mute</span>
+                        </button>
+                        <button id="deafenBtn" class="control-btn">
+                            <i class="fas fa-volume-mute"></i>
+                            <span>Deafen</span>
+                        </button>
+                        <button id="leaveBtn" class="control-btn danger">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Leave</span>
+                        </button>
+                    </div>
                 </div>
             </section>
         </main>
@@ -153,11 +155,13 @@
 
         // Function to create user list item
         function createUserListItem(userData) {
+            console.log('Creating list item for user:', userData) // Debug log
             const userItem = document.createElement('div')
             userItem.className = 'user-item'
             
             // Get avatar URL or use default
             const avatarUrl = userData.avatar_url || 'assets/images/default-avatar.svg'
+            console.log('Using avatar URL for list item:', avatarUrl) // Debug log
             
             userItem.innerHTML = `
                 <div class="user-avatar-container">
@@ -176,20 +180,24 @@
 
         // Function to update users list
         async function updateUsersList(users) {
+            console.log('Updating users list with:', users) // Debug log
             const usersList = document.getElementById('usersList')
             usersList.innerHTML = ''
 
             for (const userData of users) {
                 try {
-                    // Get user's avatar from database
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('avatar_url')
-                        .eq('id', userData.id)
-                        .single()
+                    // Get user's avatar from database if not already set
+                    if (!userData.avatar_url) {
+                        const { data, error } = await supabase
+                            .from('users')
+                            .select('avatar_url')
+                            .eq('id', userData.id)
+                            .single()
 
-                    if (!error && data && data.avatar_url) {
-                        userData.avatar_url = data.avatar_url
+                        if (!error && data && data.avatar_url) {
+                            userData.avatar_url = data.avatar_url
+                            console.log('Fetched avatar URL from database:', data.avatar_url) // Debug log
+                        }
                     }
 
                     const userItem = createUserListItem(userData)
@@ -260,19 +268,24 @@
                 document.getElementById('welcomeSection').classList.add('hidden')
                 document.getElementById('channelSection').classList.remove('hidden')
 
+                // Get the current avatar URL from the nav avatar
+                const currentAvatarUrl = document.getElementById('navAvatar').src
+                console.log('Current avatar URL:', currentAvatarUrl) // Debug log
+
                 // Join the channel with avatar
                 socket.emit('joinChannel', {
                     id: user.id,
                     displayName: displayName,
-                    avatar_url: data?.avatar_url || null
+                    avatar_url: currentAvatarUrl || data?.avatar_url || null
                 })
 
-                // Add current user to the list immediately
+                // Add current user to the list immediately with avatar
                 const currentUser = {
                     id: user.id,
                     displayName: displayName,
-                    avatar_url: data?.avatar_url || null
+                    avatar_url: currentAvatarUrl || data?.avatar_url || null
                 }
+                console.log('Adding user to list:', currentUser) // Debug log
                 users = [currentUser]
                 updateUsersList(users)
 
@@ -306,12 +319,47 @@
             color: var(--text-color);
         }
 
-        /* Channel user list styles */
-        .users-list {
-            padding: 1rem;
+        /* Channel section styles */
+        .channel-section {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            height: 100%;
+            background: var(--background-color);
+        }
+
+        .channel-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .channel-header h2 {
+            margin: 0;
+            color: var(--text-color);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .channel-header p {
+            margin: 0.5rem 0 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .channel-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Users list styles */
+        .users-list {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .user-item {
@@ -319,9 +367,9 @@
             align-items: center;
             gap: 12px;
             padding: 8px 12px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            transition: background 0.3s ease;
+            border-radius: 4px;
+            background: transparent;
+            transition: background 0.2s ease;
         }
 
         .user-item:hover {
@@ -329,12 +377,13 @@
         }
 
         .user-avatar-container {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             overflow: hidden;
-            border: 2px solid var(--primary-color);
             flex-shrink: 0;
+            background: var(--background-color);
+            border: 2px solid var(--primary-color);
         }
 
         .user-avatar {
@@ -346,17 +395,57 @@
         .user-details {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
 
         .user-name {
             font-weight: 500;
             color: var(--text-color);
+            font-size: 0.95rem;
         }
 
         .user-status {
             font-size: 0.8rem;
             color: var(--primary-color);
+        }
+
+        /* Channel controls */
+        .channel-controls {
+            display: flex;
+            gap: 8px;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .control-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-btn.danger {
+            background: rgba(255, 59, 48, 0.2);
+            color: #ff3b30;
+        }
+
+        .control-btn.danger:hover {
+            background: rgba(255, 59, 48, 0.3);
+        }
+
+        .control-btn i {
+            font-size: 1.1rem;
         }
     </style>
 </body>
