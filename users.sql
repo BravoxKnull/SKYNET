@@ -1,6 +1,14 @@
+-- Drop existing tables and functions
+DROP TABLE IF EXISTS user_settings CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP FUNCTION IF EXISTS handle_new_user() CASCADE;
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Create users table
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY REFERENCES auth.users(id),
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
     display_name TEXT NOT NULL UNIQUE,
     avatar_url TEXT,
     bio TEXT,
@@ -12,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Create user_settings table
-CREATE TABLE IF NOT EXISTS user_settings (
+CREATE TABLE user_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     email_notifications BOOLEAN DEFAULT true,
@@ -43,4 +51,20 @@ CREATE POLICY "Users can update their own settings" ON user_settings
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert their own settings" ON user_settings
-    FOR INSERT WITH CHECK (auth.uid() = user_id); 
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Create function to handle new user creation
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO user_settings (user_id)
+    VALUES (NEW.id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for new user creation
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION handle_new_user(); 

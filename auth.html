@@ -324,7 +324,7 @@
 
                 // Now try to sign in with the found user's ID
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email: `${foundUser.id}@skynet.local`, // Use user ID as email
+                    email: `${foundUser.id}@skynet.local`,
                     password: password
                 })
 
@@ -339,11 +339,11 @@
                 await supabase
                     .from('users')
                     .update({ last_login: new Date().toISOString() })
-                    .eq('id', data.user.id)
+                    .eq('id', foundUser.id)
 
                 // Store user data with session
                 const userData = {
-                    id: data.user.id,
+                    id: foundUser.id,
                     displayName: displayName,
                     session: data.session
                 }
