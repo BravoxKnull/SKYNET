@@ -114,6 +114,10 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
+        // Initialize Socket.IO
+        const socket = io('https://skynet-mdy7.onrender.com')
+        let users = []
+
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
         document.getElementById('displayName').value = user.displayName
@@ -191,19 +195,46 @@
             }
         }
 
-        // Update the socket.io event handlers to use the new user list
+        // Socket.IO event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server')
+        })
+
         socket.on('userJoined', (userData) => {
-            updateUsersList([...users, userData])
+            console.log('User joined:', userData)
+            users = [...users, userData]
+            updateUsersList(users)
         })
 
         socket.on('userLeft', (userId) => {
+            console.log('User left:', userId)
             users = users.filter(user => user.id !== userId)
             updateUsersList(users)
         })
 
         socket.on('usersList', (usersList) => {
+            console.log('Received users list:', usersList)
             users = usersList
             updateUsersList(users)
+        })
+
+        // Join channel button handler
+        document.getElementById('joinBtn').addEventListener('click', () => {
+            const displayName = document.getElementById('displayName').value.trim()
+            if (!displayName) {
+                document.getElementById('warningMessage').textContent = 'Please enter a display name'
+                return
+            }
+
+            // Show channel section
+            document.getElementById('welcomeSection').classList.add('hidden')
+            document.getElementById('channelSection').classList.remove('hidden')
+
+            // Join the channel
+            socket.emit('joinChannel', {
+                id: user.id,
+                displayName: displayName
+            })
         })
     </script>
 
