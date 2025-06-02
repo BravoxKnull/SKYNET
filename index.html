@@ -249,9 +249,8 @@
             window.location.href = 'auth.html'
         })
 
-        // Function to create user list item
+        // Function to create user list item with improved avatar handling
         function createUserListItem(userData) {
-            console.log('Creating user item with data:', userData); // Debug log: Check the input data
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             userItem.setAttribute('data-user-id', userData.id);
@@ -259,12 +258,9 @@
             // Default avatar SVG (inline for reliability)
             const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
 
-            // Get avatar URL from data, fallback to default if not available
-            // This fallback is also handled in updateUsersList, but kept here as a safeguard
+            // Use the avatar_url from userData if available, otherwise use default
             const avatarUrl = userData.avatar_url || defaultAvatar;
-            console.log('Avatar URL being used in createUserListItem:', avatarUrl); // Debug log
 
-            // --- START: HTML structure for user item including avatar container ---
             userItem.innerHTML = `
                 <div class="user-avatar-container">
                     <img src="${avatarUrl}"
@@ -278,21 +274,15 @@
                     <span class="user-status">Online</span>
                 </div>
             `;
-            // --- END: HTML structure ---
-
-            console.log('User item HTML created:', userItem.innerHTML); // Debug log: Check the generated HTML
 
             return userItem;
         }
 
-        // Function to update users list
+        // Function to update users list with improved avatar handling
         async function updateUsersList(users) {
-            console.log('Updating users list with users:', users); // Debug log
             const usersList = document.getElementById('usersList');
-            if (!usersList) {
-                console.error('usersList element not found!');
-                return; // Exit if element not found
-            }
+            if (!usersList) return;
+            
             usersList.innerHTML = ''; // Clear existing users
 
             // Remove duplicates by using a Map
@@ -303,60 +293,33 @@
                 }
             });
 
-            console.log('Unique users to display:', uniqueUsers.size); // Debug log
-
             for (const userData of uniqueUsers.values()) {
-                console.log('Processing user for list:', userData); // Debug log: See data before fetch
-                let userAvatarUrl = userData.avatar_url; // Start with existing data
-
                 try {
-                    // Get user's avatar from database (This part fetches the URL)
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('avatar_url')
-                        .eq('id', userData.id)
-                        .single();
+                    // First create the user item with whatever data we have
+                    const userItem = createUserListItem(userData);
+                    usersList.appendChild(userItem);
 
-                    console.log('Supabase avatar data fetched for', userData.displayName, ':', data); // Debug log
+                    // Then try to fetch updated avatar if needed
+                    if (!userData.avatar_url) {
+                        const { data, error } = await supabase
+                            .from('users')
+                            .select('avatar_url')
+                            .eq('id', userData.id)
+                            .single();
 
-                    if (!error && data && data.avatar_url) {
-                        userAvatarUrl = data.avatar_url; // Use fetched URL if available
-                        console.log('Using fetched avatar_url:', userAvatarUrl); // Debug log
-                    } else {
-                         console.log('No avatar_url found for', userData.displayName, 'or error:', error, '. Using default or existing.'); // Debug log
-                         // userAvatarUrl remains whatever it was (default or initial socket data)
+                        if (!error && data && data.avatar_url) {
+                            // Update the avatar if we got a new URL
+                            const img = userItem.querySelector('.user-avatar');
+                            if (img) {
+                                img.src = data.avatar_url;
+                            }
+                        }
                     }
-
                 } catch (error) {
-                    console.error('Error fetching avatar from Supabase for', userData.displayName, ':', error); // Debug log
-                    // userAvatarUrl remains whatever it was (default or initial socket data)
-                }
-                
-                // Ensure user data object passed to createUserListItem has the potentially updated avatar_url
-                const userItemData = { ...userData, avatar_url: userAvatarUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+' }; // Explicitly set avatar_url, fallback to default SVG
-                console.log('Data passed to createUserListItem:', userItemData); // Debug log
-
-                // Create the user item HTML element
-                const userItem = createUserListItem(userItemData);
-
-                // Append the created user item element to the list
-                usersList.appendChild(userItem);
-
-                console.log('Appended user item for', userItemData.displayName); // Debug log
-
-                // Force image reload (This helps in some caching scenarios)
-                const img = userItem.querySelector('.user-avatar');
-                if (img) {
-                     // Setting src to itself can trigger reload
-                    const currentSrc = img.src;
-                    img.src = ''; // Clear source briefly
-                    img.src = currentSrc; // Set source again
-                    console.log('Attempted to force reload avatar for', userItemData.displayName); // Debug log
-                } else {
-                     console.log('Image element .user-avatar not found in created item for', userItemData.displayName); // Debug log
+                    console.error('Error processing user:', error);
+                    // Continue with next user even if one fails
                 }
             }
-             console.log('Finished updating users list.'); // Debug log
         }
 
         // Function to initialize socket handlers
