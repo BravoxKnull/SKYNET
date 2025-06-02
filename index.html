@@ -263,6 +263,7 @@
             const avatarUrl = userData.avatar_url || defaultAvatar;
             console.log('Avatar URL:', avatarUrl);
 
+            // Explicitly set the innerHTML including the avatar container and image
             userItem.innerHTML = `
                 <div class="user-avatar-container">
                     <img src="${avatarUrl}"
