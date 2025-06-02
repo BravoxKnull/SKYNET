@@ -209,6 +209,7 @@
 
         // Global variables
         let users = []
+        let currentUser = null // Track the current user separately
         let socketInitialized = false
         let mediaStream = null
         let audioContext = null
@@ -251,7 +252,7 @@
 
         // Function to create user list item with improved avatar handling
         function createUserListItem(userData) {
-            console.log('Creating user item with data:', userData); // Debug log: Check the input data
+            // console.log('Creating user item with data:', userData); // Debug log: Check the input data
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             userItem.setAttribute('data-user-id', userData.id);
@@ -261,7 +262,7 @@
 
             // Use the avatar_url from userData if available, otherwise use default
             const avatarUrl = userData.avatar_url || defaultAvatar;
-            console.log('Avatar URL being used in createUserListItem:', avatarUrl); // Debug log
+            // console.log('Avatar URL being used in createUserListItem:', avatarUrl); // Debug log
 
             userItem.innerHTML = `
                 <div class="user-avatar-container">
@@ -280,148 +281,107 @@
             return userItem;
         }
 
-        // Function to update users list with improved avatar handling
-        async function updateUsersList(users) {
-            console.log('Updating users list with users:', users); // Debug log: See the input user data list
-            const usersList = document.getElementById('usersList');
-            if (!usersList) return;
-
-            usersList.innerHTML = ''; // Clear existing users
-
-            // Remove duplicates by using a Map
-            const uniqueUsers = new Map();
-            users.forEach(user => {
-                if (!uniqueUsers.has(user.id)) {
-                    uniqueUsers.set(user.id, user);
-                }
-            });
-
-            console.log('Unique users to display:', uniqueUsers.size); // Debug log: Count unique users
-
-            for (const userData of uniqueUsers.values()) {
-                console.log('Processing user for list:', userData); // Debug log: See data before item creation
-
-                try {
-                    // Create the user item with current data
-                    const userItem = createUserListItem(userData);
-                    usersList.appendChild(userItem);
-                    console.log('Appended user item for', userData.displayName); // Debug log
-
-                    // If the initial data didn't have an avatar_url, try fetching the latest from Supabase
-                    if (!userData.avatar_url) {
-                        console.log('Fetching latest avatar_url for', userData.displayName); // Debug log
-                        const { data, error } = await supabase
-                            .from('users')
-                            .select('avatar_url')
-                            .eq('id', userData.id)
-                            .single();
-
-                        console.log('Supabase fetch result for', userData.displayName, ':', data, error); // Debug log
-
-                        if (!error && data && data.avatar_url) {
-                            // Update the avatar if we got a new URL
-                            const img = userItem.querySelector('.user-avatar');
-                            if (img) {
-                                console.log('Updating image src for', userData.displayName, 'to', data.avatar_url); // Debug log
-                                img.src = data.avatar_url;
-                            } else {
-                                console.log('Image element not found for update for', userData.displayName); // Debug log
-                            }
-                        } else {
-                             console.log('No new avatar_url fetched or error occurred for', userData.displayName); // Debug log
-                        }
-                    } else {
-                         console.log('User data already has avatar_url:', userData.avatar_url); // Debug log
-                    }
-
-                } catch (error) {
-                    console.error('Error processing user or fetching avatar for', userData.displayName, ':', error); // Debug log
-                    // Continue with next user even if one fails
-                }
-            }
-             console.log('Finished updating users list.'); // Debug log
-        }
-
-        // Function to initialize socket handlers
+        // Function to initialize socket handlers with duplicate prevention
         function initializeSocketHandlers() {
             if (typeof socket !== 'undefined' && socket) {
-                socketInitialized = true
+                socketInitialized = true;
 
                 socket.on('connect', () => {
-                    console.log('Connected to server')
-                })
+                    console.log('Connected to server');
+                });
 
                 socket.on('userJoined', (userData) => {
-                    console.log('User joined received:', userData); // Debug log: See user data from server
-                    // Add the new user to the existing list if not already present
-                    const existingUserIndex = users.findIndex(u => u.id === userData.id);
-                    if (existingUserIndex === -1) {
-                         users = [...users, userData];
-                         console.log('Added user to local list. Current list:', users); // Debug log
-                    } else {
-                         // Optionally update existing user data if needed (e.g., status)
-                         users[existingUserIndex] = userData;
-                         console.log('Updated existing user in local list. Current list:', users); // Debug log
+                    console.log('User joined:', userData);
+                    // Check if user already exists
+                    const userExists = users.some(user => user.id === userData.id);
+                    if (!userExists) {
+                        users = [...users, userData];
+                        updateUsersList(users);
                     }
-                    updateUsersList(users); // Update the display with the modified local list
-                })
+                });
 
                 socket.on('userLeft', (userId) => {
-                    console.log('User left received:', userId); // Debug log
-                    users = users.filter(user => user.id !== userId)
-                    updateUsersList(users)
-                })
+                    console.log('User left:', userId);
+                    users = users.filter(user => user.id !== userId);
+                    updateUsersList(users);
+                });
 
                 socket.on('usersList', (usersList) => {
-                     console.log('Received usersList from server:', usersList); // Debug log: See the full list from server
-                     // This is the definitive list, replace the local list and update display
-                     users = usersList;
-                     updateUsersList(users);
-                })
+                    console.log('Received usersList from server:', usersList);
+                    // Merge with current user if needed (ensure current user is always in the list)
+                    const mergedUsers = [...usersList];
+                    if (currentUser && !usersList.some(u => u.id === currentUser.id)) {
+                         // Add current user to the list if not present
+                        mergedUsers.push(currentUser);
+                         console.log('Merged current user into usersList:', mergedUsers);
+                    } else if (currentUser && usersList.some(u => u.id === currentUser.id)) {
+                        // If current user is in the list, make sure we use the most complete data (e.g., with avatar_url)
+                         const existingCurrentUserIndex = mergedUsers.findIndex(u => u.id === currentUser.id);
+                         mergedUsers[existingCurrentUserIndex] = { ...mergedUsers[existingCurrentUserIndex], ...currentUser };
+                         console.log('Updated current user data in usersList:', mergedUsers);
+                    }
+
+                    // Remove potential duplicates one more time using a Map after merging
+                    const uniqueUsersMap = new Map();
+                     mergedUsers.forEach(user => uniqueUsersMap.set(user.id, user));
+                     users = Array.from(uniqueUsersMap.values());
+
+                    console.log('Final users list after merging and deduplicating:', users);
+                    updateUsersList(users);
+                });
 
                 // Add speaking state handlers
                 socket.on('userSpeaking', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator speaking'
-                        status.textContent = 'Speaking...'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator speaking';
+                        status.textContent = 'Speaking...';
                     }
-                })
+                });
 
                 socket.on('userStoppedSpeaking', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator'
-                        status.textContent = 'Online'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator';
+                        status.textContent = 'Online';
                     }
-                })
+                });
 
                 // Handle mute state
                 socket.on('userMuted', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator muted'
-                        status.textContent = 'Muted'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator muted';
+                        status.textContent = 'Muted';
                     }
-                })
+                });
 
                 socket.on('userUnmuted', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator'
-                        status.textContent = 'Online'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator';
+                        status.textContent = 'Online';
                     }
-                })
+                });
+
+                // Add handler to get the initial user list when joining
+                socket.on('currentUsersList', (usersList) => {
+                    console.log('Received initial currentUsersList from server:', usersList);
+                     // Directly set the users list and update display
+                    users = usersList;
+                    updateUsersList(users);
+                });
+
             } else {
-                setTimeout(initializeSocketHandlers, 100)
+                setTimeout(initializeSocketHandlers, 100);
             }
         }
 
@@ -466,17 +426,17 @@
             }
         }
 
-        // Join channel button handler
+        // Updated join channel handler
         document.getElementById('joinBtn').addEventListener('click', async () => {
-            const displayName = document.getElementById('displayName').value.trim()
+            const displayName = document.getElementById('displayName').value.trim();
             if (!displayName) {
-                document.getElementById('warningMessage').textContent = 'Please enter a display name'
-                return
+                document.getElementById('warningMessage').textContent = 'Please enter a display name';
+                return;
             }
 
             if (!socketInitialized) {
-                document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...'
-                return
+                document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...';
+                return;
             }
 
             try {
@@ -485,33 +445,37 @@
                     .from('users')
                     .select('avatar_url')
                     .eq('id', user.id)
-                    .single()
+                    .single();
 
-                if (error) throw error
+                if (error) throw error;
 
                 // Initialize audio analysis
-                await initializeAudioAnalysis()
+                await initializeAudioAnalysis();
 
                 // Show channel section
-                document.getElementById('welcomeSection').classList.add('hidden')
-                document.getElementById('channelSection').classList.remove('hidden')
-                document.getElementById('channelSection').classList.add('visible')
+                document.getElementById('welcomeSection').classList.add('hidden');
+                document.getElementById('channelSection').classList.remove('hidden');
+                document.getElementById('channelSection').classList.add('visible');
 
-                // *** Removed immediate local user list update ***
-                // The list will be updated by socket events 'userJoined' and 'usersList'
-
-                // Join the channel with avatar
-                socket.emit('joinChannel', {
+                // Set current user with fetched avatar URL
+                currentUser = {
                     id: user.id,
                     displayName: displayName,
                     avatar_url: data?.avatar_url || null
-                })
+                };
+                console.log('Current user set:', currentUser);
+
+                // Join the channel
+                socket.emit('joinChannel', { id: currentUser.id, displayName: currentUser.displayName }); // Only send necessary join data
+
+                // Request current users list after joining
+                socket.emit('getUsersList');
 
             } catch (error) {
-                console.error('Error joining channel:', error)
-                document.getElementById('warningMessage').textContent = 'Error joining channel'
+                console.error('Error joining channel:', error);
+                document.getElementById('warningMessage').textContent = 'Error joining channel';
             }
-        })
+        });
 
         // Handle mute button
         document.getElementById('muteBtn').addEventListener('click', () => {
