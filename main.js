@@ -22,6 +22,8 @@ let speakingThreshold = -50; // dB
 let isSpeaking = false;
 let speakingTimeout = null;
 let currentUser = null;
+let users = [];
+let socketInitialized = false;
 
 // Initialize user data
 function initializeUserData() {
@@ -73,13 +75,11 @@ function initializeEventListeners() {
             return;
         }
 
-        // Add loading state to button
         joinBtn.classList.add('loading');
         joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
         joinBtn.disabled = true;
 
         try {
-            // Initialize WebRTC first
             const webRTCInitialized = await initializeWebRTC();
             if (!webRTCInitialized) {
                 warningMessage.textContent = 'Error accessing microphone';
@@ -91,12 +91,10 @@ function initializeEventListeners() {
 
             displayName = name;
             
-            // Initialize socket if not already initialized
             if (!socket) {
                 initializeSocket();
             }
 
-            // Get user's avatar before joining
             const { data, error } = await supabase
                 .from('users')
                 .select('avatar_url')
@@ -107,19 +105,16 @@ function initializeEventListeners() {
                 console.error('Error fetching user avatar:', error);
             }
 
-            // Show channel section
             welcomeSection.classList.add('hidden');
             channelSection.classList.remove('hidden');
             channelSection.classList.add('visible');
 
-            // Join the channel with avatar
             socket.emit('joinChannel', {
                 id: currentUser.id,
                 displayName: displayName,
                 avatar_url: data?.avatar_url || null
             });
 
-            // Add current user to the list immediately
             const userData = {
                 id: currentUser.id,
                 displayName: displayName,
@@ -128,11 +123,9 @@ function initializeEventListeners() {
             users = [userData];
             updateUsersList(users);
 
-            // Update UI
             displayNameInput.disabled = true;
             warningMessage.textContent = '';
             
-            // Update button state
             joinBtn.classList.remove('loading');
             joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
             joinBtn.disabled = true;
@@ -167,13 +160,10 @@ function initializeEventListeners() {
     });
 
     leaveBtn.addEventListener('click', () => {
-        // Animate channel section out
         channelSection.classList.remove('visible');
         channelSection.classList.add('hidden');
 
-        // Wait for animation to complete
         setTimeout(() => {
-            // Reset UI
             displayNameInput.disabled = false;
             joinBtn.disabled = false;
             joinBtn.classList.remove('loading');
@@ -181,28 +171,23 @@ function initializeEventListeners() {
             usersList.innerHTML = '';
             warningMessage.textContent = '';
 
-            // Show welcome section
             welcomeSection.classList.remove('hidden');
 
-            // Clean up connections
             Object.keys(peerConnections).forEach(userId => {
                 closePeerConnection(userId);
             });
             peerConnections = {};
 
-            // Disconnect socket
             if (socket) {
                 socket.disconnect();
                 socket = null;
             }
 
-            // Stop local stream
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
 
-            // Reset audio context
             if (audioContext) {
                 audioContext.close();
                 audioContext = null;
@@ -210,15 +195,6 @@ function initializeEventListeners() {
         }, 500);
     });
 }
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
-    if (!initializeUserData()) {
-        return;
-    }
-    initializeDOMElements();
-    initializeEventListeners();
-});
 
 // Initialize WebRTC
 async function initializeWebRTC() {
@@ -232,7 +208,6 @@ async function initializeWebRTC() {
             video: false
         });
         
-        // Initialize audio context for voice detection
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
         const source = audioContext.createMediaStreamSource(localStream);
@@ -391,7 +366,6 @@ function initializeSocket() {
     socket.on('disconnect', (reason) => {
         console.log('Disconnected from server:', reason);
         if (reason === 'io server disconnect') {
-            // Server initiated disconnect, try to reconnect
             socket.connect();
         }
     });
@@ -418,14 +392,9 @@ function initializeSocket() {
 
     socket.on('duplicateConnection', () => {
         console.log('Duplicate connection detected');
-        // Clean up existing connections
         Object.values(peerConnections).forEach(pc => pc.close());
         peerConnections = {};
-        
-        // Show warning to user
         warningMessage.textContent = 'You are already connected in another tab/window';
-        
-        // Disconnect and reconnect
         socket.disconnect();
         setTimeout(() => {
             window.location.reload();
@@ -434,11 +403,9 @@ function initializeSocket() {
 
     socket.on('userJoined', async (userData) => {
         console.log('User joined:', userData);
-        // Check if user already exists
         if (!users.some(user => user.id === userData.id)) {
             users = [...users, userData];
             updateUsersList(users);
-            // Create peer connection with new user
             await createPeerConnection(userData.id, true);
         }
     });
@@ -448,13 +415,11 @@ function initializeSocket() {
         users = users.filter(user => user.id !== userId);
         updateUsersList(users);
         
-        // Close peer connection
         if (peerConnections[userId]) {
             peerConnections[userId].close();
             delete peerConnections[userId];
         }
         
-        // Remove audio element
         const audioElement = document.getElementById(`audio-${userId}`);
         if (audioElement) {
             audioElement.remove();
@@ -467,7 +432,6 @@ function initializeSocket() {
             console.error('Current user not initialized');
             return;
         }
-        // Filter out duplicates and current user
         const uniqueUsers = usersList.filter(user => 
             user.id !== currentUser.id && 
             !users.some(existingUser => existingUser.id === user.id)
@@ -479,9 +443,7 @@ function initializeSocket() {
     socket.on('offer', async (data) => {
         console.log('Received offer from:', data.senderId);
         try {
-            // Always create a new connection for offers
             const peerConnection = await createPeerConnection(data.senderId, false);
-            
             if (peerConnection) {
                 try {
                     console.log(`Setting remote description for ${data.senderId}`);
@@ -512,7 +474,6 @@ function initializeSocket() {
                     console.log(`Setting remote description (answer) for ${data.senderId}`);
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                     
-                    // Process any queued ICE candidates
                     if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
                         console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
                         for (const candidate of peerConnection.queuedIceCandidates) {
@@ -550,7 +511,6 @@ function initializeSocket() {
                     if (!peerConnection.queuedIceCandidates) {
                         peerConnection.queuedIceCandidates = [];
                     }
-                    // Check for duplicate candidates
                     const isDuplicate = peerConnection.queuedIceCandidates.some(
                         existing => existing.candidate === data.candidate.candidate
                     );
@@ -564,7 +524,6 @@ function initializeSocket() {
         }
     });
 
-    // Handle voice activity
     socket.on('userSpeaking', (data) => {
         const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
         if (userItem) {
@@ -585,3 +544,78 @@ function initializeSocket() {
         }
     });
 }
+
+// Function to create user list item
+function createUserListItem(userData) {
+    const userItem = document.createElement('div');
+    userItem.className = 'user-item';
+    userItem.setAttribute('data-user-id', userData.id);
+
+    const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
+
+    const avatarUrl = userData.avatar_url || defaultAvatar;
+
+    userItem.innerHTML = `
+        <div class="user-avatar-container">
+            <img src="${avatarUrl}"
+                 alt="${userData.displayName}'s avatar"
+                 class="user-avatar"
+                 onerror="this.onerror=null; this.src='${defaultAvatar}'">
+            <div class="user-status-indicator"></div>
+        </div>
+        <div class="user-details">
+            <span class="user-name">${userData.displayName}</span>
+            <span class="user-status">Online</span>
+        </div>
+    `;
+
+    return userItem;
+}
+
+// Function to update users list
+async function updateUsersList(users) {
+    const usersList = document.getElementById('usersList');
+    if (!usersList) return;
+    
+    const uniqueUsers = new Map();
+    users.forEach(user => {
+        if (!uniqueUsers.has(user.id)) {
+            uniqueUsers.set(user.id, user);
+        }
+    });
+
+    usersList.innerHTML = '';
+
+    for (const userData of uniqueUsers.values()) {
+        try {
+            const userItem = createUserListItem(userData);
+            usersList.appendChild(userItem);
+
+            if (!userData.avatar_url) {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('avatar_url')
+                    .eq('id', userData.id)
+                    .single();
+
+                if (!error && data && data.avatar_url) {
+                    const img = userItem.querySelector('.user-avatar');
+                    if (img) {
+                        img.src = data.avatar_url;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error processing user:', error);
+        }
+    }
+}
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    if (!initializeUserData()) {
+        return;
+    }
+    initializeDOMElements();
+    initializeEventListeners();
+});
