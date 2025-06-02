@@ -250,6 +250,12 @@ async function initializeWebRTC() {
 // Create peer connection
 async function createPeerConnection(userId, isInitiator) {
     try {
+        // Check if connection already exists
+        if (peerConnections[userId]) {
+            console.log(`Connection to ${userId} already exists`);
+            return peerConnections[userId];
+        }
+
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -297,6 +303,7 @@ async function createPeerConnection(userId, isInitiator) {
         peerConnection.onconnectionstatechange = () => {
             console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
             if (peerConnection.connectionState === 'failed') {
+                console.log(`Connection failed for ${userId}, attempting to restart ICE`);
                 peerConnection.restartIce();
             }
         };
@@ -305,12 +312,19 @@ async function createPeerConnection(userId, isInitiator) {
         peerConnection.oniceconnectionstatechange = () => {
             console.log(`ICE connection state for ${userId}:`, peerConnection.iceConnectionState);
             if (peerConnection.iceConnectionState === 'failed') {
+                console.log(`ICE connection failed for ${userId}, attempting to restart ICE`);
                 peerConnection.restartIce();
             }
         };
 
+        // Handle signaling state changes
+        peerConnection.onsignalingstatechange = () => {
+            console.log(`Signaling state for ${userId}:`, peerConnection.signalingState);
+        };
+
         if (isInitiator) {
             try {
+                console.log(`Creating offer for ${userId}`);
                 const offer = await peerConnection.createOffer({
                     offerToReceiveAudio: true,
                     voiceActivityDetection: true
@@ -459,24 +473,32 @@ function initializeSocket() {
         console.log('Received offer from:', data.senderId);
         try {
             let peerConnection = peerConnections[data.senderId];
+            
+            // If connection exists but is in wrong state, close it
+            if (peerConnection && peerConnection.signalingState !== 'stable') {
+                console.log(`Closing existing connection to ${data.senderId} due to wrong state`);
+                peerConnection.close();
+                delete peerConnections[data.senderId];
+                peerConnection = null;
+            }
+
             if (!peerConnection) {
                 peerConnection = await createPeerConnection(data.senderId, false);
             }
 
             if (peerConnection) {
-                // Check if we're in a state where we can set the remote description
-                if (peerConnection.signalingState !== 'stable') {
-                    console.log('Connection not in stable state, ignoring offer');
-                    return;
+                if (peerConnection.signalingState === 'stable') {
+                    console.log(`Setting remote description for ${data.senderId}`);
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    socket.emit('answer', {
+                        targetUserId: data.senderId,
+                        answer: answer
+                    });
+                } else {
+                    console.log(`Ignoring offer from ${data.senderId} - wrong signaling state: ${peerConnection.signalingState}`);
                 }
-
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                socket.emit('answer', {
-                    targetUserId: data.senderId,
-                    answer: answer
-                });
             }
         } catch (error) {
             console.error('Error handling offer:', error);
@@ -488,13 +510,21 @@ function initializeSocket() {
         try {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
-                // Check if we're in a state where we can set the remote description
-                if (peerConnection.signalingState !== 'have-local-offer') {
-                    console.log('Connection not in have-local-offer state, ignoring answer');
-                    return;
+                if (peerConnection.signalingState === 'have-local-offer') {
+                    console.log(`Setting remote description (answer) for ${data.senderId}`);
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    
+                    // Process any queued ICE candidates
+                    if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
+                        console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
+                        for (const candidate of peerConnection.queuedIceCandidates) {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                        }
+                        peerConnection.queuedIceCandidates = [];
+                    }
+                } else {
+                    console.log(`Ignoring answer from ${data.senderId} - wrong signaling state: ${peerConnection.signalingState}`);
                 }
-
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
             }
         } catch (error) {
             console.error('Error handling answer:', error);
