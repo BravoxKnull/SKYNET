@@ -1,91 +1,120 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
-        credentials: true
-    },
-    path: '/socket.io/',
-    transports: ['websocket', 'polling']
-});
+const io = require('socket.io')(http);
+const MusicService = require('./musicService');
 
 // Serve static files
-app.use(express.static('.'));
+app.use(express.static('public'));
+
+// Initialize music service
+const musicService = new MusicService();
 
 // Store connected users
 const connectedUsers = new Map();
 
-// Add a basic route for health check
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-});
-
+// Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    // Handle user joining a room
-    socket.on('join-room', (data) => {
-        const { displayName } = data;
-        connectedUsers.set(socket.id, { displayName });
-
-        // Notify other users in the room
-        socket.broadcast.emit('user-joined', {
-            socketId: socket.id,
-            displayName
-        });
-
-        // Send list of existing users to the new user
-        const existingUsers = Array.from(connectedUsers.entries())
-            .filter(([id]) => id !== socket.id)
-            .map(([id, user]) => ({
-                socketId: id,
-                displayName: user.displayName
-            }));
-
-        socket.emit('existing-users', existingUsers);
+    // Handle user joining channel
+    socket.on('joinChannel', (userData) => {
+        connectedUsers.set(socket.id, userData);
+        socket.join('voice-channel');
+        
+        // Broadcast user joined to all users in the channel
+        io.to('voice-channel').emit('userJoined', userData);
+        
+        // Send current users list to the new user
+        const usersList = Array.from(connectedUsers.values());
+        socket.emit('usersList', usersList);
     });
 
-    // Handle WebRTC signaling
-    socket.on('offer', (data) => {
-        io.to(data.socketId).emit('offer', {
-            socketId: socket.id,
-            offer: data.offer
-        });
-    });
-
-    socket.on('answer', (data) => {
-        io.to(data.socketId).emit('answer', {
-            socketId: socket.id,
-            answer: data.answer
-        });
-    });
-
-    socket.on('ice-candidate', (data) => {
-        io.to(data.socketId).emit('ice-candidate', {
-            socketId: socket.id,
-            candidate: data.candidate
-        });
-    });
-
-    // Handle voice activity
-    socket.on('speaking', (data) => {
-        socket.broadcast.emit('speaking', data);
-    });
-
-    // Handle disconnection
+    // Handle user leaving
     socket.on('disconnect', () => {
-        const user = connectedUsers.get(socket.id);
-        if (user) {
-            socket.broadcast.emit('user-left', {
-                socketId: socket.id,
-                displayName: user.displayName
-            });
+        const userData = connectedUsers.get(socket.id);
+        if (userData) {
             connectedUsers.delete(socket.id);
+            io.to('voice-channel').emit('userLeft', userData.id);
         }
-        console.log('User disconnected:', socket.id);
     });
+
+    // Handle speaking state
+    socket.on('speaking', (data) => {
+        socket.to('voice-channel').emit('userSpeaking', data);
+    });
+
+    socket.on('stoppedSpeaking', (data) => {
+        socket.to('voice-channel').emit('userStoppedSpeaking', data);
+    });
+
+    // Music Player Events
+    socket.on('searchMusic', async ({ query }) => {
+        try {
+            const results = await musicService.search(query);
+            socket.emit('searchResults', results);
+        } catch (error) {
+            console.error('Error searching music:', error);
+            socket.emit('error', { message: 'Error searching music' });
+        }
+    });
+
+    socket.on('playMusic', async ({ songName }) => {
+        try {
+            const track = await musicService.play(songName);
+            musicService.currentTrack = track;
+            io.to('voice-channel').emit('musicState', musicService.getState());
+        } catch (error) {
+            console.error('Error playing music:', error);
+            socket.emit('error', { message: 'Error playing music' });
+        }
+    });
+
+    socket.on('pauseMusic', () => {
+        musicService.pause();
+        io.to('voice-channel').emit('musicState', musicService.getState());
+    });
+
+    socket.on('resumeMusic', () => {
+        musicService.resume();
+        io.to('voice-channel').emit('musicState', musicService.getState());
+    });
+
+    socket.on('nextTrack', () => {
+        const nextTrack = musicService.queue.shift();
+        if (nextTrack) {
+            musicService.play(nextTrack.url);
+            io.to('voice-channel').emit('musicState', musicService.getState());
+        }
+    });
+
+    socket.on('prevTrack', () => {
+        // Implement previous track logic if needed
+    });
+
+    socket.on('setVolume', ({ volume }) => {
+        musicService.setVolume(volume);
+        io.to('voice-channel').emit('musicState', musicService.getState());
+    });
+
+    socket.on('clearQueue', () => {
+        musicService.clearQueue();
+        io.to('voice-channel').emit('musicState', musicService.getState());
+    });
+
+    // Handle mute state
+    socket.on('userMuted', (data) => {
+        socket.to('voice-channel').emit('userMuted', data);
+    });
+
+    socket.on('userUnmuted', (data) => {
+        socket.to('voice-channel').emit('userUnmuted', data);
+    });
+});
+
+// Add a basic route for health check
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
 });
 
 // Start server
