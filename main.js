@@ -54,20 +54,60 @@ function initializeEventListeners() {
             const webRTCInitialized = await initializeWebRTC();
             if (!webRTCInitialized) {
                 warningMessage.textContent = 'Error accessing microphone';
+                joinBtn.classList.remove('loading');
+                joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+                joinBtn.disabled = false;
                 return;
             }
 
             displayName = name;
-            initializeSocket();
+            
+            // Initialize socket if not already initialized
+            if (!socket) {
+                initializeSocket();
+            }
+
+            // Get user's avatar before joining
+            const { data, error } = await supabase
+                .from('users')
+                .select('avatar_url')
+                .eq('id', window.user.id)
+                .single();
+
+            if (error) {
+                console.error('Error fetching user avatar:', error);
+            }
 
             // Show channel section
             welcomeSection.classList.add('hidden');
             channelSection.classList.remove('hidden');
             channelSection.classList.add('visible');
 
+            // Join the channel with avatar
+            socket.emit('joinChannel', {
+                id: window.user.id,
+                displayName: displayName,
+                avatar_url: data?.avatar_url || null
+            });
+
+            // Add current user to the list immediately
+            const currentUser = {
+                id: window.user.id,
+                displayName: displayName,
+                avatar_url: data?.avatar_url || null
+            };
+            users = [currentUser];
+            updateUsersList(users);
+
             // Update UI
             displayNameInput.disabled = true;
             warningMessage.textContent = '';
+            
+            // Update button state
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
+            joinBtn.disabled = true;
+
         } catch (error) {
             console.error('Error joining channel:', error);
             warningMessage.textContent = 'Failed to join channel. Please try again.';
@@ -249,6 +289,15 @@ function initializeSocket() {
 
     socket.on('connect', () => {
         console.log('Connected to signaling server');
+        socketInitialized = true;
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        warningMessage.textContent = 'Failed to connect to server. Please try again.';
+        joinBtn.classList.remove('loading');
+        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+        joinBtn.disabled = false;
     });
 
     socket.on('duplicateConnection', () => {
