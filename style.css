@@ -392,6 +392,7 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0; /* Prevent shrinking */
+    z-index: 999;
 }
 
 .user-avatar {
