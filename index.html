@@ -216,6 +216,7 @@
         let speakingThreshold = -50 // dB
         let isSpeaking = false
         let speakingTimeout = null
+        let peerConnections = {} // Add this for WebRTC peer connections
 
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
@@ -278,14 +279,12 @@
             return userItem;
         }
 
-        // Function to update users list with improved avatar handling
+        // Function to update users list with improved avatar handling and duplicate prevention
         async function updateUsersList(users) {
             const usersList = document.getElementById('usersList');
             if (!usersList) return;
             
-            usersList.innerHTML = ''; // Clear existing users
-
-            // Remove duplicates by using a Map
+            // Remove duplicates by using a Map with user.id as key
             const uniqueUsers = new Map();
             users.forEach(user => {
                 if (!uniqueUsers.has(user.id)) {
@@ -293,6 +292,10 @@
                 }
             });
 
+            // Clear existing users
+            usersList.innerHTML = '';
+
+            // Add unique users to the list
             for (const userData of uniqueUsers.values()) {
                 try {
                     // First create the user item with whatever data we have
@@ -317,34 +320,203 @@
                     }
                 } catch (error) {
                     console.error('Error processing user:', error);
-                    // Continue with next user even if one fails
                 }
             }
         }
 
-        // Function to initialize socket handlers
+        // Initialize WebRTC
+        async function initializeWebRTC() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                });
+                
+                // Initialize audio context for voice detection
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                
+                console.log('Audio stream initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                return false;
+            }
+        }
+
+        // Create peer connection
+        async function createPeerConnection(userId, isInitiator) {
+            try {
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        {
+                            urls: 'turn:relay1.expressturn.com:3480',
+                            username: '000000002064061488',
+                            credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+                        }
+                    ]
+                };
+
+                const peerConnection = new RTCPeerConnection(configuration);
+                peerConnections[userId] = peerConnection;
+
+                // Add local stream
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, mediaStream);
+                    });
+                }
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice-candidate', {
+                            targetUserId: userId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                // Handle incoming tracks
+                peerConnection.ontrack = (event) => {
+                    console.log('Received remote track from:', userId);
+                    const audioElement = document.createElement('audio');
+                    audioElement.id = `audio-${userId}`;
+                    audioElement.srcObject = event.streams[0];
+                    audioElement.autoplay = true;
+                    document.body.appendChild(audioElement);
+                };
+
+                // Handle connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
+                    if (peerConnection.connectionState === 'failed') {
+                        peerConnection.restartIce();
+                    }
+                };
+
+                if (isInitiator) {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    socket.emit('offer', {
+                        targetUserId: userId,
+                        offer: offer
+                    });
+                }
+
+                return peerConnection;
+            } catch (error) {
+                console.error('Error creating peer connection:', error);
+                return null;
+            }
+        }
+
+        // Initialize Socket.io
         function initializeSocketHandlers() {
             if (typeof socket !== 'undefined' && socket) {
-                socketInitialized = true
+                socketInitialized = true;
                 
                 socket.on('connect', () => {
-                    console.log('Connected to server')
-                })
+                    console.log('Connected to server');
+                });
 
-                socket.on('userJoined', (userData) => {
-                    users = [...users, userData]
-                    updateUsersList(users)
-                })
+                socket.on('duplicateConnection', () => {
+                    console.log('Duplicate connection detected');
+                    // Clean up existing connections
+                    Object.values(peerConnections).forEach(pc => pc.close());
+                    peerConnections = {};
+                    
+                    // Show warning to user
+                    document.getElementById('warningMessage').textContent = 'You are already connected in another tab/window';
+                    
+                    // Disconnect and reconnect
+                    socket.disconnect();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                });
+
+                socket.on('userJoined', async (userData) => {
+                    console.log('User joined:', userData);
+                    // Check if user already exists
+                    if (!users.some(user => user.id === userData.id)) {
+                        users = [...users, userData];
+                        updateUsersList(users);
+                        // Create peer connection with new user
+                        await createPeerConnection(userData.id, true);
+                    }
+                });
 
                 socket.on('userLeft', (userId) => {
-                    users = users.filter(user => user.id !== userId)
-                    updateUsersList(users)
-                })
+                    console.log('User left:', userId);
+                    users = users.filter(user => user.id !== userId);
+                    updateUsersList(users);
+                    
+                    // Close peer connection
+                    if (peerConnections[userId]) {
+                        peerConnections[userId].close();
+                        delete peerConnections[userId];
+                    }
+                    
+                    // Remove audio element
+                    const audioElement = document.getElementById(`audio-${userId}`);
+                    if (audioElement) {
+                        audioElement.remove();
+                    }
+                });
 
                 socket.on('usersList', (usersList) => {
-                    users = usersList
-                    updateUsersList(users)
-                })
+                    console.log('Received users list:', usersList);
+                    // Filter out duplicates and current user
+                    const uniqueUsers = usersList.filter(user => 
+                        user.id !== window.user.id && 
+                        !users.some(existingUser => existingUser.id === user.id)
+                    );
+                    users = [...users, ...uniqueUsers];
+                    updateUsersList(users);
+                });
+
+                socket.on('offer', async (data) => {
+                    console.log('Received offer from:', data.senderId);
+                    const peerConnection = await createPeerConnection(data.senderId, false);
+                    if (peerConnection) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        socket.emit('answer', {
+                            targetUserId: data.senderId,
+                            answer: answer
+                        });
+                    }
+                });
+
+                socket.on('answer', async (data) => {
+                    console.log('Received answer from:', data.senderId);
+                    const peerConnection = peerConnections[data.senderId];
+                    if (peerConnection) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    }
+                });
+
+                socket.on('ice-candidate', async (data) => {
+                    console.log('Received ICE candidate from:', data.senderId);
+                    const peerConnection = peerConnections[data.senderId];
+                    if (peerConnection) {
+                        try {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                        } catch (error) {
+                            console.error('Error adding ICE candidate:', error);
+                        }
+                    }
+                });
 
                 // Add speaking state handlers
                 socket.on('userSpeaking', (data) => {
@@ -388,105 +560,69 @@
                     }
                 })
             } else {
-                setTimeout(initializeSocketHandlers, 100)
+                setTimeout(initializeSocketHandlers, 100);
             }
         }
 
         // Start initializing socket handlers
         initializeSocketHandlers()
 
-        // Initialize audio analysis
-        async function initializeAudioAnalysis() {
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-                audioContext = new (window.AudioContext || window.webkitAudioContext)()
-                analyser = audioContext.createAnalyser()
-                const source = audioContext.createMediaStreamSource(mediaStream)
-                source.connect(analyser)
-                analyser.fftSize = 256
-                const bufferLength = analyser.frequencyBinCount
-                const dataArray = new Uint8Array(bufferLength)
-
-                // Start analyzing audio
-                function analyzeAudio() {
-                    analyser.getByteFrequencyData(dataArray)
-                    const average = dataArray.reduce((a, b) => a + b) / bufferLength
-                    const db = 20 * Math.log10(average / 255)
-
-                    if (db > speakingThreshold && !isSpeaking) {
-                        isSpeaking = true
-                        socket.emit('speaking', { userId: user.id })
-                        clearTimeout(speakingTimeout)
-                    } else if (db <= speakingThreshold && isSpeaking) {
-                        isSpeaking = false
-                        speakingTimeout = setTimeout(() => {
-                            socket.emit('stoppedSpeaking', { userId: user.id })
-                        }, 1000) // Wait 1 second before emitting stopped speaking
-                    }
-
-                    requestAnimationFrame(analyzeAudio)
-                }
-
-                analyzeAudio()
-            } catch (error) {
-                console.error('Error accessing microphone:', error)
-            }
-        }
-
         // Join channel button handler
         document.getElementById('joinBtn').addEventListener('click', async () => {
-            const displayName = document.getElementById('displayName').value.trim()
+            const displayName = document.getElementById('displayName').value.trim();
             if (!displayName) {
-                document.getElementById('warningMessage').textContent = 'Please enter a display name'
-                return
+                document.getElementById('warningMessage').textContent = 'Please enter a display name';
+                return;
             }
 
             if (!socketInitialized) {
-                document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...'
-                return
+                document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...';
+                return;
             }
 
             try {
+                // Initialize WebRTC first
+                const webRTCInitialized = await initializeWebRTC();
+                if (!webRTCInitialized) {
+                    document.getElementById('warningMessage').textContent = 'Error accessing microphone';
+                    return;
+                }
+
                 // Get user's avatar before joining
                 const { data, error } = await supabase
                     .from('users')
                     .select('avatar_url')
                     .eq('id', user.id)
-                    .single()
+                    .single();
 
-                console.log('User avatar data:', data); // Debug log
-
-                if (error) throw error
-
-                // Initialize audio analysis
-                await initializeAudioAnalysis()
+                if (error) throw error;
 
                 // Show channel section
-                document.getElementById('welcomeSection').classList.add('hidden')
-                document.getElementById('channelSection').classList.remove('hidden')
-                document.getElementById('channelSection').classList.add('visible')
+                document.getElementById('welcomeSection').classList.add('hidden');
+                document.getElementById('channelSection').classList.remove('hidden');
+                document.getElementById('channelSection').classList.add('visible');
 
                 // Join the channel with avatar
                 socket.emit('joinChannel', {
                     id: user.id,
                     displayName: displayName,
                     avatar_url: data?.avatar_url || null
-                })
+                });
 
                 // Add current user to the list immediately
                 const currentUser = {
                     id: user.id,
                     displayName: displayName,
                     avatar_url: data?.avatar_url || null
-                }
-                users = [currentUser]
-                updateUsersList(users)
+                };
+                users = [currentUser];
+                updateUsersList(users);
 
             } catch (error) {
-                console.error('Error joining channel:', error)
-                document.getElementById('warningMessage').textContent = 'Error joining channel'
+                console.error('Error joining channel:', error);
+                document.getElementById('warningMessage').textContent = 'Error joining channel';
             }
-        })
+        });
 
         // Handle mute button
         document.getElementById('muteBtn').addEventListener('click', () => {
