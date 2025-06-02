@@ -248,7 +248,8 @@ async function initializeWebRTC() {
                 noiseSuppression: true,
                 autoGainControl: true,
                 channelCount: 1,
-                sampleRate: 48000
+                sampleRate: 48000,
+                latency: 0.01
             },
             video: false
         });
@@ -257,7 +258,8 @@ async function initializeWebRTC() {
 
         // Initialize audio context with specific sample rate
         audioContext = new (window.AudioContext || window.webkitAudioContext)({
-            sampleRate: 48000
+            sampleRate: 48000,
+            latencyHint: 'interactive'
         });
         
         // Create and configure analyser
@@ -274,6 +276,9 @@ async function initializeWebRTC() {
             await audioContext.resume();
         }
 
+        // Start voice activity detection
+        startVoiceActivityDetection();
+
         console.log('Audio context and analyser initialized successfully');
         return true;
     } catch (error) {
@@ -281,6 +286,36 @@ async function initializeWebRTC() {
         warningMessage.textContent = 'Error accessing microphone. Please check your permissions.';
         return false;
     }
+}
+
+// Add voice activity detection
+function startVoiceActivityDetection() {
+    if (!analyser || !audioContext) return;
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let lastSpeakingState = false;
+
+    function checkVoiceActivity() {
+        if (!analyser || !audioContext) return;
+
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const isSpeaking = average > speakingThreshold;
+
+        if (isSpeaking !== lastSpeakingState) {
+            lastSpeakingState = isSpeaking;
+            if (socket && socket.connected) {
+                socket.emit(isSpeaking ? 'userSpeaking' : 'userStoppedSpeaking', {
+                    userId: currentUser.id,
+                    displayName: currentUser.displayName
+                });
+            }
+        }
+
+        requestAnimationFrame(checkVoiceActivity);
+    }
+
+    checkVoiceActivity();
 }
 
 // Create peer connection with improved configuration
@@ -312,7 +347,23 @@ async function createPeerConnection(userId, isInitiator) {
             iceTransportPolicy: 'all',
             bundlePolicy: 'max-bundle',
             rtcpMuxPolicy: 'require',
-            sdpSemantics: 'unified-plan'
+            sdpSemantics: 'unified-plan',
+            iceServers: [
+                {
+                    urls: [
+                        'stun:stun.l.google.com:19302',
+                        'stun:stun1.l.google.com:19302',
+                        'stun:stun2.l.google.com:19302',
+                        'stun:stun3.l.google.com:19302',
+                        'stun:stun4.l.google.com:19302'
+                    ]
+                },
+                {
+                    urls: 'turn:relay1.expressturn.com:3480',
+                    username: '000000002064061488',
+                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+                }
+            ]
         };
 
         const peerConnection = new RTCPeerConnection(configuration);
@@ -348,7 +399,22 @@ async function createPeerConnection(userId, isInitiator) {
             audioElement.srcObject = event.streams[0];
             audioElement.autoplay = true;
             audioElement.muted = isDeafened;
+            audioElement.volume = 1.0;
             document.body.appendChild(audioElement);
+
+            // Add error handling for audio element
+            audioElement.onerror = (error) => {
+                console.error('Audio element error:', error);
+                // Try to recover by recreating the audio element
+                audioElement.remove();
+                const newAudioElement = document.createElement('audio');
+                newAudioElement.id = `audio-${userId}`;
+                newAudioElement.srcObject = event.streams[0];
+                newAudioElement.autoplay = true;
+                newAudioElement.muted = isDeafened;
+                newAudioElement.volume = 1.0;
+                document.body.appendChild(newAudioElement);
+            };
         };
 
         // Handle connection state changes
@@ -357,6 +423,13 @@ async function createPeerConnection(userId, isInitiator) {
             if (peerConnection.connectionState === 'failed') {
                 console.log(`Connection failed for ${userId}, attempting to restart ICE`);
                 peerConnection.restartIce();
+                // Try to recreate the connection after a delay
+                setTimeout(async () => {
+                    if (peerConnection.connectionState === 'failed') {
+                        console.log(`Recreating connection to ${userId}`);
+                        await createPeerConnection(userId, isInitiator);
+                    }
+                }, 2000);
             }
         };
 
@@ -366,6 +439,13 @@ async function createPeerConnection(userId, isInitiator) {
             if (peerConnection.iceConnectionState === 'failed') {
                 console.log(`ICE connection failed for ${userId}, attempting to restart ICE`);
                 peerConnection.restartIce();
+                // Try to recreate the connection after a delay
+                setTimeout(async () => {
+                    if (peerConnection.iceConnectionState === 'failed') {
+                        console.log(`Recreating ICE connection to ${userId}`);
+                        await createPeerConnection(userId, isInitiator);
+                    }
+                }, 2000);
             }
         };
 
