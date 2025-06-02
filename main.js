@@ -185,8 +185,8 @@ function initializeEventListeners() {
             welcomeSection.classList.remove('hidden');
 
             // Clean up connections
-            Object.keys(peerConnections).forEach(socketId => {
-                closePeerConnection(socketId);
+            Object.keys(peerConnections).forEach(userId => {
+                closePeerConnection(userId);
             });
             peerConnections = {};
 
@@ -200,6 +200,12 @@ function initializeEventListeners() {
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
+            }
+
+            // Reset audio context
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
             }
         }, 500);
     });
@@ -310,18 +316,31 @@ async function createPeerConnection(userId, isInitiator) {
     }
 }
 
+// Close peer connection
+function closePeerConnection(userId) {
+    const peerConnection = peerConnections[userId];
+    if (peerConnection) {
+        peerConnection.close();
+        delete peerConnections[userId];
+    }
+}
+
 // Initialize Socket.io
 function initializeSocket() {
-    socket = io(window.location.origin, {
+    socket = io('https://skynet-mdy7.onrender.com', {
         path: '/socket.io/',
         transports: ['websocket', 'polling'],
         reconnectionAttempts: 5,
-        reconnectionDelay: 1000
+        reconnectionDelay: 1000,
+        timeout: 10000,
+        forceNew: true,
+        withCredentials: true
     });
 
     socket.on('connect', () => {
         console.log('Connected to signaling server');
         socketInitialized = true;
+        warningMessage.textContent = '';
     });
 
     socket.on('connect_error', (error) => {
@@ -330,6 +349,34 @@ function initializeSocket() {
         joinBtn.classList.remove('loading');
         joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
         joinBtn.disabled = false;
+    });
+
+    socket.on('disconnect', (reason) => {
+        console.log('Disconnected from server:', reason);
+        if (reason === 'io server disconnect') {
+            // Server initiated disconnect, try to reconnect
+            socket.connect();
+        }
+    });
+
+    socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log('Attempting to reconnect:', attemptNumber);
+        warningMessage.textContent = `Reconnecting to server... (Attempt ${attemptNumber})`;
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+        console.log('Reconnected to server after', attemptNumber, 'attempts');
+        warningMessage.textContent = '';
+    });
+
+    socket.on('reconnect_error', (error) => {
+        console.error('Reconnection error:', error);
+        warningMessage.textContent = 'Failed to reconnect to server. Please refresh the page.';
+    });
+
+    socket.on('reconnect_failed', () => {
+        console.error('Failed to reconnect to server');
+        warningMessage.textContent = 'Failed to reconnect to server. Please refresh the page.';
     });
 
     socket.on('duplicateConnection', () => {
@@ -379,9 +426,13 @@ function initializeSocket() {
 
     socket.on('usersList', (usersList) => {
         console.log('Received users list:', usersList);
+        if (!currentUser) {
+            console.error('Current user not initialized');
+            return;
+        }
         // Filter out duplicates and current user
         const uniqueUsers = usersList.filter(user => 
-            user.id !== window.user.id && 
+            user.id !== currentUser.id && 
             !users.some(existingUser => existingUser.id === user.id)
         );
         users = [...users, ...uniqueUsers];
