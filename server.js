@@ -67,7 +67,7 @@ io.on('connection', (socket) => {
             io.to(targetSocketId).emit('offer', {
                 senderId: connectedUsers.get(socket.id).id,
                 offer
-            });
+        });
         }
     });
 
@@ -79,7 +79,7 @@ io.on('connection', (socket) => {
             io.to(targetSocketId).emit('answer', {
                 senderId: connectedUsers.get(socket.id).id,
                 answer
-            });
+        });
         }
     });
 
@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
             io.to(targetSocketId).emit('ice-candidate', {
                 senderId: connectedUsers.get(socket.id).id,
                 candidate
-            });
+        });
         }
     });
 

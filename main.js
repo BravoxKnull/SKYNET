@@ -148,6 +148,17 @@ function initializeEventListeners() {
         }
         muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
         muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
+
+        // Broadcast mute status to all users
+        if (socket) {
+            socket.emit('userMuteStatus', {
+                userId: currentUser.id,
+                isMuted: isMuted
+            });
+        }
+
+        // Update local UI
+        updateUserMuteStatus(currentUser.id, isMuted);
     });
 
     deafenBtn.addEventListener('click', () => {
@@ -157,6 +168,17 @@ function initializeEventListeners() {
         });
         deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
         deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
+
+        // Broadcast deafen status to all users
+        if (socket) {
+            socket.emit('userDeafenStatus', {
+                userId: currentUser.id,
+                isDeafened: isDeafened
+            });
+        }
+
+        // Update local UI
+        updateUserDeafenStatus(currentUser.id, isDeafened);
     });
 
     leaveBtn.addEventListener('click', () => {
@@ -543,6 +565,17 @@ function initializeSocket() {
             status.textContent = 'Online';
         }
     });
+
+    // Add new socket event listeners for mute/deafen status
+    socket.on('userMuteStatus', (data) => {
+        console.log('User mute status changed:', data);
+        updateUserMuteStatus(data.userId, data.isMuted);
+    });
+
+    socket.on('userDeafenStatus', (data) => {
+        console.log('User deafen status changed:', data);
+        updateUserDeafenStatus(data.userId, data.isDeafened);
+    });
 }
 
 // Function to create user list item
@@ -607,6 +640,40 @@ async function updateUsersList(users) {
             }
         } catch (error) {
             console.error('Error processing user:', error);
+        }
+    }
+}
+
+// Function to update user mute status in UI
+function updateUserMuteStatus(userId, isMuted) {
+    const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+    if (userItem) {
+        const status = userItem.querySelector('.user-status');
+        const indicator = userItem.querySelector('.user-status-indicator');
+        
+        if (isMuted) {
+            status.textContent = 'Muted';
+            indicator.className = 'user-status-indicator muted';
+        } else {
+            status.textContent = 'Online';
+            indicator.className = 'user-status-indicator';
+        }
+    }
+}
+
+// Function to update user deafen status in UI
+function updateUserDeafenStatus(userId, isDeafened) {
+    const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+    if (userItem) {
+        const status = userItem.querySelector('.user-status');
+        const indicator = userItem.querySelector('.user-status-indicator');
+        
+        if (isDeafened) {
+            status.textContent = 'Deafened';
+            indicator.className = 'user-status-indicator deafened';
+        } else {
+            status.textContent = 'Online';
+            indicator.className = 'user-status-indicator';
         }
     }
 }
