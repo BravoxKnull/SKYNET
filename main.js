@@ -368,49 +368,88 @@ async function createPeerConnection(userId, isInitiator) {
 
         // Enhanced track handling with verification
         peerConnection.ontrack = (event) => {
-            console.log('Received tracks:', event.streams);
-            event.streams[0].getTracks().forEach(track => {
-                console.log('Track kind:', track.kind, 'state:', track.readyState);
-            });
+            console.log('Received tracks event:', event);
+            console.log('Number of streams:', event.streams.length);
+            
+            if (event.streams && event.streams.length > 0) {
+                const stream = event.streams[0];
+                console.log('Stream tracks:', stream.getTracks().map(t => ({
+                    kind: t.kind,
+                    enabled: t.enabled,
+                    muted: t.muted,
+                    readyState: t.readyState
+                })));
 
-            const audioElement = document.createElement('audio');
-            audioElement.id = `audio-${userId}`;
-            audioElement.srcObject = event.streams[0];
-            audioElement.autoplay = true;
-            audioElement.muted = isDeafened;
-            audioElement.volume = 1.0;
-            document.body.appendChild(audioElement);
+                // Remove any existing audio element for this user
+                const existingAudio = document.getElementById(`audio-${userId}`);
+                if (existingAudio) {
+                    console.log('Removing existing audio element');
+                    existingAudio.remove();
+                }
 
-            // Verify audio element setup
-            console.log('Audio element created:', {
-                id: audioElement.id,
-                muted: audioElement.muted,
-                volume: audioElement.volume,
-                readyState: audioElement.readyState
-            });
+                const audioElement = document.createElement('audio');
+                audioElement.id = `audio-${userId}`;
+                audioElement.srcObject = stream;
+                audioElement.autoplay = true;
+                audioElement.muted = isDeafened;
+                audioElement.volume = 1.0;
+                
+                // Add event listeners for debugging
+                audioElement.onloadedmetadata = () => {
+                    console.log(`Audio element loaded metadata for ${userId}`);
+                    audioElement.play().catch(e => console.error('Error playing audio:', e));
+                };
+                
+                audioElement.onplay = () => console.log(`Audio started playing for ${userId}`);
+                audioElement.onpause = () => console.log(`Audio paused for ${userId}`);
+                audioElement.onended = () => console.log(`Audio ended for ${userId}`);
+                audioElement.onerror = (e) => console.error(`Audio error for ${userId}:`, e);
+                
+                document.body.appendChild(audioElement);
+                console.log('Audio element created and added to DOM:', {
+                    id: audioElement.id,
+                    muted: audioElement.muted,
+                    volume: audioElement.volume,
+                    readyState: audioElement.readyState,
+                    srcObject: !!audioElement.srcObject
+                });
 
-            // Add error handling for audio element
-            audioElement.onerror = (error) => {
-                console.error('Audio element error:', error);
-                // Try to recover by recreating the audio element
-                audioElement.remove();
-                const newAudioElement = document.createElement('audio');
-                newAudioElement.id = `audio-${userId}`;
-                newAudioElement.srcObject = event.streams[0];
-                newAudioElement.autoplay = true;
-                newAudioElement.muted = isDeafened;
-                newAudioElement.volume = 1.0;
-                document.body.appendChild(newAudioElement);
-            };
+                // Force play the audio
+                audioElement.play().catch(e => {
+                    console.error('Error playing audio:', e);
+                    // Try to recover by recreating the audio element
+                    audioElement.remove();
+                    const newAudioElement = document.createElement('audio');
+                    newAudioElement.id = `audio-${userId}`;
+                    newAudioElement.srcObject = stream;
+                    newAudioElement.autoplay = true;
+                    newAudioElement.muted = isDeafened;
+                    newAudioElement.volume = 1.0;
+                    document.body.appendChild(newAudioElement);
+                    newAudioElement.play().catch(e => console.error('Error playing recovered audio:', e));
+                });
+            } else {
+                console.error('No streams in track event');
+            }
         };
 
-        // Enhanced connection state monitoring
+        // Add connection state monitoring
         peerConnection.onconnectionstatechange = () => {
             console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
+            if (peerConnection.connectionState === 'connected') {
+                console.log(`Connection established with ${userId}, checking audio tracks...`);
+                peerConnection.getReceivers().forEach(receiver => {
+                    console.log('Receiver track:', {
+                        kind: receiver.track.kind,
+                        enabled: receiver.track.enabled,
+                        muted: receiver.track.muted,
+                        readyState: receiver.track.readyState
+                    });
+                });
+            }
             if (peerConnection.connectionState === 'failed') {
                 console.log(`Connection failed for ${userId}, attempting to restart ICE`);
                 peerConnection.restartIce();
-                // Try to recreate the connection after a delay
                 setTimeout(async () => {
                     if (peerConnection.connectionState === 'failed') {
                         console.log(`Recreating connection to ${userId}`);
@@ -420,13 +459,15 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
-        // Enhanced ICE connection state monitoring
+        // Add ICE connection state monitoring
         peerConnection.oniceconnectionstatechange = () => {
             console.log(`ICE connection state for ${userId}:`, peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'connected') {
+                console.log(`ICE connection established with ${userId}`);
+            }
             if (peerConnection.iceConnectionState === 'failed') {
                 console.log(`ICE connection failed for ${userId}, attempting to restart ICE`);
                 peerConnection.restartIce();
-                // Try to recreate the connection after a delay
                 setTimeout(async () => {
                     if (peerConnection.iceConnectionState === 'failed') {
                         console.log(`Recreating ICE connection to ${userId}`);
