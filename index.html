@@ -332,18 +332,31 @@
                 })
 
                 socket.on('userJoined', (userData) => {
-                    users = [...users, userData]
-                    updateUsersList(users)
+                    console.log('User joined:', userData);
+                    // Add the new user to the existing list if not already present
+                    const existingUserIndex = users.findIndex(u => u.id === userData.id);
+                    if (existingUserIndex === -1) {
+                         users = [...users, userData];
+                         console.log('Added user to local list:', users);
+                    } else {
+                         // Optionally update existing user data if needed
+                         users[existingUserIndex] = userData;
+                         console.log('Updated existing user in local list:', users);
+                    }
+                    updateUsersList(users);
                 })
 
                 socket.on('userLeft', (userId) => {
+                    console.log('User left:', userId);
                     users = users.filter(user => user.id !== userId)
                     updateUsersList(users)
                 })
 
                 socket.on('usersList', (usersList) => {
-                    users = usersList
-                    updateUsersList(users)
+                     console.log('Received usersList from server:', usersList);
+                     // This is the definitive list, replace the local list and update
+                     users = usersList;
+                     updateUsersList(users);
                 })
 
                 // Add speaking state handlers
@@ -454,8 +467,6 @@
                     .eq('id', user.id)
                     .single()
 
-                console.log('User avatar data:', data); // Debug log
-
                 if (error) throw error
 
                 // Initialize audio analysis
@@ -466,21 +477,15 @@
                 document.getElementById('channelSection').classList.remove('hidden')
                 document.getElementById('channelSection').classList.add('visible')
 
+                // *** Removed immediate local user list update ***
+                // The list will be updated by socket events 'userJoined' and 'usersList'
+
                 // Join the channel with avatar
                 socket.emit('joinChannel', {
                     id: user.id,
                     displayName: displayName,
                     avatar_url: data?.avatar_url || null
                 })
-
-                // Add current user to the list immediately
-                const currentUser = {
-                    id: user.id,
-                    displayName: displayName,
-                    avatar_url: data?.avatar_url || null
-                }
-                users = [currentUser]
-                updateUsersList(users)
 
             } catch (error) {
                 console.error('Error joining channel:', error)
