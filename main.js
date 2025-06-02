@@ -239,33 +239,56 @@ function initializeEventListeners() {
 // Initialize WebRTC
 async function initializeWebRTC() {
     try {
+        console.log('Initializing WebRTC...');
+        
+        // Request audio permissions with specific constraints
         localStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: true,
                 noiseSuppression: true,
-                autoGainControl: true
+                autoGainControl: true,
+                channelCount: 1,
+                sampleRate: 48000
             },
             video: false
         });
         
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('Audio stream obtained successfully');
+
+        // Initialize audio context with specific sample rate
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: 48000
+        });
+        
+        // Create and configure analyser
         analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        
+        // Connect audio stream to analyser
         const source = audioContext.createMediaStreamSource(localStream);
         source.connect(analyser);
-        analyser.fftSize = 256;
         
-        console.log('Audio stream initialized successfully');
+        // Start audio context if it's suspended
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+
+        console.log('Audio context and analyser initialized successfully');
         return true;
     } catch (error) {
-        console.error('Error accessing microphone:', error);
+        console.error('Error initializing WebRTC:', error);
+        warningMessage.textContent = 'Error accessing microphone. Please check your permissions.';
         return false;
     }
 }
 
-// Create peer connection
+// Create peer connection with improved configuration
 async function createPeerConnection(userId, isInitiator) {
     try {
-        // Always close existing connection if any
+        console.log(`Creating peer connection for ${userId}, isInitiator: ${isInitiator}`);
+
+        // Close existing connection if any
         if (peerConnections[userId]) {
             console.log(`Closing existing connection to ${userId}`);
             peerConnections[userId].close();
@@ -275,13 +298,21 @@ async function createPeerConnection(userId, isInitiator) {
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
                 {
                     urls: 'turn:relay1.expressturn.com:3480',
                     username: '000000002064061488',
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
             ],
-            iceCandidatePoolSize: 10
+            iceCandidatePoolSize: 10,
+            iceTransportPolicy: 'all',
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+            sdpSemantics: 'unified-plan'
         };
 
         const peerConnection = new RTCPeerConnection(configuration);
@@ -290,13 +321,18 @@ async function createPeerConnection(userId, isInitiator) {
         // Add local stream
         if (localStream) {
             localStream.getTracks().forEach(track => {
+                console.log('Adding track to peer connection:', track.kind);
                 peerConnection.addTrack(track, localStream);
             });
+        } else {
+            console.error('No local stream available');
+            return null;
         }
 
         // Handle ICE candidates
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log('Sending ICE candidate to:', userId);
                 socket.emit('ice-candidate', {
                     targetUserId: userId,
                     candidate: event.candidate
@@ -358,6 +394,7 @@ async function createPeerConnection(userId, isInitiator) {
                 console.error('Error creating offer:', error);
                 peerConnection.close();
                 delete peerConnections[userId];
+                return null;
             }
         }
 
