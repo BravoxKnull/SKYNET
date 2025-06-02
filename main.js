@@ -150,13 +150,16 @@ function initializeEventListeners() {
         muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
 
         // Broadcast mute status to all users
-        if (socket) {
-            socket.emit('userMuteStatus', {
+        if (socket && socket.connected) {
+            const muteData = {
                 userId: currentUser.id,
                 isMuted: isMuted,
                 displayName: currentUser.displayName
-            });
-            console.log('Broadcasting mute status:', { userId: currentUser.id, isMuted: isMuted });
+            };
+            console.log('Broadcasting mute status to server:', muteData);
+            socket.emit('userMuteStatus', muteData);
+        } else {
+            console.warn('Socket not connected, cannot broadcast mute status');
         }
 
         // Update local UI
@@ -172,13 +175,16 @@ function initializeEventListeners() {
         deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
 
         // Broadcast deafen status to all users
-        if (socket) {
-            socket.emit('userDeafenStatus', {
+        if (socket && socket.connected) {
+            const deafenData = {
                 userId: currentUser.id,
                 isDeafened: isDeafened,
                 displayName: currentUser.displayName
-            });
-            console.log('Broadcasting deafen status:', { userId: currentUser.id, isDeafened: isDeafened });
+            };
+            console.log('Broadcasting deafen status to server:', deafenData);
+            socket.emit('userDeafenStatus', deafenData);
+        } else {
+            console.warn('Socket not connected, cannot broadcast deafen status');
         }
 
         // Update local UI
@@ -401,9 +407,24 @@ function initializeSocket() {
         warningMessage.textContent = `Reconnecting to server... (Attempt ${attemptNumber})`;
     });
 
-    socket.on('reconnect', (attemptNumber) => {
-        console.log('Reconnected to server after', attemptNumber, 'attempts');
-        warningMessage.textContent = '';
+    socket.on('reconnect', () => {
+        console.log('Socket reconnected, broadcasting current status');
+        if (socket && socket.connected) {
+            // Broadcast current status after reconnection
+            const muteData = {
+                userId: currentUser.id,
+                isMuted: isMuted,
+                displayName: currentUser.displayName
+            };
+            socket.emit('userMuteStatus', muteData);
+
+            const deafenData = {
+                userId: currentUser.id,
+                isDeafened: isDeafened,
+                displayName: currentUser.displayName
+            };
+            socket.emit('userDeafenStatus', deafenData);
+        }
     });
 
     socket.on('reconnect_error', (error) => {
@@ -435,22 +456,24 @@ function initializeSocket() {
             await createPeerConnection(userData.id, true);
             
             // Send current status to new user
-            if (socket) {
+            if (socket && socket.connected) {
                 // Broadcast current mute status
-                socket.emit('userMuteStatus', {
+                const muteData = {
                     userId: currentUser.id,
                     isMuted: isMuted,
                     displayName: currentUser.displayName
-                });
-                console.log('Broadcasting initial mute status to new user:', { userId: currentUser.id, isMuted: isMuted });
+                };
+                console.log('Broadcasting initial mute status to new user:', muteData);
+                socket.emit('userMuteStatus', muteData);
 
                 // Broadcast current deafen status
-                socket.emit('userDeafenStatus', {
+                const deafenData = {
                     userId: currentUser.id,
                     isDeafened: isDeafened,
                     displayName: currentUser.displayName
-                });
-                console.log('Broadcasting initial deafen status to new user:', { userId: currentUser.id, isDeafened: isDeafened });
+                };
+                console.log('Broadcasting initial deafen status to new user:', deafenData);
+                socket.emit('userDeafenStatus', deafenData);
             }
         }
     });
@@ -591,20 +614,24 @@ function initializeSocket() {
 
     // Update the mute status event handler
     socket.on('userMuteStatus', (data) => {
-        console.log('Received mute status update:', data);
-        // Force a UI update
-        requestAnimationFrame(() => {
-            updateUserMuteStatus(data.userId, data.isMuted);
-        });
+        console.log('Received mute status update from server:', data);
+        if (data.userId) {
+            // Force a UI update
+            requestAnimationFrame(() => {
+                updateUserMuteStatus(data.userId, data.isMuted);
+            });
+        }
     });
 
     // Update the deafen status event handler
     socket.on('userDeafenStatus', (data) => {
-        console.log('Received deafen status update:', data);
-        // Force a UI update
-        requestAnimationFrame(() => {
-            updateUserDeafenStatus(data.userId, data.isDeafened);
-        });
+        console.log('Received deafen status update from server:', data);
+        if (data.userId) {
+            // Force a UI update
+            requestAnimationFrame(() => {
+                updateUserDeafenStatus(data.userId, data.isDeafened);
+            });
+        }
     });
 }
 
