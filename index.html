@@ -7,10 +7,25 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Add WebRTC adapter for better browser compatibility -->
+    
+    <!-- WebRTC and Socket.IO Scripts -->
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- WebRTC Compatibility Check -->
+    <script>
+        // Check WebRTC support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Your browser does not support WebRTC. Please use a modern browser like Chrome, Firefox, or Edge.');
+        }
+        
+        // Check WebRTC adapter
+        if (typeof adapter === 'undefined') {
+            console.error('WebRTC adapter failed to load');
+            alert('Failed to load WebRTC adapter. Please refresh the page or try a different browser.');
+        }
+    </script>
 </head>
 <body>
     <!-- Auth Check Script -->
