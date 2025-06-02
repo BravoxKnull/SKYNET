@@ -250,10 +250,17 @@ async function initializeWebRTC() {
 // Create peer connection
 async function createPeerConnection(userId, isInitiator) {
     try {
-        // Check if connection already exists
+        // Check if connection already exists and is in a valid state
         if (peerConnections[userId]) {
-            console.log(`Connection to ${userId} already exists`);
-            return peerConnections[userId];
+            const existingConnection = peerConnections[userId];
+            if (existingConnection.signalingState === 'stable') {
+                console.log(`Connection to ${userId} already exists and is stable`);
+                return existingConnection;
+            } else {
+                console.log(`Closing existing connection to ${userId} due to invalid state: ${existingConnection.signalingState}`);
+                existingConnection.close();
+                delete peerConnections[userId];
+            }
         }
 
         const configuration = {
@@ -320,6 +327,10 @@ async function createPeerConnection(userId, isInitiator) {
         // Handle signaling state changes
         peerConnection.onsignalingstatechange = () => {
             console.log(`Signaling state for ${userId}:`, peerConnection.signalingState);
+            if (peerConnection.signalingState === 'closed') {
+                console.log(`Connection to ${userId} closed, cleaning up`);
+                delete peerConnections[userId];
+            }
         };
 
         if (isInitiator) {
@@ -336,6 +347,8 @@ async function createPeerConnection(userId, isInitiator) {
                 });
             } catch (error) {
                 console.error('Error creating offer:', error);
+                peerConnection.close();
+                delete peerConnections[userId];
             }
         }
 
@@ -476,7 +489,7 @@ function initializeSocket() {
             
             // If connection exists but is in wrong state, close it
             if (peerConnection && peerConnection.signalingState !== 'stable') {
-                console.log(`Closing existing connection to ${data.senderId} due to wrong state`);
+                console.log(`Closing existing connection to ${data.senderId} due to wrong state: ${peerConnection.signalingState}`);
                 peerConnection.close();
                 delete peerConnections[data.senderId];
                 peerConnection = null;
@@ -489,13 +502,19 @@ function initializeSocket() {
             if (peerConnection) {
                 if (peerConnection.signalingState === 'stable') {
                     console.log(`Setting remote description for ${data.senderId}`);
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    socket.emit('answer', {
-                        targetUserId: data.senderId,
-                        answer: answer
-                    });
+                    try {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        socket.emit('answer', {
+                            targetUserId: data.senderId,
+                            answer: answer
+                        });
+                    } catch (error) {
+                        console.error('Error handling offer:', error);
+                        peerConnection.close();
+                        delete peerConnections[data.senderId];
+                    }
                 } else {
                     console.log(`Ignoring offer from ${data.senderId} - wrong signaling state: ${peerConnection.signalingState}`);
                 }
@@ -530,6 +549,9 @@ function initializeSocket() {
                         }
                     } catch (error) {
                         console.error('Error setting remote description:', error);
+                        // If we fail to set the remote description, close the connection
+                        peerConnection.close();
+                        delete peerConnections[data.senderId];
                     }
                 } else {
                     console.log(`Ignoring answer from ${data.senderId} - wrong signaling state: ${peerConnection.signalingState}`);
