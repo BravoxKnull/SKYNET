@@ -332,23 +332,6 @@ async function createPeerConnection(userId, isInitiator) {
 
         const configuration = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                {
-                    urls: 'turn:relay1.expressturn.com:3480',
-                    username: '000000002064061488',
-                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
-                }
-            ],
-            iceCandidatePoolSize: 10,
-            iceTransportPolicy: 'all',
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require',
-            sdpSemantics: 'unified-plan',
-            iceServers: [
                 {
                     urls: [
                         'stun:stun.l.google.com:19302',
@@ -363,11 +346,19 @@ async function createPeerConnection(userId, isInitiator) {
                     username: '000000002064061488',
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
-            ]
+            ],
+            iceCandidatePoolSize: 10,
+            iceTransportPolicy: 'all',
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+            sdpSemantics: 'unified-plan'
         };
 
         const peerConnection = new RTCPeerConnection(configuration);
         peerConnections[userId] = peerConnection;
+
+        // Queue for ICE candidates
+        peerConnection.queuedIceCandidates = [];
 
         // Add local stream
         if (localStream) {
@@ -666,7 +657,8 @@ function initializeSocket() {
                 try {
                     console.log(`Setting remote description (answer) for ${data.senderId}`);
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    
+
+                    // Process any queued ICE candidates
                     if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
                         console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
                         for (const candidate of peerConnection.queuedIceCandidates) {
@@ -701,6 +693,7 @@ function initializeSocket() {
                         console.warn('Error adding ICE candidate:', error);
                     }
                 } else {
+                    // Queue the ICE candidate if remote description is not set yet
                     if (!peerConnection.queuedIceCandidates) {
                         peerConnection.queuedIceCandidates = [];
                     }
