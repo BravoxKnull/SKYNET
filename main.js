@@ -324,17 +324,21 @@ async function createPeerConnection(userId, isInitiator) {
             delete peerConnections[userId];
         }
 
-        // Fixed ICE server configuration
+        // Updated ICE server configuration with more reliable servers
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { 
-                    urls: 'turn:numb.viagenie.ca',
-                    credential: 'muazkh',
-                    username: 'webrtc@live.com'
-                },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
                 {
                     urls: 'turn:relay1.expressturn.com:3480',
+                    username: '000000002064061488',
+                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+                },
+                {
+                    urls: 'turn:relay2.expressturn.com:3480',
                     username: '000000002064061488',
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
@@ -449,6 +453,7 @@ async function createPeerConnection(userId, isInitiator) {
         // Add ICE candidate error handling
         peerConnection.onicecandidateerror = (event) => {
             console.error(`ICE candidate error for ${userId}:`, event);
+            // If we get too many errors from a particular server, we could implement a fallback mechanism here
         };
 
         // Enhanced signaling state monitoring
