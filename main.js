@@ -599,6 +599,16 @@ function createUserListItem(userData) {
         <div class="user-details">
             <span class="user-name">${userData.displayName}</span>
             <span class="user-status">Online</span>
+            <div class="user-device-status">
+                <div class="device-status mic-status" title="Microphone Status">
+                    <i class="fas fa-microphone"></i>
+                    <span class="status-text">Active</span>
+                </div>
+                <div class="device-status speaker-status" title="Speaker Status">
+                    <i class="fas fa-volume-up"></i>
+                    <span class="status-text">Active</span>
+                </div>
+            </div>
         </div>
     `;
 
@@ -650,13 +660,18 @@ function updateUserMuteStatus(userId, isMuted) {
     if (userItem) {
         const status = userItem.querySelector('.user-status');
         const indicator = userItem.querySelector('.user-status-indicator');
+        const micStatus = userItem.querySelector('.mic-status');
         
         if (isMuted) {
             status.textContent = 'Muted';
             indicator.className = 'user-status-indicator muted';
+            micStatus.innerHTML = '<i class="fas fa-microphone-slash"></i><span class="status-text">Muted</span>';
+            micStatus.classList.add('inactive');
         } else {
             status.textContent = 'Online';
             indicator.className = 'user-status-indicator';
+            micStatus.innerHTML = '<i class="fas fa-microphone"></i><span class="status-text">Active</span>';
+            micStatus.classList.remove('inactive');
         }
     }
 }
@@ -667,13 +682,18 @@ function updateUserDeafenStatus(userId, isDeafened) {
     if (userItem) {
         const status = userItem.querySelector('.user-status');
         const indicator = userItem.querySelector('.user-status-indicator');
+        const speakerStatus = userItem.querySelector('.speaker-status');
         
         if (isDeafened) {
             status.textContent = 'Deafened';
             indicator.className = 'user-status-indicator deafened';
+            speakerStatus.innerHTML = '<i class="fas fa-volume-mute"></i><span class="status-text">Deafened</span>';
+            speakerStatus.classList.add('inactive');
         } else {
             status.textContent = 'Online';
             indicator.className = 'user-status-indicator';
+            speakerStatus.innerHTML = '<i class="fas fa-volume-up"></i><span class="status-text">Active</span>';
+            speakerStatus.classList.remove('inactive');
         }
     }
 }

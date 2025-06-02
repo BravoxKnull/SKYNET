@@ -373,6 +373,7 @@ body {
     min-width: 180px;
     max-width: 100%;
     position: relative;
+    min-height: 160px;
 }
 
 /* Different colors for user boxes */
@@ -464,7 +465,11 @@ body {
 }
 
 .user-details {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
 }
 
 .user-name {
@@ -1153,4 +1158,64 @@ body {
     border-radius: 50%;
     box-shadow: inset 0 0 20px rgba(0, 255, 157, 0.2);
     pointer-events: none;
+}
+
+.user-device-status {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 0.8rem;
+}
+
+.device-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 12px;
+    background: rgba(100, 255, 218, 0.1);
+    transition: all 0.3s ease;
+}
+
+.device-status i {
+    font-size: 0.8rem;
+    color: var(--primary-color);
+}
+
+.device-status .status-text {
+    color: var(--text-color);
+    font-size: 0.7rem;
+}
+
+.device-status.inactive {
+    background: rgba(255, 77, 77, 0.1);
+}
+
+.device-status.inactive i {
+    color: var(--danger-color);
+}
+
+.device-status.inactive .status-text {
+    color: var(--danger-color);
+}
+
+.mic-status.inactive i {
+    color: var(--danger-color);
+}
+
+.speaker-status.inactive i {
+    color: var(--warning-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .user-device-status {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .device-status {
+        width: 100%;
+        justify-content: center;
+    }
 } 
