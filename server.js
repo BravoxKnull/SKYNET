@@ -23,27 +23,28 @@ app.get('/health', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('a user connected:', socket.id);
 
-    // Handle user joining a room
     socket.on('join-room', (data) => {
-        const { displayName } = data;
-        connectedUsers.set(socket.id, { displayName });
+        const { displayName, avatar_url } = data;
+        connectedUsers.set(socket.id, { displayName, avatar_url });
+        console.log(`User ${displayName} (${socket.id}) joined with avatar: ${avatar_url}`);
 
-        // Notify other users in the room
         socket.broadcast.emit('user-joined', {
             socketId: socket.id,
-            displayName
+            displayName,
+            avatar_url
         });
 
-        // Send list of existing users to the new user
         const existingUsers = Array.from(connectedUsers.entries())
             .filter(([id]) => id !== socket.id)
             .map(([id, user]) => ({
                 socketId: id,
-                displayName: user.displayName
+                displayName: user.displayName,
+                avatar_url: user.avatar_url
             }));
 
+        console.log('Sending existing users to new user:', existingUsers);
         socket.emit('existing-users', existingUsers);
     });
 
