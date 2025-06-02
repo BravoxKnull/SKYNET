@@ -251,6 +251,7 @@
 
         // Function to create user list item with improved avatar handling
         function createUserListItem(userData) {
+            console.log('Creating user item with data:', userData); // Debug log: Check the input data
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             userItem.setAttribute('data-user-id', userData.id);
@@ -260,6 +261,7 @@
 
             // Use the avatar_url from userData if available, otherwise use default
             const avatarUrl = userData.avatar_url || defaultAvatar;
+            console.log('Avatar URL being used in createUserListItem:', avatarUrl); // Debug log
 
             userItem.innerHTML = `
                 <div class="user-avatar-container">
@@ -280,9 +282,10 @@
 
         // Function to update users list with improved avatar handling
         async function updateUsersList(users) {
+            console.log('Updating users list with users:', users); // Debug log: See the input user data list
             const usersList = document.getElementById('usersList');
             if (!usersList) return;
-            
+
             usersList.innerHTML = ''; // Clear existing users
 
             // Remove duplicates by using a Map
@@ -293,68 +296,85 @@
                 }
             });
 
+            console.log('Unique users to display:', uniqueUsers.size); // Debug log: Count unique users
+
             for (const userData of uniqueUsers.values()) {
+                console.log('Processing user for list:', userData); // Debug log: See data before item creation
+
                 try {
-                    // First create the user item with whatever data we have
+                    // Create the user item with current data
                     const userItem = createUserListItem(userData);
                     usersList.appendChild(userItem);
+                    console.log('Appended user item for', userData.displayName); // Debug log
 
-                    // Then try to fetch updated avatar if needed
+                    // If the initial data didn't have an avatar_url, try fetching the latest from Supabase
                     if (!userData.avatar_url) {
+                        console.log('Fetching latest avatar_url for', userData.displayName); // Debug log
                         const { data, error } = await supabase
                             .from('users')
                             .select('avatar_url')
                             .eq('id', userData.id)
                             .single();
 
+                        console.log('Supabase fetch result for', userData.displayName, ':', data, error); // Debug log
+
                         if (!error && data && data.avatar_url) {
                             // Update the avatar if we got a new URL
                             const img = userItem.querySelector('.user-avatar');
                             if (img) {
+                                console.log('Updating image src for', userData.displayName, 'to', data.avatar_url); // Debug log
                                 img.src = data.avatar_url;
+                            } else {
+                                console.log('Image element not found for update for', userData.displayName); // Debug log
                             }
+                        } else {
+                             console.log('No new avatar_url fetched or error occurred for', userData.displayName); // Debug log
                         }
+                    } else {
+                         console.log('User data already has avatar_url:', userData.avatar_url); // Debug log
                     }
+
                 } catch (error) {
-                    console.error('Error processing user:', error);
+                    console.error('Error processing user or fetching avatar for', userData.displayName, ':', error); // Debug log
                     // Continue with next user even if one fails
                 }
             }
+             console.log('Finished updating users list.'); // Debug log
         }
 
         // Function to initialize socket handlers
         function initializeSocketHandlers() {
             if (typeof socket !== 'undefined' && socket) {
                 socketInitialized = true
-                
+
                 socket.on('connect', () => {
                     console.log('Connected to server')
                 })
 
                 socket.on('userJoined', (userData) => {
-                    console.log('User joined:', userData);
+                    console.log('User joined received:', userData); // Debug log: See user data from server
                     // Add the new user to the existing list if not already present
                     const existingUserIndex = users.findIndex(u => u.id === userData.id);
                     if (existingUserIndex === -1) {
                          users = [...users, userData];
-                         console.log('Added user to local list:', users);
+                         console.log('Added user to local list. Current list:', users); // Debug log
                     } else {
-                         // Optionally update existing user data if needed
+                         // Optionally update existing user data if needed (e.g., status)
                          users[existingUserIndex] = userData;
-                         console.log('Updated existing user in local list:', users);
+                         console.log('Updated existing user in local list. Current list:', users); // Debug log
                     }
-                    updateUsersList(users);
+                    updateUsersList(users); // Update the display with the modified local list
                 })
 
                 socket.on('userLeft', (userId) => {
-                    console.log('User left:', userId);
+                    console.log('User left received:', userId); // Debug log
                     users = users.filter(user => user.id !== userId)
                     updateUsersList(users)
                 })
 
                 socket.on('usersList', (usersList) => {
-                     console.log('Received usersList from server:', usersList);
-                     // This is the definitive list, replace the local list and update
+                     console.log('Received usersList from server:', usersList); // Debug log: See the full list from server
+                     // This is the definitive list, replace the local list and update display
                      users = usersList;
                      updateUsersList(users);
                 })
