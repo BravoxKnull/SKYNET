@@ -247,7 +247,6 @@
                     if (bioInput) bioInput.value = data.bio || ''
                     if (statusSelect) statusSelect.value = data.status || 'online'
                     if (themeSwitch) themeSwitch.checked = data.theme === 'light'
-                    if (customStatus) customStatus.value = data.custom_status || ''
                     if (memberSince) memberSince.textContent = new Date(data.created_at).toLocaleDateString()
                     if (lastLogin) lastLogin.textContent = new Date(data.last_login).toLocaleDateString()
 
@@ -257,10 +256,11 @@
                         if (soundToggle) soundToggle.checked = data.user_settings.sound_enabled
                         if (voiceActivityToggle) voiceActivityToggle.checked = data.user_settings.voice_activity
                         if (pushToTalkToggle) pushToTalkToggle.checked = data.user_settings.push_to_talk
+                        if (customStatus) customStatus.value = data.user_settings.custom_status || ''
                     }
                 } catch (error) {
                     console.error('Error loading profile:', error)
-                    showMessage('Error loading profile data', 'error')
+                    showMessage('Error loading profile data: ' + (error.message || 'Unknown error'), 'error')
                 }
             }
 
@@ -375,13 +375,14 @@
                 const voiceActivityToggle = document.getElementById('voiceActivityToggle')
                 const pushToTalkToggle = document.getElementById('pushToTalkToggle')
 
+                // Update user profile
                 const updates = {
                     bio: bioInput ? bioInput.value : '',
                     status: statusSelect ? statusSelect.value : 'online',
-                    theme: themeSwitch ? (themeSwitch.checked ? 'light' : 'dark') : 'dark',
-                    custom_status: customStatus ? customStatus.value : ''
+                    theme: themeSwitch ? (themeSwitch.checked ? 'light' : 'dark') : 'dark'
                 }
 
+                console.log('Updating user profile with:', updates)
                 const { error } = await supabase
                     .from('users')
                     .update(updates)
@@ -392,7 +393,7 @@
                     throw error
                 }
 
-                // Update settings
+                // Update user settings
                 const settings = {
                     user_id: storedUser.id,
                     email_notifications: notificationsToggle ? notificationsToggle.checked : true,
@@ -402,6 +403,7 @@
                     custom_status: customStatus ? customStatus.value : ''
                 }
 
+                console.log('Updating user settings with:', settings)
                 const { error: settingsError } = await supabase
                     .from('user_settings')
                     .upsert(settings)
@@ -411,10 +413,17 @@
                     throw settingsError
                 }
 
+                // Apply theme immediately
+                if (themeSwitch) {
+                    const newTheme = themeSwitch.checked ? 'light' : 'dark'
+                    document.documentElement.setAttribute('data-theme', newTheme)
+                    localStorage.setItem('theme', newTheme)
+                }
+
                 showMessage('Profile updated successfully!', 'success')
             } catch (error) {
                 console.error('Error saving profile:', error)
-                showMessage('Error saving profile changes', 'error')
+                showMessage('Error saving profile changes: ' + (error.message || 'Unknown error'), 'error')
             }
         }
 
