@@ -344,12 +344,20 @@ async function createPeerConnection(userId, isInitiator) {
         // Queue for ICE candidates
         peerConnection.queuedIceCandidates = [];
 
-        // Add local stream
+        // Add local stream with explicit audio track handling
         if (localStream) {
-            localStream.getTracks().forEach(track => {
-                console.log('Adding track to peer connection:', track.kind);
-                peerConnection.addTrack(track, localStream);
-            });
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                console.log('Adding audio track to peer connection:', {
+                    enabled: audioTrack.enabled,
+                    muted: audioTrack.muted,
+                    readyState: audioTrack.readyState
+                });
+                peerConnection.addTrack(audioTrack, localStream);
+            } else {
+                console.error('No audio track found in local stream');
+                return null;
+            }
         } else {
             console.error('No local stream available');
             return null;
@@ -373,7 +381,8 @@ async function createPeerConnection(userId, isInitiator) {
             
             if (event.streams && event.streams.length > 0) {
                 const stream = event.streams[0];
-                console.log('Stream tracks:', stream.getTracks().map(t => ({
+                const tracks = stream.getTracks();
+                console.log('Stream tracks:', tracks.map(t => ({
                     kind: t.kind,
                     enabled: t.enabled,
                     muted: t.muted,

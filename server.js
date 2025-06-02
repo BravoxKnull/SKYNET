@@ -51,8 +51,9 @@ io.on('connection', (socket) => {
     // Handle user joining
     socket.on('joinChannel', (userData) => {
         console.log('User joined channel:', userData);
-        // Store user data
+        // Store user data with both keys
         connectedUsers.set(socket.id, userData);
+        userIdToSocketId.set(userData.id, socket.id);
         
         // Broadcast to all clients except sender
         socket.broadcast.emit('userJoined', userData);
@@ -70,52 +71,62 @@ io.on('connection', (socket) => {
             // Broadcast to all clients
             io.emit('userLeft', userData.id);
             connectedUsers.delete(socket.id);
+            userIdToSocketId.delete(userData.id);
         }
     });
 
     // Handle WebRTC signaling
     socket.on('offer', (data) => {
-        const { targetUserId, offer } = data;
-        const targetSocketId = userIdToSocketId.get(targetUserId);
+        console.log('Received offer from:', socket.id, 'to:', data.targetUserId);
+        const targetSocketId = userIdToSocketId.get(data.targetUserId);
         
         if (targetSocketId) {
+            console.log('Forwarding offer to:', targetSocketId);
             io.to(targetSocketId).emit('offer', {
                 senderId: connectedUsers.get(socket.id).id,
-                offer
-        });
+                offer: data.offer
+            });
+        } else {
+            console.log('Target user not found:', data.targetUserId);
         }
     });
 
     socket.on('answer', (data) => {
-        const { targetUserId, answer } = data;
-        const targetSocketId = userIdToSocketId.get(targetUserId);
+        console.log('Received answer from:', socket.id, 'to:', data.targetUserId);
+        const targetSocketId = userIdToSocketId.get(data.targetUserId);
         
         if (targetSocketId) {
+            console.log('Forwarding answer to:', targetSocketId);
             io.to(targetSocketId).emit('answer', {
                 senderId: connectedUsers.get(socket.id).id,
-                answer
-        });
+                answer: data.answer
+            });
+        } else {
+            console.log('Target user not found:', data.targetUserId);
         }
     });
 
     socket.on('ice-candidate', (data) => {
-        const { targetUserId, candidate } = data;
-        const targetSocketId = userIdToSocketId.get(targetUserId);
+        console.log('Received ICE candidate from:', socket.id, 'to:', data.targetUserId);
+        const targetSocketId = userIdToSocketId.get(data.targetUserId);
         
         if (targetSocketId) {
+            console.log('Forwarding ICE candidate to:', targetSocketId);
             io.to(targetSocketId).emit('ice-candidate', {
                 senderId: connectedUsers.get(socket.id).id,
-                candidate
-        });
+                candidate: data.candidate
+            });
+        } else {
+            console.log('Target user not found:', data.targetUserId);
         }
     });
 
     // Handle voice activity
-    socket.on('speaking', (data) => {
+    socket.on('userSpeaking', (data) => {
         socket.broadcast.emit('userSpeaking', data);
     });
 
-    socket.on('stoppedSpeaking', (data) => {
+    socket.on('userStoppedSpeaking', (data) => {
         socket.broadcast.emit('userStoppedSpeaking', data);
     });
 
