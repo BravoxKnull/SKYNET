@@ -510,17 +510,26 @@ function initializeSocket() {
         try {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
+                // Only process answer if we're in the correct state
                 if (peerConnection.signalingState === 'have-local-offer') {
                     console.log(`Setting remote description (answer) for ${data.senderId}`);
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    
-                    // Process any queued ICE candidates
-                    if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
-                        console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
-                        for (const candidate of peerConnection.queuedIceCandidates) {
-                            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    try {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        
+                        // Process any queued ICE candidates
+                        if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
+                            console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
+                            for (const candidate of peerConnection.queuedIceCandidates) {
+                                try {
+                                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                                } catch (error) {
+                                    console.warn('Error adding queued ICE candidate:', error);
+                                }
+                            }
+                            peerConnection.queuedIceCandidates = [];
                         }
-                        peerConnection.queuedIceCandidates = [];
+                    } catch (error) {
+                        console.error('Error setting remote description:', error);
                     }
                 } else {
                     console.log(`Ignoring answer from ${data.senderId} - wrong signaling state: ${peerConnection.signalingState}`);
@@ -538,17 +547,27 @@ function initializeSocket() {
             if (peerConnection) {
                 // Only add ICE candidates if we have a remote description
                 if (peerConnection.remoteDescription) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    } catch (error) {
+                        console.warn('Error adding ICE candidate:', error);
+                    }
                 } else {
                     // Store the candidate for later
                     if (!peerConnection.queuedIceCandidates) {
                         peerConnection.queuedIceCandidates = [];
                     }
-                    peerConnection.queuedIceCandidates.push(data.candidate);
+                    // Check for duplicate candidates
+                    const isDuplicate = peerConnection.queuedIceCandidates.some(
+                        existing => existing.candidate === data.candidate.candidate
+                    );
+                    if (!isDuplicate) {
+                        peerConnection.queuedIceCandidates.push(data.candidate);
+                    }
                 }
             }
         } catch (error) {
-            console.error('Error adding ICE candidate:', error);
+            console.error('Error handling ICE candidate:', error);
         }
     });
 
