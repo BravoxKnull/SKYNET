@@ -251,22 +251,44 @@
 
         // Function to create user list item with improved avatar handling
         function createUserListItem(userData) {
+            console.log('Creating user item with data:', userData); // Debug log: Check the input data
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             userItem.setAttribute('data-user-id', userData.id);
 
-            // Default avatar SVG (inline for reliability)
+            // Default avatar SVG (inline for reliability) - Still useful as a fallback for onerror
             const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
 
-            // Use the avatar_url from userData if available, otherwise use default
-            const avatarUrl = userData.avatar_url || defaultAvatar;
-
-            userItem.innerHTML = `
-                <div class="user-avatar-container">
+            // Use the avatar_url from userData if available
+            const avatarUrl = userData.avatar_url;
+            const useImageAvatar = avatarUrl && typeof avatarUrl === 'string' && avatarUrl.startsWith('http'); // Check if it's a valid URL
+            
+            let avatarContentHTML = '';
+            if (useImageAvatar) {
+                // If we have a valid URL, use the image tag
+                avatarContentHTML = `
                     <img src="${avatarUrl}"
                          alt="${userData.displayName}'s avatar"
-                         class="user-avatar"
-                         onerror="this.onerror=null; this.src='${defaultAvatar}'">
+                         class="user-avatar-image"
+                         onerror="this.onerror=null; this.closest('.user-avatar-container').classList.add('show-initial'); this.style.display='none';">
+                `;
+            } else {
+                // If no valid URL, we'll show the initial by default (handled by CSS class)
+                avatarContentHTML = `
+                    <img src="${defaultAvatar}" style="display: none;" 
+                         alt="${userData.displayName}'s avatar"
+                         class="user-avatar-image"
+                         onerror="this.onerror=null; this.closest('.user-avatar-container').classList.add('show-initial'); this.style.display='none';">
+                `;
+            }
+
+             // Generate initial
+             const initial = (userData.displayName && userData.displayName.length > 0) ? userData.displayName[0].toUpperCase() : '?';
+
+            userItem.innerHTML = `
+                <div class="user-avatar-container ${useImageAvatar ? '' : 'show-initial'}">
+                     ${avatarContentHTML}
+                     <div class="user-avatar-initial">${initial}</div>
                     <div class="user-status-indicator"></div>
                 </div>
                 <div class="user-details">
@@ -274,6 +296,8 @@
                     <span class="user-status">Online</span>
                 </div>
             `;
+
+            console.log('User item HTML created:', userItem.innerHTML); // Debug log: Check the generated HTML
 
             return userItem;
         }
@@ -299,25 +323,56 @@
                     const userItem = createUserListItem(userData);
                     usersList.appendChild(userItem);
 
-                    // Then try to fetch updated avatar if the current data didn't have it
-                    if (!userData.avatar_url) {
+                    // Then try to fetch updated avatar if the current data didn't have a valid URL
+                    const hasValidAvatarUrl = userData.avatar_url && typeof userData.avatar_url === 'string' && userData.avatar_url.startsWith('http');
+                    if (!hasValidAvatarUrl) {
                         const { data, error } = await supabase
                             .from('users')
                             .select('avatar_url')
                             .eq('id', userData.id)
                             .single();
 
-                        if (!error && data && data.avatar_url) {
-                            // Update the avatar on the already created user item
-                            const img = userItem.querySelector('.user-avatar');
+                        if (!error && data && data.avatar_url && typeof data.avatar_url === 'string' && data.avatar_url.startsWith('http')) {
+                             // If we got a new valid URL, update the image source and show the image
+                            const img = userItem.querySelector('.user-avatar-image');
+                            const initialDiv = userItem.querySelector('.user-avatar-initial');
                             if (img) {
                                 img.src = data.avatar_url;
+                                 img.style.display = 'block'; // Show the image
+                                 // Remove the show-initial class to hide the initial
+                                userItem.querySelector('.user-avatar-container').classList.remove('show-initial');
                             }
+                             // Ensure the initial is hidden if the image loads
+                            if(initialDiv) initialDiv.style.display = 'none';
+                        } else {
+                            // If fetch failed or no valid URL found, ensure initial is shown
+                             const avatarContainer = userItem.querySelector('.user-avatar-container');
+                             const img = userItem.querySelector('.user-avatar-image');
+                             const initialDiv = userItem.querySelector('.user-avatar-initial');
+                             if(avatarContainer) avatarContainer.classList.add('show-initial');
+                             if(img) img.style.display = 'none'; // Hide the image
+                             if(initialDiv) initialDiv.style.display = 'flex'; // Show the initial (using flex for centering)
+
                         }
+                    } else {
+                         // If initial data already had a valid avatar URL, ensure image is shown and initial is hidden
+                         const img = userItem.querySelector('.user-avatar-image');
+                         const initialDiv = userItem.querySelector('.user-avatar-initial');
+                          if(img) img.style.display = 'block'; // Show the image
+                          if(initialDiv) initialDiv.style.display = 'none'; // Hide the initial
+                          const avatarContainer = userItem.querySelector('.user-avatar-container');
+                          if(avatarContainer) avatarContainer.classList.remove('show-initial'); // Ensure initial is not shown
                     }
+
                 } catch (error) {
                     console.error('Error processing user:', error);
-                    // Continue with next user even if one fails
+                    // In case of any error, fall back to showing the initial
+                    const avatarContainer = userItem.querySelector('.user-avatar-container');
+                    const img = userItem.querySelector('.user-avatar-image');
+                    const initialDiv = userItem.querySelector('.user-avatar-initial');
+                    if(avatarContainer) avatarContainer.classList.add('show-initial');
+                    if(img) img.style.display = 'none'; // Hide the image
+                    if(initialDiv) initialDiv.style.display = 'flex'; // Show the initial (using flex for centering)
                 }
             }
         }
