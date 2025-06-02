@@ -236,31 +236,25 @@ function initializeEventListeners() {
     });
 }
 
-// Initialize WebRTC
+// Initialize WebRTC with simplified constraints
 async function initializeWebRTC() {
     try {
         console.log('Initializing WebRTC...');
         
-        // Request audio permissions with specific constraints
+        // Simplified audio constraints
         localStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: true,
                 noiseSuppression: true,
-                autoGainControl: true,
-                channelCount: 1,
-                sampleRate: 48000,
-                latency: 0.01
+                autoGainControl: true
             },
             video: false
         });
         
         console.log('Audio stream obtained successfully');
 
-        // Initialize audio context with specific sample rate
-        audioContext = new (window.AudioContext || window.webkitAudioContext)({
-            sampleRate: 48000,
-            latencyHint: 'interactive'
-        });
+        // Initialize audio context
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
         // Create and configure analyser
         analyser = audioContext.createAnalyser();
@@ -330,28 +324,21 @@ async function createPeerConnection(userId, isInitiator) {
             delete peerConnections[userId];
         }
 
+        // Updated ICE server configuration
         const configuration = {
             iceServers: [
-                {
-                    urls: [
-                        'stun:stun.l.google.com:19302',
-                        'stun:stun1.l.google.com:19302',
-                        'stun:stun2.l.google.com:19302',
-                        'stun:stun3.l.google.com:19302',
-                        'stun:stun4.l.google.com:19302'
-                    ]
-                },
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
                 {
                     urls: 'turn:relay1.expressturn.com:3480',
                     username: '000000002064061488',
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
             ],
-            iceCandidatePoolSize: 10,
-            iceTransportPolicy: 'all',
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require',
-            sdpSemantics: 'unified-plan'
+            iceCandidatePoolSize: 10
         };
 
         const peerConnection = new RTCPeerConnection(configuration);
@@ -371,10 +358,10 @@ async function createPeerConnection(userId, isInitiator) {
             return null;
         }
 
-        // Handle ICE candidates
+        // Enhanced ICE candidate handling
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('Sending ICE candidate to:', userId);
+                console.log('Sending ICE candidate to:', userId, event.candidate);
                 socket.emit('ice-candidate', {
                     targetUserId: userId,
                     candidate: event.candidate
@@ -382,9 +369,13 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
-        // Handle incoming tracks
+        // Enhanced track handling with verification
         peerConnection.ontrack = (event) => {
-            console.log('Received remote track from:', userId);
+            console.log('Received tracks:', event.streams);
+            event.streams[0].getTracks().forEach(track => {
+                console.log('Track kind:', track.kind, 'state:', track.readyState);
+            });
+
             const audioElement = document.createElement('audio');
             audioElement.id = `audio-${userId}`;
             audioElement.srcObject = event.streams[0];
@@ -392,6 +383,14 @@ async function createPeerConnection(userId, isInitiator) {
             audioElement.muted = isDeafened;
             audioElement.volume = 1.0;
             document.body.appendChild(audioElement);
+
+            // Verify audio element setup
+            console.log('Audio element created:', {
+                id: audioElement.id,
+                muted: audioElement.muted,
+                volume: audioElement.volume,
+                readyState: audioElement.readyState
+            });
 
             // Add error handling for audio element
             audioElement.onerror = (error) => {
@@ -408,7 +407,7 @@ async function createPeerConnection(userId, isInitiator) {
             };
         };
 
-        // Handle connection state changes
+        // Enhanced connection state monitoring
         peerConnection.onconnectionstatechange = () => {
             console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
             if (peerConnection.connectionState === 'failed') {
@@ -424,7 +423,7 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
-        // Handle ICE connection state changes
+        // Enhanced ICE connection state monitoring
         peerConnection.oniceconnectionstatechange = () => {
             console.log(`ICE connection state for ${userId}:`, peerConnection.iceConnectionState);
             if (peerConnection.iceConnectionState === 'failed') {
@@ -440,7 +439,7 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
-        // Handle signaling state changes
+        // Enhanced signaling state monitoring
         peerConnection.onsignalingstatechange = () => {
             console.log(`Signaling state for ${userId}:`, peerConnection.signalingState);
             if (peerConnection.signalingState === 'closed') {
@@ -457,6 +456,7 @@ async function createPeerConnection(userId, isInitiator) {
                     voiceActivityDetection: true
                 });
                 await peerConnection.setLocalDescription(offer);
+                console.log('Sending offer:', offer);
                 socket.emit('offer', {
                     targetUserId: userId,
                     offer: offer
@@ -625,7 +625,7 @@ function initializeSocket() {
     });
 
     socket.on('offer', async (data) => {
-        console.log('Received offer from:', data.senderId);
+        console.log('Received offer:', data);
         try {
             const peerConnection = await createPeerConnection(data.senderId, false);
             if (peerConnection) {
@@ -634,6 +634,7 @@ function initializeSocket() {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
                     const answer = await peerConnection.createAnswer();
                     await peerConnection.setLocalDescription(answer);
+                    console.log('Sending answer:', answer);
                     socket.emit('answer', {
                         targetUserId: data.senderId,
                         answer: answer
@@ -650,7 +651,7 @@ function initializeSocket() {
     });
 
     socket.on('answer', async (data) => {
-        console.log('Received answer from:', data.senderId);
+        console.log('Received answer:', data);
         try {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
@@ -682,7 +683,7 @@ function initializeSocket() {
     });
 
     socket.on('ice-candidate', async (data) => {
-        console.log('Received ICE candidate from:', data.senderId);
+        console.log('Received ICE candidate:', data);
         try {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
