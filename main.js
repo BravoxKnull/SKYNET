@@ -690,23 +690,34 @@ function updateUserMuteStatus(userId, isMuted) {
     console.log('Updating mute status for user:', userId, 'isMuted:', isMuted);
     const userItem = document.querySelector(`[data-user-id="${userId}"]`);
     if (userItem) {
+        // Update data attribute for CSS targeting
+        userItem.setAttribute('data-muted', isMuted);
+        
         const status = userItem.querySelector('.user-status');
         const indicator = userItem.querySelector('.user-status-indicator');
         const micStatus = userItem.querySelector('.mic-status');
         
         if (isMuted) {
             if (status) status.textContent = 'Muted';
-            if (indicator) indicator.className = 'user-status-indicator muted';
+            if (indicator) {
+                indicator.className = 'user-status-indicator muted';
+                indicator.style.backgroundColor = '#f44336';
+            }
             if (micStatus) {
                 micStatus.innerHTML = '<i class="fas fa-microphone-slash"></i><span class="status-text">Muted</span>';
                 micStatus.classList.add('inactive');
+                micStatus.style.backgroundColor = 'rgba(255, 77, 77, 0.1)';
             }
         } else {
             if (status) status.textContent = 'Online';
-            if (indicator) indicator.className = 'user-status-indicator';
+            if (indicator) {
+                indicator.className = 'user-status-indicator';
+                indicator.style.backgroundColor = '#4CAF50';
+            }
             if (micStatus) {
                 micStatus.innerHTML = '<i class="fas fa-microphone"></i><span class="status-text">Active</span>';
                 micStatus.classList.remove('inactive');
+                micStatus.style.backgroundColor = 'rgba(100, 255, 218, 0.1)';
             }
         }
     } else {
@@ -729,23 +740,34 @@ function updateUserDeafenStatus(userId, isDeafened) {
     console.log('Updating deafen status for user:', userId, 'isDeafened:', isDeafened);
     const userItem = document.querySelector(`[data-user-id="${userId}"]`);
     if (userItem) {
+        // Update data attribute for CSS targeting
+        userItem.setAttribute('data-deafened', isDeafened);
+        
         const status = userItem.querySelector('.user-status');
         const indicator = userItem.querySelector('.user-status-indicator');
         const speakerStatus = userItem.querySelector('.speaker-status');
         
         if (isDeafened) {
             if (status) status.textContent = 'Deafened';
-            if (indicator) indicator.className = 'user-status-indicator deafened';
+            if (indicator) {
+                indicator.className = 'user-status-indicator deafened';
+                indicator.style.backgroundColor = '#9c27b0';
+            }
             if (speakerStatus) {
                 speakerStatus.innerHTML = '<i class="fas fa-volume-mute"></i><span class="status-text">Deafened</span>';
                 speakerStatus.classList.add('inactive');
+                speakerStatus.style.backgroundColor = 'rgba(156, 39, 176, 0.1)';
             }
         } else {
             if (status) status.textContent = 'Online';
-            if (indicator) indicator.className = 'user-status-indicator';
+            if (indicator) {
+                indicator.className = 'user-status-indicator';
+                indicator.style.backgroundColor = '#4CAF50';
+            }
             if (speakerStatus) {
                 speakerStatus.innerHTML = '<i class="fas fa-volume-up"></i><span class="status-text">Active</span>';
                 speakerStatus.classList.remove('inactive');
+                speakerStatus.style.backgroundColor = 'rgba(100, 255, 218, 0.1)';
             }
         }
     } else {

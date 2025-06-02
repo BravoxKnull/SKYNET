@@ -434,34 +434,98 @@ body {
     background-color: #4CAF50;
     border: 2px solid #fff;
     transition: all 0.3s ease;
-}
-
-.user-status-indicator.speaking {
-    background-color: #2196F3;
-    animation: pulse 1.5s infinite;
+    z-index: 2;
 }
 
 .user-status-indicator.muted {
-    background-color: #f44336;
+    background-color: #f44336 !important;
+    box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
 }
 
 .user-status-indicator.deafened {
-    background-color: #9c27b0;
+    background-color: #9c27b0 !important;
+    box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
 }
 
-@keyframes pulse {
+.user-status-indicator.speaking {
+    background-color: #2196F3 !important;
+    box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+    animation: pulse 1.5s infinite;
+}
+
+.user-status {
+    font-size: 0.8rem;
+    color: var(--accent-color);
+    transition: all 0.3s ease;
+    margin: 2px 0;
+}
+
+.user-status:not(:empty) {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 12px;
+    background: rgba(100, 255, 218, 0.1);
+}
+
+/* Ensure status changes are visible */
+.user-item[data-muted="true"] .user-status-indicator {
+    background-color: #f44336 !important;
+}
+
+.user-item[data-deafened="true"] .user-status-indicator {
+    background-color: #9c27b0 !important;
+}
+
+/* Add transition for smooth status changes */
+.user-item {
+    transition: all 0.3s ease;
+}
+
+/* Ensure device status is always visible */
+.user-device-status {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    width: 100%;
+    justify-content: center;
+}
+
+/* Make sure status text is visible */
+.status-text {
+    font-size: 0.7rem;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+/* Add hover effect to show status more clearly */
+.user-item:hover .device-status {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
+}
+
+/* Ensure icons are visible */
+.device-status i {
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+/* Add animation for status changes */
+@keyframes statusChange {
     0% {
         transform: scale(1);
-        opacity: 1;
     }
     50% {
-        transform: scale(1.2);
-        opacity: 0.8;
+        transform: scale(1.1);
     }
     100% {
         transform: scale(1);
-        opacity: 1;
     }
+}
+
+.device-status.inactive {
+    animation: statusChange 0.3s ease;
 }
 
 .user-details {
@@ -483,12 +547,6 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
-}
-
-.user-status {
-    font-size: 0.8rem;
-    color: var(--accent-color);
-    transition: all 0.3s ease;
 }
 
 .user-item:hover .user-status {
@@ -1160,13 +1218,6 @@ body {
     pointer-events: none;
 }
 
-.user-device-status {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
-    font-size: 0.8rem;
-}
-
 .device-status {
     display: flex;
     align-items: center;
@@ -1175,36 +1226,27 @@ body {
     border-radius: 12px;
     background: rgba(100, 255, 218, 0.1);
     transition: all 0.3s ease;
-}
-
-.device-status i {
-    font-size: 0.8rem;
-    color: var(--primary-color);
-}
-
-.device-status .status-text {
-    color: var(--text-color);
-    font-size: 0.7rem;
+    margin: 2px 0;
 }
 
 .device-status.inactive {
-    background: rgba(255, 77, 77, 0.1);
+    background: rgba(255, 77, 77, 0.1) !important;
 }
 
 .device-status.inactive i {
-    color: var(--danger-color);
+    color: #f44336 !important;
 }
 
 .device-status.inactive .status-text {
-    color: var(--danger-color);
+    color: #f44336 !important;
 }
 
-.mic-status.inactive i {
-    color: var(--danger-color);
+.mic-status.inactive {
+    background: rgba(255, 77, 77, 0.1) !important;
 }
 
-.speaker-status.inactive i {
-    color: var(--warning-color);
+.speaker-status.inactive {
+    background: rgba(156, 39, 176, 0.1) !important;
 }
 
 /* Responsive adjustments */
