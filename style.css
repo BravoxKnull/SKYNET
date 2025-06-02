@@ -383,11 +383,11 @@ body {
     height: 80px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid var(--primary-color);
+    border: 10px solid red; /* Temporary: Make container highly visible */
     position: relative;
     transition: all 0.3s ease;
-    box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
-    background: rgba(10, 25, 47, 0.8);
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.2); /* Keep original shadow */
+    background: yellow; /* Temporary: Make container highly visible */
     display: flex;
     align-items: center;
     justify-content: center;
