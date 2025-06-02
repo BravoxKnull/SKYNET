@@ -21,6 +21,25 @@ let analyser = null;
 let speakingThreshold = -50; // dB
 let isSpeaking = false;
 let speakingTimeout = null;
+let currentUser = null;
+
+// Initialize user data
+function initializeUserData() {
+    try {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            console.error('No user data found');
+            window.location.href = 'auth.html';
+            return false;
+        }
+        currentUser = JSON.parse(userData);
+        return true;
+    } catch (error) {
+        console.error('Error parsing user data:', error);
+        window.location.href = 'auth.html';
+        return false;
+    }
+}
 
 // Initialize DOM elements
 function initializeDOMElements() {
@@ -33,6 +52,11 @@ function initializeDOMElements() {
     muteBtn = document.getElementById('muteBtn');
     deafenBtn = document.getElementById('deafenBtn');
     leaveBtn = document.getElementById('leaveBtn');
+
+    // Set initial display name if user data is available
+    if (currentUser && currentUser.displayName) {
+        displayNameInput.value = currentUser.displayName;
+    }
 }
 
 // Initialize event listeners
@@ -41,6 +65,11 @@ function initializeEventListeners() {
         const name = displayNameInput.value.trim();
         if (!name) {
             warningMessage.textContent = 'Please enter your display name';
+            return;
+        }
+
+        if (!currentUser) {
+            warningMessage.textContent = 'User data not found. Please log in again.';
             return;
         }
 
@@ -71,7 +100,7 @@ function initializeEventListeners() {
             const { data, error } = await supabase
                 .from('users')
                 .select('avatar_url')
-                .eq('id', window.user.id)
+                .eq('id', currentUser.id)
                 .single();
 
             if (error) {
@@ -85,18 +114,18 @@ function initializeEventListeners() {
 
             // Join the channel with avatar
             socket.emit('joinChannel', {
-                id: window.user.id,
+                id: currentUser.id,
                 displayName: displayName,
                 avatar_url: data?.avatar_url || null
             });
 
             // Add current user to the list immediately
-            const currentUser = {
-                id: window.user.id,
+            const userData = {
+                id: currentUser.id,
                 displayName: displayName,
                 avatar_url: data?.avatar_url || null
             };
-            users = [currentUser];
+            users = [userData];
             updateUsersList(users);
 
             // Update UI
@@ -178,6 +207,9 @@ function initializeEventListeners() {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
+    if (!initializeUserData()) {
+        return;
+    }
     initializeDOMElements();
     initializeEventListeners();
 });
