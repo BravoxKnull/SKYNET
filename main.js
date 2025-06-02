@@ -324,20 +324,23 @@ async function createPeerConnection(userId, isInitiator) {
             delete peerConnections[userId];
         }
 
-        // Updated ICE server configuration
+        // Enhanced ICE server configuration
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478?transport=udp' },
+                { 
+                    urls: 'turn:numb.viagenie.ca',
+                    credential: 'muazkh',
+                    username: 'webrtc@live.com'
+                },
                 {
                     urls: 'turn:relay1.expressturn.com:3480',
                     username: '000000002064061488',
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
             ],
+            iceTransportPolicy: 'all',
             iceCandidatePoolSize: 10
         };
 
@@ -437,6 +440,16 @@ async function createPeerConnection(userId, isInitiator) {
                     }
                 }, 2000);
             }
+        };
+
+        // Add ICE gathering state monitoring
+        peerConnection.onicegatheringstatechange = () => {
+            console.log(`ICE gathering state for ${userId}:`, peerConnection.iceGatheringState);
+        };
+
+        // Add ICE candidate error handling
+        peerConnection.onicecandidateerror = (event) => {
+            console.error(`ICE candidate error for ${userId}:`, event);
         };
 
         // Enhanced signaling state monitoring
