@@ -252,21 +252,21 @@
         // Function to create user list item
         function createUserListItem(userData) {
             console.log('Creating user item with data:', userData);
-            const userItem = document.createElement('div')
-            userItem.className = 'user-item'
-            userItem.setAttribute('data-user-id', userData.id)
-            
+            const userItem = document.createElement('div');
+            userItem.className = 'user-item';
+            userItem.setAttribute('data-user-id', userData.id);
+
             // Default avatar SVG
-            const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'
-            
+            const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
+
             // Get avatar URL or use default
-            const avatarUrl = userData.avatar_url || defaultAvatar
+            const avatarUrl = userData.avatar_url || defaultAvatar;
             console.log('Avatar URL:', avatarUrl);
-            
+
             userItem.innerHTML = `
                 <div class="user-avatar-container">
-                    <img src="${avatarUrl}" 
-                         alt="${userData.displayName}'s avatar" 
+                    <img src="${avatarUrl}"
+                         alt="${userData.displayName}'s avatar"
                          class="user-avatar"
                          onerror="this.onerror=null; this.src='${defaultAvatar}'">
                     <div class="user-status-indicator"></div>
@@ -275,23 +275,24 @@
                     <span class="user-name">${userData.displayName}</span>
                     <span class="user-status">Online</span>
                 </div>
-            `
-            return userItem
+            `;
+
+            return userItem;
         }
 
         // Function to update users list
         async function updateUsersList(users) {
             console.log('Updating users list:', users);
-            const usersList = document.getElementById('usersList')
-            usersList.innerHTML = ''
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = '';
 
             // Remove duplicates by using a Map
-            const uniqueUsers = new Map()
+            const uniqueUsers = new Map();
             users.forEach(user => {
                 if (!uniqueUsers.has(user.id)) {
-                    uniqueUsers.set(user.id, user)
+                    uniqueUsers.set(user.id, user);
                 }
-            })
+            });
 
             for (const userData of uniqueUsers.values()) {
                 try {
@@ -300,26 +301,26 @@
                         .from('users')
                         .select('avatar_url')
                         .eq('id', userData.id)
-                        .single()
+                        .single();
 
                     console.log('Supabase avatar data:', data);
 
                     if (!error && data && data.avatar_url) {
-                        userData.avatar_url = data.avatar_url
+                        userData.avatar_url = data.avatar_url;
                     }
 
-                    const userItem = createUserListItem(userData)
-                    usersList.appendChild(userItem)
+                    const userItem = createUserListItem(userData);
+                    usersList.appendChild(userItem);
 
-                    // Force image reload
-                    const img = userItem.querySelector('.user-avatar')
+                    // Force image reload (might help in some cases)
+                    const img = userItem.querySelector('.user-avatar');
                     if (img) {
-                        img.src = img.src
+                        img.src = img.src;
                     }
                 } catch (error) {
-                    console.error('Error loading user avatar:', error)
-                    const userItem = createUserListItem(userData)
-                    usersList.appendChild(userItem)
+                    console.error('Error loading user avatar:', error);
+                    const userItem = createUserListItem(userData);
+                    usersList.appendChild(userItem);
                 }
             }
         }
