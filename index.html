@@ -295,11 +295,11 @@
 
             for (const userData of uniqueUsers.values()) {
                 try {
-                    // First create the user item with whatever data we have
+                    // Create the user item with the current data (which might not have avatar_url yet)
                     const userItem = createUserListItem(userData);
                     usersList.appendChild(userItem);
 
-                    // Then try to fetch updated avatar if needed
+                    // Then try to fetch updated avatar if the current data didn't have it
                     if (!userData.avatar_url) {
                         const { data, error } = await supabase
                             .from('users')
@@ -308,7 +308,7 @@
                             .single();
 
                         if (!error && data && data.avatar_url) {
-                            // Update the avatar if we got a new URL
+                            // Update the avatar on the already created user item
                             const img = userItem.querySelector('.user-avatar');
                             if (img) {
                                 img.src = data.avatar_url;
@@ -343,6 +343,7 @@
                          users[existingUserIndex] = userData;
                          console.log('Updated existing user in local list:', users);
                     }
+                    // Call updateUsersList with the modified local list
                     updateUsersList(users);
                 })
 
@@ -477,9 +478,6 @@
                 document.getElementById('channelSection').classList.remove('hidden')
                 document.getElementById('channelSection').classList.add('visible')
 
-                // *** Removed immediate local user list update ***
-                // The list will be updated by socket events 'userJoined' and 'usersList'
-
                 // Join the channel with avatar
                 socket.emit('joinChannel', {
                     id: user.id,
@@ -505,7 +503,40 @@
                     <i class="fas fa-${isMuted ? 'microphone-slash' : 'microphone'}"></i>
                     <span>${isMuted ? 'Unmute' : 'Mute'}</span>
                 `
+            } else {
+                 console.warn('Media stream not available to mute/unmute.'); // Added warning
             }
+             // Emit mute state change
+            const isMuted = mediaStream ? !mediaStream.getAudioTracks()[0].enabled : false; // Determine current mute state
+            socket.emit('userMuted', { userId: user.id, isMuted: isMuted }); // Emit state
+        })
+
+        // Handle deafen button
+        document.getElementById('deafenBtn').addEventListener('click', () => {
+            // Find all audio tracks from remote peers
+            // Note: This assumes you have a way to access remote audio tracks, e.g., via WebRTC connections
+            // This part needs to be implemented based on your WebRTC setup
+            console.warn('Deafen functionality not fully implemented yet.');
+            // Example (conceptual): Iterate through peer connections and disable their audio tracks
+            // peerConnections.forEach(pc => {
+            //     pc.getReceivers().forEach(receiver => {
+            //         if (receiver.track && receiver.track.kind === 'audio') {
+            //             receiver.track.enabled = !receiver.track.enabled;
+            //         }
+            //     });
+            // });
+
+            // Toggle the deafen state visually (optional, depends on implementation)
+            const isDeafened = !document.getElementById('deafenBtn').classList.toggle('active'); // Simple toggle
+
+            // Update the button text/icon
+            document.getElementById('deafenBtn').innerHTML = `
+                <i class="fas fa-${isDeafened ? 'volume-off' : 'volume-mute'}"></i>
+                <span>${isDeafened ? 'Undeafen' : 'Deafen'}</span>
+            `;
+
+             // Emit deafen state change (if your server handles this)
+            socket.emit('userDeafened', { userId: user.id, isDeafened: isDeafened }); // Emit state
         })
 
         // Handle leave button
@@ -520,6 +551,8 @@
             document.getElementById('welcomeSection').classList.remove('hidden')
             document.getElementById('channelSection').classList.remove('visible')
             document.getElementById('channelSection').classList.add('hidden')
+            users = []; // Clear local user list on leave
+            updateUsersList(users); // Update display to be empty
         })
 
         // Add hamburger menu functionality
@@ -533,9 +566,11 @@
 
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
-            if (!hamburgerMenu.contains(e.target) && !navMenu.contains(e.target)) {
-                hamburgerMenu.classList.remove('active')
-                navMenu.classList.remove('active')
+            const isClickInsideMenu = navMenu.contains(e.target) || hamburgerMenu.contains(e.target);
+            // Check if the menu is active and the click is outside
+            if (navMenu.classList.contains('active') && !isClickInsideMenu) {
+                hamburgerMenu.classList.remove('active');
+                navMenu.classList.remove('active');
             }
         })
 
