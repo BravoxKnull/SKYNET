@@ -389,6 +389,9 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
     background: rgba(10, 25, 47, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .user-avatar {
@@ -396,6 +399,7 @@ body {
     height: 100%;
     object-fit: cover;
     display: block;
+    background: rgba(10, 25, 47, 0.8);
 }
 
 .user-status-indicator {
@@ -1099,4 +1103,36 @@ body {
 
 #logoutBtn i {
     font-size: 1.1rem;
+}
+
+/* Add hover effect for avatar */
+.user-item:hover .user-avatar-container {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.4);
+}
+
+/* Ensure avatar is visible in different states */
+.user-item:nth-child(3n+1) .user-avatar-container {
+    border-color: var(--primary-color);
+}
+
+.user-item:nth-child(3n+2) .user-avatar-container {
+    border-color: var(--accent-color);
+}
+
+.user-item:nth-child(3n+3) .user-avatar-container {
+    border-color: var(--warning-color);
+}
+
+/* Add a subtle glow effect to the avatar */
+.user-avatar-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 20px rgba(0, 255, 157, 0.2);
+    pointer-events: none;
 } 

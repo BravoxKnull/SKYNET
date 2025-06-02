@@ -251,21 +251,24 @@
 
         // Function to create user list item
         function createUserListItem(userData) {
-            console.log('Creating user item with data:', userData); // Debug log
+            console.log('Creating user item with data:', userData);
             const userItem = document.createElement('div')
             userItem.className = 'user-item'
             userItem.setAttribute('data-user-id', userData.id)
             
+            // Default avatar SVG
+            const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'
+            
             // Get avatar URL or use default
-            const avatarUrl = userData.avatar_url || 'assets/images/default-avatar.svg'
-            console.log('Avatar URL:', avatarUrl); // Debug log
+            const avatarUrl = userData.avatar_url || defaultAvatar
+            console.log('Avatar URL:', avatarUrl);
             
             userItem.innerHTML = `
                 <div class="user-avatar-container">
                     <img src="${avatarUrl}" 
                          alt="${userData.displayName}'s avatar" 
                          class="user-avatar"
-                         onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'">
+                         onerror="this.onerror=null; this.src='${defaultAvatar}'">
                     <div class="user-status-indicator"></div>
                 </div>
                 <div class="user-details">
@@ -278,7 +281,7 @@
 
         // Function to update users list
         async function updateUsersList(users) {
-            console.log('Updating users list:', users); // Debug log
+            console.log('Updating users list:', users);
             const usersList = document.getElementById('usersList')
             usersList.innerHTML = ''
 
@@ -299,7 +302,7 @@
                         .eq('id', userData.id)
                         .single()
 
-                    console.log('Supabase avatar data:', data); // Debug log
+                    console.log('Supabase avatar data:', data);
 
                     if (!error && data && data.avatar_url) {
                         userData.avatar_url = data.avatar_url
@@ -307,6 +310,12 @@
 
                     const userItem = createUserListItem(userData)
                     usersList.appendChild(userItem)
+
+                    // Force image reload
+                    const img = userItem.querySelector('.user-avatar')
+                    if (img) {
+                        img.src = img.src
+                    }
                 } catch (error) {
                     console.error('Error loading user avatar:', error)
                     const userItem = createUserListItem(userData)
