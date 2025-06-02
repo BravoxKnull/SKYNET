@@ -24,38 +24,53 @@ app.get('/health', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('New client connected:', socket.id);
 
-    // Handle user joining a room
-    socket.on('joinChannel', (data) => {
-        const { id, displayName, avatar_url } = data;
-
-        // Check if user is already connected
-        if (userIdToSocketId.has(id)) {
-            // If user is already connected, disconnect the old socket
-            const oldSocketId = userIdToSocketId.get(id);
-            if (oldSocketId !== socket.id) {
-                io.to(oldSocketId).emit('duplicateConnection');
-                io.sockets.sockets.get(oldSocketId)?.disconnect();
-            }
-        }
-
-        // Store user data with both socket.id and user.id
-        connectedUsers.set(socket.id, { id, displayName, avatar_url });
-        userIdToSocketId.set(id, socket.id);
-
-        // Notify other users in the room
-        socket.broadcast.emit('userJoined', {
-            id,
-            displayName,
-            avatar_url
+    // Handle mute status changes
+    socket.on('userMuteStatus', (data) => {
+        console.log(`Broadcasting mute status for ${data.userId}: ${data.isMuted}`);
+        // Broadcast to all clients except sender
+        socket.broadcast.emit('userMuteStatus', {
+            userId: data.userId,
+            isMuted: data.isMuted,
+            displayName: data.displayName
         });
+    });
 
-        // Send list of existing users to the new user
-        const existingUsers = Array.from(connectedUsers.values())
-            .filter(user => user.id !== id);
+    // Handle deafen status changes
+    socket.on('userDeafenStatus', (data) => {
+        console.log(`Broadcasting deafen status for ${data.userId}: ${data.isDeafened}`);
+        // Broadcast to all clients except sender
+        socket.broadcast.emit('userDeafenStatus', {
+            userId: data.userId,
+            isDeafened: data.isDeafened,
+            displayName: data.displayName
+        });
+    });
 
-        socket.emit('usersList', existingUsers);
+    // Handle user joining
+    socket.on('joinChannel', (userData) => {
+        console.log('User joined channel:', userData);
+        // Store user data
+        connectedUsers.set(socket.id, userData);
+        
+        // Broadcast to all clients except sender
+        socket.broadcast.emit('userJoined', userData);
+        
+        // Send current users list to the new user
+        const usersList = Array.from(connectedUsers.values());
+        socket.emit('usersList', usersList);
+    });
+
+    // Handle user leaving
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+        const userData = connectedUsers.get(socket.id);
+        if (userData) {
+            // Broadcast to all clients
+            io.emit('userLeft', userData.id);
+            connectedUsers.delete(socket.id);
+        }
     });
 
     // Handle WebRTC signaling
@@ -112,17 +127,6 @@ io.on('connection', (socket) => {
             connectedUsers.delete(socket.id);
             userIdToSocketId.delete(user.id);
         }
-    });
-
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        const user = connectedUsers.get(socket.id);
-        if (user) {
-            socket.broadcast.emit('userLeft', user.id);
-            connectedUsers.delete(socket.id);
-            userIdToSocketId.delete(user.id);
-        }
-        console.log('User disconnected:', socket.id);
     });
 });
 

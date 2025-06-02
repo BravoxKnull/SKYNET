@@ -157,7 +157,11 @@ function initializeEventListeners() {
                 displayName: currentUser.displayName
             };
             console.log('Broadcasting mute status to server:', muteData);
-            socket.emit('userMuteStatus', muteData);
+            try {
+                socket.emit('userMuteStatus', muteData);
+            } catch (error) {
+                console.error('Error emitting mute status:', error);
+            }
         } else {
             console.warn('Socket not connected, cannot broadcast mute status');
         }
@@ -182,7 +186,11 @@ function initializeEventListeners() {
                 displayName: currentUser.displayName
             };
             console.log('Broadcasting deafen status to server:', deafenData);
-            socket.emit('userDeafenStatus', deafenData);
+            try {
+                socket.emit('userDeafenStatus', deafenData);
+            } catch (error) {
+                console.error('Error emitting deafen status:', error);
+            }
         } else {
             console.warn('Socket not connected, cannot broadcast deafen status');
         }
