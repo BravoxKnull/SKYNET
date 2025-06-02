@@ -28,11 +28,19 @@
                 <img src="assets/images/Skynet_Terminator_logo.svg" alt="SKYNET Logo" class="logo">
                 <h1>SKYNET</h1>
             </div>
-            <button class="hamburger-menu" id="hamburgerMenu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+            
+            <div class="header-right">
+                <div class="user-info">
+                    <img id="navAvatar" src="assets/images/default-avatar.svg" alt="User Avatar" class="nav-avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'">
+                    <span id="userDisplayName"></span>
+                </div>
+                <button class="hamburger-menu" id="hamburgerMenu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            
             <nav class="nav-menu" id="navMenu">
                 <div class="nav-links">
                     <a href="index.html" class="nav-link active">
@@ -44,17 +52,13 @@
                     <a href="about.html" class="nav-link">
                         <i class="fas fa-info-circle"></i> About
                     </a>
+                    <a href="profile.html" class="nav-link">
+                        <i class="fas fa-user-cog"></i> Profile
+                    </a>
+                    <button id="logoutBtn" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
                 </div>
-                <div class="user-info">
-                    <img id="navAvatar" src="assets/images/default-avatar.svg" alt="User Avatar" class="nav-avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'">
-                    <span id="userDisplayName"></span>
-                </div>
-                <a href="profile.html" class="nav-link">
-                    <i class="fas fa-user-cog"></i> Profile
-                </a>
-                <button id="logoutBtn" class="nav-link">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
             </nav>
         </header>
 

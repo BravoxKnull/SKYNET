@@ -14,6 +14,8 @@
     --danger-color: #ff4d4d;
     --success-color: #00ff9d;
     --warning-color: #ffd700;
+    --voice-user-bg: rgba(32, 34, 37, 0.6);
+    --voice-user-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
@@ -33,7 +35,7 @@ body {
     grid-template-columns: 1fr 300px;
     grid-template-rows: auto 1fr auto;
     min-height: 100vh;
-    overflow: hidden; /* Prevent double scrollbars */
+    overflow: hidden;
 }
 
 /* Header Styles */
@@ -49,12 +51,14 @@ body {
     position: sticky;
     top: 0;
     z-index: 1000;
+    gap: 1rem;
 }
 
 .logo-container {
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex-shrink: 0;
 }
 
 .logo {
@@ -70,6 +74,7 @@ body {
     background-clip: text;
     color: transparent;
     text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    white-space: nowrap;
 }
 
 /* Header Right Section */
@@ -77,6 +82,7 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
+    margin-left: auto;
 }
 
 /* User Info in Header */
@@ -87,6 +93,7 @@ body {
     padding: 5px 10px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 }
 
 .nav-avatar {
@@ -100,6 +107,10 @@ body {
 #userDisplayName {
     font-weight: 500;
     color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
 
 /* Hamburger Menu */
@@ -114,6 +125,7 @@ body {
     cursor: pointer;
     padding: 0;
     z-index: 1001;
+    flex-shrink: 0;
 }
 
 .hamburger-menu span {
@@ -216,7 +228,7 @@ body {
     padding: 2rem;
     position: relative;
     overflow-y: auto;
-    height: calc(100vh - 140px); /* Account for header and footer */
+    height: calc(100vh - 140px);
 }
 
 /* Welcome Section */
@@ -325,12 +337,12 @@ body {
     box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
-/* Users Grid */
+/* Discord-like Users Grid */
 .users-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-    padding: 8px;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
     overflow-y: auto;
     flex: 1;
     max-height: calc(100vh - 280px);
@@ -338,65 +350,32 @@ body {
 }
 
 .user-item {
-    background: rgba(10, 25, 47, 0.8);
-    border-radius: 8px;
-    padding: 12px;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    aspect-ratio: 1;
-    justify-content: center;
-    border: 2px solid transparent;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    min-width: 180px;
-    max-width: 100%;
-}
-
-/* Different colors for user boxes */
-.user-item:nth-child(3n+1) {
-    background: rgba(10, 25, 47, 0.8);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 15px rgba(0, 255, 157, 0.1);
-}
-
-.user-item:nth-child(3n+2) {
-    background: rgba(10, 25, 47, 0.8);
-    border-color: var(--accent-color);
-    box-shadow: 0 0 15px rgba(100, 255, 218, 0.1);
-}
-
-.user-item:nth-child(3n+3) {
-    background: rgba(10, 25, 47, 0.8);
-    border-color: var(--warning-color);
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+    padding: 8px 16px;
+    background: var(--voice-user-bg);
+    border-bottom: 1px solid var(--voice-user-border);
+    transition: background-color 0.2s ease;
+    min-height: 62px;
 }
 
 .user-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    background: rgba(78, 80, 88, 0.3);
 }
 
 .user-avatar-container {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--primary-color);
     position: relative;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
-}
-
-.user-item:hover .user-avatar-container {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(0, 255, 157, 0.4);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
 }
 
 .user-avatar {
     width: 100%;
     height: 100%;
+    border-radius: 50%;
     object-fit: cover;
 }
 
@@ -404,70 +383,47 @@ body {
     position: absolute;
     bottom: 0;
     right: 0;
-    width: 20px;
-    height: 20px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    border: 3px solid var(--secondary-color);
-    transition: all 0.3s ease;
+    border: 2px solid var(--secondary-color);
     background: var(--accent-color);
 }
 
 .user-status-indicator.speaking {
     background: var(--primary-color);
-    box-shadow: 0 0 15px var(--primary-color);
-    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.2);
 }
 
 .user-status-indicator.muted {
     background: var(--danger-color);
-    box-shadow: 0 0 15px var(--danger-color);
 }
 
 .user-status-indicator.deafened {
     background: var(--warning-color);
-    box-shadow: 0 0 15px var(--warning-color);
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.4);
-    }
-    70% {
-        transform: scale(1.1);
-        box-shadow: 0 0 0 10px rgba(0, 255, 157, 0);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0);
-    }
 }
 
 .user-details {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
 }
 
 .user-name {
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-color);
-    margin-bottom: 2px;
-    text-shadow: 0 0 10px rgba(230, 241, 255, 0.3);
-    font-size: 1rem;
-    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
 }
 
 .user-status {
     font-size: 0.8rem;
     color: var(--accent-color);
-    transition: all 0.3s ease;
-}
-
-.user-item:hover .user-status {
-    color: var(--primary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Channel Controls */
@@ -713,84 +669,28 @@ body {
     }
 }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 /* Responsive Design */
 @media (max-width: 1024px) {
-    .users-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 6px;
-        padding: 6px;
+    .app-container {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "header"
+            "main"
+            "footer";
     }
 
-    .user-item {
-        min-width: 160px;
+    .sidebar {
+        display: none;
     }
 
-    .user-avatar-container {
-        width: 70px;
-        height: 70px;
+    .main-content {
+        height: calc(100vh - 100px);
     }
 }
 
 @media (max-width: 768px) {
-    .users-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 4px;
-        padding: 4px;
-    }
-
-    .user-item {
-        min-width: 140px;
-        padding: 8px;
-    }
-
-    .user-avatar-container {
-        width: 60px;
-        height: 60px;
-    }
-
-    .user-name {
-        font-size: 0.9rem;
-    }
-
-    .user-status {
-        font-size: 0.75rem;
-    }
-
     .header {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .header h1 {
@@ -812,36 +712,21 @@ body {
 
     #userDisplayName {
         font-size: 0.9rem;
+        max-width: 100px;
+    }
+
+    .main-content {
+        padding: 1rem;
+    }
+
+    .animated-text {
+        font-size: 2rem;
     }
 }
 
 @media (max-width: 480px) {
-    .users-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 3px;
-        padding: 3px;
-    }
-
-    .user-item {
-        min-width: 110px;
-        padding: 6px;
-    }
-
-    .user-avatar-container {
-        width: 50px;
-        height: 50px;
-    }
-
-    .user-name {
-        font-size: 0.8rem;
-    }
-
-    .user-status {
-        font-size: 0.7rem;
-    }
-
     .header {
-        padding: 0.75rem;
+        padding: 0.5rem;
     }
 
     .header h1 {
@@ -852,66 +737,34 @@ body {
         height: 25px;
     }
 
-    .user-info {
-        padding: 3px 6px;
-    }
-
-    .nav-avatar {
-        width: 24px;
-        height: 24px;
-    }
-
     #userDisplayName {
-        font-size: 0.8rem;
+        display: none;
     }
-}
 
-/* When there's only one user */
-.users-grid:has(.user-item:only-child) {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: visible;
-}
-
-.users-grid:has(.user-item:only-child) .user-item {
-    max-width: 250px;
-    margin: 0 auto;
-}
-
-/* Auto-resize based on number of users */
-.users-grid:has(.user-item:nth-child(4n)) {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-}
-
-.users-grid:has(.user-item:nth-child(6n)) {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-}
-
-.users-grid:has(.user-item:nth-child(8n)) {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-}
-
-.users-grid:has(.user-item:nth-child(10n)) {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-}
-
-/* Animation for mobile menu */
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
+    .user-info {
+        padding: 0;
+        background: transparent;
     }
-    to {
-        transform: translateX(0);
-    }
-}
 
-@keyframes slideOut {
-    from {
-        transform: translateX(0);
+    .animated-text {
+        font-size: 1.5rem;
     }
-    to {
-        transform: translateX(100%);
+
+    .channel-controls {
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .control-btn span {
+        display: none;
+    }
+
+    .control-btn {
+        padding: 8px;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        justify-content: center;
     }
 }
 
@@ -936,4 +789,4 @@ body {
 
 #logoutBtn i {
     font-size: 1.1rem;
-} 
+}
