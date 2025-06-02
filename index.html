@@ -251,19 +251,21 @@
 
         // Function to create user list item
         function createUserListItem(userData) {
+            console.log('Creating user item with data:', userData); // Debug log
             const userItem = document.createElement('div')
             userItem.className = 'user-item'
             userItem.setAttribute('data-user-id', userData.id)
             
             // Get avatar URL or use default
             const avatarUrl = userData.avatar_url || 'assets/images/default-avatar.svg'
+            console.log('Avatar URL:', avatarUrl); // Debug log
             
             userItem.innerHTML = `
                 <div class="user-avatar-container">
                     <img src="${avatarUrl}" 
                          alt="${userData.displayName}'s avatar" 
                          class="user-avatar"
-                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'">
+                         onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'">
                     <div class="user-status-indicator"></div>
                 </div>
                 <div class="user-details">
@@ -276,6 +278,7 @@
 
         // Function to update users list
         async function updateUsersList(users) {
+            console.log('Updating users list:', users); // Debug log
             const usersList = document.getElementById('usersList')
             usersList.innerHTML = ''
 
@@ -295,6 +298,8 @@
                         .select('avatar_url')
                         .eq('id', userData.id)
                         .single()
+
+                    console.log('Supabase avatar data:', data); // Debug log
 
                     if (!error && data && data.avatar_url) {
                         userData.avatar_url = data.avatar_url
@@ -441,6 +446,8 @@
                     .select('avatar_url')
                     .eq('id', user.id)
                     .single()
+
+                console.log('User avatar data:', data); // Debug log
 
                 if (error) throw error
 
