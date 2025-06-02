@@ -16,6 +16,11 @@ let isMuted = false;
 let isDeafened = false;
 let displayName = '';
 let socket = null;
+let audioContext = null;
+let analyser = null;
+let speakingThreshold = -50; // dB
+let isSpeaking = false;
+let speakingTimeout = null;
 
 // Initialize WebRTC
 async function initializeWebRTC() {
@@ -28,37 +33,89 @@ async function initializeWebRTC() {
             },
             video: false
         });
-        setupAudioContext();
-        console.log('Audio stream initialized:', localStream.getAudioTracks()[0].label);
+        
+        // Initialize audio context for voice detection
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(localStream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        
+        console.log('Audio stream initialized successfully');
+        return true;
     } catch (error) {
-        showWarning('Error accessing microphone. Please check your permissions.');
         console.error('Error accessing microphone:', error);
+        return false;
     }
 }
 
-// Setup Audio Context for voice activity detection
-function setupAudioContext() {
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(localStream);
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    source.connect(analyser);
+// Create peer connection
+async function createPeerConnection(userId, isInitiator) {
+    try {
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: 'turn:relay1.expressturn.com:3480',
+                    username: '000000002064061488',
+                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+                }
+            ]
+        };
 
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+        const peerConnection = new RTCPeerConnection(configuration);
+        peerConnections[userId] = peerConnection;
 
-    function checkVoiceActivity() {
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-
-        if (average > 30 && !isMuted) {
-            socket.emit('speaking', { displayName });
+        // Add local stream
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
         }
 
-        requestAnimationFrame(checkVoiceActivity);
-    }
+        // Handle ICE candidates
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                socket.emit('ice-candidate', {
+                    targetUserId: userId,
+                    candidate: event.candidate
+                });
+            }
+        };
 
-    checkVoiceActivity();
+        // Handle incoming tracks
+        peerConnection.ontrack = (event) => {
+            console.log('Received remote track from:', userId);
+            const audioElement = document.createElement('audio');
+            audioElement.id = `audio-${userId}`;
+            audioElement.srcObject = event.streams[0];
+            audioElement.autoplay = true;
+            audioElement.muted = isDeafened;
+            document.body.appendChild(audioElement);
+        };
+
+        // Handle connection state changes
+        peerConnection.onconnectionstatechange = () => {
+            console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
+            if (peerConnection.connectionState === 'failed') {
+                peerConnection.restartIce();
+            }
+        };
+
+        if (isInitiator) {
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.emit('offer', {
+                targetUserId: userId,
+                offer: offer
+            });
+        }
+
+        return peerConnection;
+    } catch (error) {
+        console.error('Error creating peer connection:', error);
+        return null;
+    }
 }
 
 // Initialize Socket.io
@@ -72,286 +129,125 @@ function initializeSocket() {
 
     socket.on('connect', () => {
         console.log('Connected to signaling server');
-        socket.emit('join-room', { displayName });
+    });
+
+    socket.on('duplicateConnection', () => {
+        console.log('Duplicate connection detected');
+        // Clean up existing connections
+        Object.values(peerConnections).forEach(pc => pc.close());
+        peerConnections = {};
         
-        joinBtn.classList.remove('loading');
-        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Connected';
-        joinBtn.disabled = true;
+        // Show warning to user
+        warningMessage.textContent = 'You are already connected in another tab/window';
+        
+        // Disconnect and reconnect
+        socket.disconnect();
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
     });
 
-    socket.on('connect_error', (error) => {
-        console.error('Connection error:', error);
-        showWarning('Failed to connect to server. Please try again later.');
-        joinBtn.classList.remove('loading');
-        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-        joinBtn.disabled = false;
-    });
-
-    socket.on('user-joined', async (data) => {
-        console.log('User joined:', data);
-        addUserToList(data.displayName);
-        await createPeerConnection(data.socketId, true);
-    });
-
-    socket.on('existing-users', async (users) => {
-        console.log('Existing users:', users);
-        for (const user of users) {
-            addUserToList(user.displayName);
-            await createPeerConnection(user.socketId, false);
+    socket.on('userJoined', async (userData) => {
+        console.log('User joined:', userData);
+        // Check if user already exists
+        if (!users.some(user => user.id === userData.id)) {
+            users = [...users, userData];
+            updateUsersList(users);
+            // Create peer connection with new user
+            await createPeerConnection(userData.id, true);
         }
     });
 
-    socket.on('user-left', (data) => {
-        console.log('User left:', data);
-        removeUserFromList(data.displayName);
-        closePeerConnection(data.socketId);
-        const audioElement = document.getElementById(`audio-${data.socketId}`);
+    socket.on('userLeft', (userId) => {
+        console.log('User left:', userId);
+        users = users.filter(user => user.id !== userId);
+        updateUsersList(users);
+        
+        // Close peer connection
+        if (peerConnections[userId]) {
+            peerConnections[userId].close();
+            delete peerConnections[userId];
+        }
+        
+        // Remove audio element
+        const audioElement = document.getElementById(`audio-${userId}`);
         if (audioElement) {
             audioElement.remove();
         }
     });
 
+    socket.on('usersList', (usersList) => {
+        console.log('Received users list:', usersList);
+        // Filter out duplicates and current user
+        const uniqueUsers = usersList.filter(user => 
+            user.id !== window.user.id && 
+            !users.some(existingUser => existingUser.id === user.id)
+        );
+        users = [...users, ...uniqueUsers];
+        updateUsersList(users);
+    });
+
     socket.on('offer', async (data) => {
-        console.log('Received offer:', data);
-        await handleOffer(data);
+        console.log('Received offer from:', data.senderId);
+        const peerConnection = await createPeerConnection(data.senderId, false);
+        if (peerConnection) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit('answer', {
+                targetUserId: data.senderId,
+                answer: answer
+            });
+        }
     });
 
     socket.on('answer', async (data) => {
-        console.log('Received answer:', data);
-        await handleAnswer(data);
+        console.log('Received answer from:', data.senderId);
+        const peerConnection = peerConnections[data.senderId];
+        if (peerConnection) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        }
     });
 
     socket.on('ice-candidate', async (data) => {
-        console.log('Received ICE candidate:', data);
-        await handleIceCandidate(data);
+        console.log('Received ICE candidate from:', data.senderId);
+        const peerConnection = peerConnections[data.senderId];
+        if (peerConnection) {
+            try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            } catch (error) {
+                console.error('Error adding ICE candidate:', error);
+            }
+        }
     });
 
-    socket.on('speaking', (data) => {
-        updateUserSpeakingStatus(data.displayName, true);
+    // Handle voice activity
+    socket.on('userSpeaking', (data) => {
+        const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
+        if (userItem) {
+            const indicator = userItem.querySelector('.user-status-indicator');
+            const status = userItem.querySelector('.user-status');
+            indicator.className = 'user-status-indicator speaking';
+            status.textContent = 'Speaking...';
+        }
     });
 
-    socket.on('stopped-speaking', (data) => {
-        updateUserSpeakingStatus(data.displayName, false);
+    socket.on('userStoppedSpeaking', (data) => {
+        const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
+        if (userItem) {
+            const indicator = userItem.querySelector('.user-status-indicator');
+            const status = userItem.querySelector('.user-status');
+            indicator.className = 'user-status-indicator';
+            status.textContent = 'Online';
+        }
     });
-}
-
-// WebRTC Peer Connection
-async function createPeerConnection(socketId, isInitiator) {
-    const configuration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            {
-                urls: 'turn:relay1.expressturn.com:3480',
-                username: '000000002064061488',
-                credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
-            }
-        ],
-        iceCandidatePoolSize: 10
-    };
-
-    const peerConnection = new RTCPeerConnection(configuration);
-    peerConnections[socketId] = peerConnection;
-
-    // Add local stream
-    if (localStream) {
-        localStream.getTracks().forEach(track => {
-            peerConnection.addTrack(track, localStream);
-        });
-    }
-
-    // Handle ICE candidates
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.emit('ice-candidate', {
-                socketId,
-                candidate: event.candidate
-            });
-        }
-    };
-
-    // Handle connection state changes
-    peerConnection.onconnectionstatechange = () => {
-        console.log(`Connection state for ${socketId}:`, peerConnection.connectionState);
-        if (peerConnection.connectionState === 'failed') {
-            peerConnection.restartIce();
-        }
-    };
-
-    // Handle ICE connection state changes
-    peerConnection.oniceconnectionstatechange = () => {
-        console.log(`ICE connection state for ${socketId}:`, peerConnection.iceConnectionState);
-        if (peerConnection.iceConnectionState === 'failed') {
-            peerConnection.restartIce();
-        }
-    };
-
-    // Handle incoming tracks
-    peerConnection.ontrack = (event) => {
-        console.log('Received remote track:', event.track.kind, event.track.enabled);
-        const audioElement = document.createElement('audio');
-        audioElement.id = `audio-${socketId}`;
-        audioElement.srcObject = event.streams[0];
-        audioElement.autoplay = true;
-        audioElement.muted = isDeafened;
-        
-        audioElement.onloadedmetadata = () => {
-            audioElement.play().catch(error => {
-                console.error('Error playing audio:', error);
-            });
-        };
-        
-        document.body.appendChild(audioElement);
-    };
-
-    if (isInitiator) {
-        try {
-            const offer = await peerConnection.createOffer({
-                offerToReceiveAudio: true,
-                voiceActivityDetection: true
-            });
-            await peerConnection.setLocalDescription(offer);
-            socket.emit('offer', {
-                socketId,
-                offer
-            });
-        } catch (error) {
-            console.error('Error creating offer:', error);
-        }
-    }
-
-    return peerConnection;
-}
-
-async function handleOffer(data) {
-    try {
-        let peerConnection = peerConnections[data.socketId];
-        if (!peerConnection) {
-            peerConnection = await createPeerConnection(data.socketId, false);
-        }
-
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        socket.emit('answer', {
-            socketId: data.socketId,
-            answer
-        });
-
-        if (peerConnection.queuedIceCandidates) {
-            for (const candidate of peerConnection.queuedIceCandidates) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-            peerConnection.queuedIceCandidates = [];
-        }
-
-    } catch (error) {
-        console.error('Error handling offer:', error);
-    }
-}
-
-async function handleAnswer(data) {
-    try {
-        const peerConnection = peerConnections[data.socketId];
-        if (!peerConnection) {
-            console.error('No peer connection found for:', data.socketId);
-            return;
-        }
-
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-
-        if (peerConnection.queuedIceCandidates) {
-            for (const candidate of peerConnection.queuedIceCandidates) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-            peerConnection.queuedIceCandidates = [];
-        }
-
-    } catch (error) {
-        console.error('Error handling answer:', error);
-    }
-}
-
-async function handleIceCandidate(data) {
-    try {
-        const peerConnection = peerConnections[data.socketId];
-        if (!peerConnection) {
-            console.error('No peer connection found for:', data.socketId);
-            return;
-        }
-
-        if (peerConnection.remoteDescription) {
-            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } else {
-            if (!peerConnection.queuedIceCandidates) {
-                peerConnection.queuedIceCandidates = [];
-            }
-            peerConnection.queuedIceCandidates.push(data.candidate);
-        }
-    } catch (error) {
-        console.error('Error handling ICE candidate:', error);
-    }
-}
-
-function closePeerConnection(socketId) {
-    const peerConnection = peerConnections[socketId];
-    if (peerConnection) {
-        peerConnection.close();
-        delete peerConnections[socketId];
-    }
-}
-
-// UI Functions
-function showWarning(message) {
-    warningMessage.textContent = message;
-    warningMessage.style.opacity = '1';
-    setTimeout(() => {
-        warningMessage.style.opacity = '0';
-    }, 3000);
-}
-
-function addUserToList(name) {
-    const userItem = document.createElement('div');
-    userItem.className = 'user-item';
-    userItem.dataset.name = name;
-    userItem.innerHTML = `
-        <div class="user-status"></div>
-        <span>${name}</span>
-    `;
-    usersList.appendChild(userItem);
-}
-
-function removeUserFromList(name) {
-    const userItems = usersList.getElementsByClassName('user-item');
-    for (const item of userItems) {
-        if (item.textContent.trim() === name) {
-            item.style.opacity = '0';
-            item.style.transform = 'translateX(20px)';
-            setTimeout(() => item.remove(), 300);
-            break;
-        }
-    }
-}
-
-function updateUserSpeakingStatus(name, isSpeaking) {
-    const userItems = usersList.getElementsByClassName('user-item');
-    for (const item of userItems) {
-        if (item.dataset.name === name) {
-            const statusIndicator = item.querySelector('.user-status');
-            if (isSpeaking) {
-                statusIndicator.classList.add('speaking');
-            } else {
-                statusIndicator.classList.remove('speaking');
-            }
-            break;
-        }
-    }
 }
 
 // Event Listeners
 joinBtn.addEventListener('click', async () => {
     const name = displayNameInput.value.trim();
     if (!name) {
-        showWarning('Please enter your display name');
+        warningMessage.textContent = 'Please enter your display name';
         return;
     }
 
@@ -361,30 +257,27 @@ joinBtn.addEventListener('click', async () => {
     joinBtn.disabled = true;
 
     try {
-        // Initialize WebRTC and Socket.io
-        await initializeWebRTC();
+        // Initialize WebRTC first
+        const webRTCInitialized = await initializeWebRTC();
+        if (!webRTCInitialized) {
+            warningMessage.textContent = 'Error accessing microphone';
+            return;
+        }
+
         displayName = name;
         initializeSocket();
 
-        // Animate welcome section out
-        welcomeSection.classList.add('hidden');
-        
-        // Wait for animation to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
         // Show channel section
+        welcomeSection.classList.add('hidden');
         channelSection.classList.remove('hidden');
         channelSection.classList.add('visible');
-
-        // Add current user to the list
-        addUserToList(displayName);
 
         // Update UI
         displayNameInput.disabled = true;
         warningMessage.textContent = '';
     } catch (error) {
         console.error('Error joining channel:', error);
-        showWarning('Failed to join channel. Please try again.');
+        warningMessage.textContent = 'Failed to join channel. Please try again.';
         joinBtn.classList.remove('loading');
         joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
         joinBtn.disabled = false;

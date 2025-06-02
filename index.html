@@ -10,6 +10,8 @@
     <!-- Add WebRTC adapter for better browser compatibility -->
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="main.js"></script>
 </head>
 <body>
     <!-- Auth Check Script -->
@@ -197,10 +199,6 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/webrtc-adapter@8.2.1/out/adapter.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="main.js"></script>
     <script>
         // Initialize Supabase client
         const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
@@ -211,12 +209,8 @@
         let users = []
         let socketInitialized = false
         let mediaStream = null
-        let audioContext = null
-        let analyser = null
-        let speakingThreshold = -50 // dB
-        let isSpeaking = false
-        let speakingTimeout = null
-        let peerConnections = {} // WebRTC peer connections
+        let isMuted = false
+        let isDeafened = false
 
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
@@ -335,13 +329,6 @@
                     },
                     video: false
                 });
-                
-                // Initialize audio context for voice detection
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                const source = audioContext.createMediaStreamSource(mediaStream);
-                source.connect(analyser);
-                analyser.fftSize = 256;
                 
                 console.log('Audio stream initialized successfully');
                 return true;
@@ -643,9 +630,6 @@
         document.getElementById('leaveBtn').addEventListener('click', () => {
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
-            }
-            if (audioContext) {
-                audioContext.close();
             }
             socket.emit('leaveChannel', { userId: user.id });
             document.getElementById('welcomeSection').classList.remove('hidden');
