@@ -216,7 +216,7 @@
         let speakingThreshold = -50 // dB
         let isSpeaking = false
         let speakingTimeout = null
-        let peerConnections = {} // Add this for WebRTC peer connections
+        let peerConnections = {} // WebRTC peer connections
 
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
@@ -520,52 +520,52 @@
 
                 // Add speaking state handlers
                 socket.on('userSpeaking', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator speaking'
-                        status.textContent = 'Speaking...'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator speaking';
+                        status.textContent = 'Speaking...';
                     }
-                })
+                });
 
                 socket.on('userStoppedSpeaking', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator'
-                        status.textContent = 'Online'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator';
+                        status.textContent = 'Online';
                     }
-                })
+                });
 
                 // Handle mute state
                 socket.on('userMuted', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator muted'
-                        status.textContent = 'Muted'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator muted';
+                        status.textContent = 'Muted';
                     }
-                })
+                });
 
                 socket.on('userUnmuted', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator'
-                        status.textContent = 'Online'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.className = 'user-status-indicator';
+                        status.textContent = 'Online';
                     }
-                })
+                });
             } else {
                 setTimeout(initializeSocketHandlers, 100);
             }
         }
 
         // Start initializing socket handlers
-        initializeSocketHandlers()
+        initializeSocketHandlers();
 
         // Join channel button handler
         document.getElementById('joinBtn').addEventListener('click', async () => {
@@ -627,56 +627,56 @@
         // Handle mute button
         document.getElementById('muteBtn').addEventListener('click', () => {
             if (mediaStream) {
-                const audioTracks = mediaStream.getAudioTracks()
+                const audioTracks = mediaStream.getAudioTracks();
                 audioTracks.forEach(track => {
-                    track.enabled = !track.enabled
-                })
-                const isMuted = !audioTracks[0].enabled
+                    track.enabled = !track.enabled;
+                });
+                const isMuted = !audioTracks[0].enabled;
                 document.getElementById('muteBtn').innerHTML = `
                     <i class="fas fa-${isMuted ? 'microphone-slash' : 'microphone'}"></i>
                     <span>${isMuted ? 'Unmute' : 'Mute'}</span>
-                `
+                `;
             }
-        })
+        });
 
         // Handle leave button
         document.getElementById('leaveBtn').addEventListener('click', () => {
             if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop())
+                mediaStream.getTracks().forEach(track => track.stop());
             }
             if (audioContext) {
-                audioContext.close()
+                audioContext.close();
             }
-            socket.emit('leaveChannel', { userId: user.id })
-            document.getElementById('welcomeSection').classList.remove('hidden')
-            document.getElementById('channelSection').classList.remove('visible')
-            document.getElementById('channelSection').classList.add('hidden')
-        })
+            socket.emit('leaveChannel', { userId: user.id });
+            document.getElementById('welcomeSection').classList.remove('hidden');
+            document.getElementById('channelSection').classList.remove('visible');
+            document.getElementById('channelSection').classList.add('hidden');
+        });
 
         // Add hamburger menu functionality
-        const hamburgerMenu = document.getElementById('hamburgerMenu')
-        const navMenu = document.getElementById('navMenu')
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const navMenu = document.getElementById('navMenu');
 
         hamburgerMenu.addEventListener('click', () => {
-            hamburgerMenu.classList.toggle('active')
-            navMenu.classList.toggle('active')
-        })
+            hamburgerMenu.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
 
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
             if (!hamburgerMenu.contains(e.target) && !navMenu.contains(e.target)) {
-                hamburgerMenu.classList.remove('active')
-                navMenu.classList.remove('active')
+                hamburgerMenu.classList.remove('active');
+                navMenu.classList.remove('active');
             }
-        })
+        });
 
         // Close menu when window is resized
         window.addEventListener('resize', () => {
             if (window.innerWidth > 768) {
-                hamburgerMenu.classList.remove('active')
-                navMenu.classList.remove('active')
+                hamburgerMenu.classList.remove('active');
+                navMenu.classList.remove('active');
             }
-        })
+        });
     </script>
 </body>
 </html> 
