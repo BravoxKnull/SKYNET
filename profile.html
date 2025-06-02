@@ -66,6 +66,15 @@
                     <section class="profile-section">
                         <h3>Profile Information</h3>
                         <div class="form-group">
+                            <label for="displayNameInput">Display Name</label>
+                            <div class="display-name-input">
+                                <input type="text" id="displayNameInput" placeholder="Enter your display name">
+                                <button id="updateDisplayNameBtn" class="btn-primary">
+                                    <i class="fas fa-save"></i> Update
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label for="bioInput">Bio</label>
                             <textarea id="bioInput" rows="3" placeholder="Tell us about yourself..."></textarea>
                         </div>
@@ -508,6 +517,84 @@
                 })
             }
         })
+
+        // Initialize display name update functionality
+        const displayNameInput = document.getElementById('displayNameInput');
+        const updateDisplayNameBtn = document.getElementById('updateDisplayNameBtn');
+
+        if (displayNameInput && updateDisplayNameBtn) {
+            // Set initial display name
+            displayNameInput.value = storedUser.displayName || '';
+
+            // Handle display name update
+            updateDisplayNameBtn.addEventListener('click', async () => {
+                const newDisplayName = displayNameInput.value.trim();
+                
+                if (!newDisplayName) {
+                    showMessage('Display name cannot be empty', 'error');
+                    return;
+                }
+
+                try {
+                    // Update in database
+                    const { error } = await supabase
+                        .from('users')
+                        .update({ display_name: newDisplayName })
+                        .eq('id', storedUser.id);
+
+                    if (error) throw error;
+
+                    // Update local storage
+                    storedUser.displayName = newDisplayName;
+                    localStorage.setItem('user', JSON.stringify(storedUser));
+
+                    // Update UI elements
+                    document.getElementById('userDisplayName').textContent = newDisplayName;
+                    document.getElementById('profileDisplayName').textContent = newDisplayName;
+
+                    // Update theme if needed
+                    if (document.documentElement.getAttribute('data-theme') === 'light') {
+                        document.documentElement.setAttribute('data-theme', 'light');
+                    }
+
+                    showMessage('Display name updated successfully!', 'success');
+
+                    // Broadcast the change to other pages if they're open
+                    if (window.broadcastChannel) {
+                        const channel = new BroadcastChannel('profile_updates');
+                        channel.postMessage({
+                            type: 'displayNameUpdate',
+                            displayName: newDisplayName
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error updating display name:', error);
+                    showMessage('Error updating display name: ' + (error.message || 'Unknown error'), 'error');
+                }
+            });
+        }
+
+        // Add this to handle display name updates from other pages
+        if (window.broadcastChannel) {
+            const channel = new BroadcastChannel('profile_updates');
+            channel.onmessage = (event) => {
+                if (event.data.type === 'displayNameUpdate') {
+                    // Update UI elements
+                    const userDisplayName = document.getElementById('userDisplayName');
+                    const profileDisplayName = document.getElementById('profileDisplayName');
+                    
+                    if (userDisplayName) userDisplayName.textContent = event.data.displayName;
+                    if (profileDisplayName) profileDisplayName.textContent = event.data.displayName;
+                    
+                    // Update stored user data
+                    const storedUser = JSON.parse(localStorage.getItem('user'));
+                    if (storedUser) {
+                        storedUser.displayName = event.data.displayName;
+                        localStorage.setItem('user', JSON.stringify(storedUser));
+                    }
+                }
+            };
+        }
     </script>
 
     <style>
@@ -534,6 +621,51 @@
     .appearance-section {
         max-width: 800px;
         margin: 0 auto;
+    }
+
+    .display-name-input {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .display-name-input input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--input-bg);
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+
+    .display-name-input input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 255, 157, 0.2);
+    }
+
+    .btn-primary {
+        padding: 10px 20px;
+        background: var(--primary-color);
+        color: var(--secondary-color);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 255, 157, 0.3);
+    }
+
+    .btn-primary i {
+        font-size: 1rem;
     }
     </style>
 </body>
