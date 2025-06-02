@@ -226,29 +226,41 @@
 
                     console.log('User data loaded:', data)
 
-                    // Update profile fields
-                    if (data.avatar_url) {
-                        const avatarPreview = document.getElementById('avatarPreview')
+                    // Update profile fields with null checks
+                    const avatarPreview = document.getElementById('avatarPreview')
+                    const bioInput = document.getElementById('bioInput')
+                    const statusSelect = document.getElementById('statusSelect')
+                    const themeSwitch = document.getElementById('themeSwitch')
+                    const customStatus = document.getElementById('customStatus')
+                    const memberSince = document.getElementById('memberSince')
+                    const lastLogin = document.getElementById('lastLogin')
+                    const notificationsToggle = document.getElementById('notificationsToggle')
+                    const soundToggle = document.getElementById('soundToggle')
+                    const voiceActivityToggle = document.getElementById('voiceActivityToggle')
+                    const pushToTalkToggle = document.getElementById('pushToTalkToggle')
+
+                    if (data.avatar_url && avatarPreview) {
                         avatarPreview.src = data.avatar_url
                         originalAvatarSrc = data.avatar_url
                     }
-                    document.getElementById('bioInput').value = data.bio || ''
-                    document.getElementById('statusSelect').value = data.status || 'online'
-                    document.getElementById('themeSelect').value = data.theme || 'dark'
-                    document.getElementById('languageSelect').value = data.language || 'en'
-                    document.getElementById('memberSince').textContent = new Date(data.created_at).toLocaleDateString()
-                    document.getElementById('lastLogin').textContent = new Date(data.last_login).toLocaleDateString()
 
-                    // Update settings
+                    if (bioInput) bioInput.value = data.bio || ''
+                    if (statusSelect) statusSelect.value = data.status || 'online'
+                    if (themeSwitch) themeSwitch.checked = data.theme === 'light'
+                    if (customStatus) customStatus.value = data.custom_status || ''
+                    if (memberSince) memberSince.textContent = new Date(data.created_at).toLocaleDateString()
+                    if (lastLogin) lastLogin.textContent = new Date(data.last_login).toLocaleDateString()
+
+                    // Update settings with null checks
                     if (data.user_settings) {
-                        document.getElementById('notificationsToggle').checked = data.user_settings.email_notifications
-                        document.getElementById('soundToggle').checked = data.user_settings.sound_enabled
-                        document.getElementById('voiceActivityToggle').checked = data.user_settings.voice_activity
-                        document.getElementById('pushToTalkToggle').checked = data.user_settings.push_to_talk
-                        document.getElementById('customStatus').value = data.user_settings.custom_status || ''
+                        if (notificationsToggle) notificationsToggle.checked = data.user_settings.email_notifications
+                        if (soundToggle) soundToggle.checked = data.user_settings.sound_enabled
+                        if (voiceActivityToggle) voiceActivityToggle.checked = data.user_settings.voice_activity
+                        if (pushToTalkToggle) pushToTalkToggle.checked = data.user_settings.push_to_talk
                     }
                 } catch (error) {
                     console.error('Error loading profile:', error)
+                    showMessage('Error loading profile data', 'error')
                 }
             }
 
@@ -354,11 +366,20 @@
             }
 
             try {
+                const bioInput = document.getElementById('bioInput')
+                const statusSelect = document.getElementById('statusSelect')
+                const themeSwitch = document.getElementById('themeSwitch')
+                const customStatus = document.getElementById('customStatus')
+                const notificationsToggle = document.getElementById('notificationsToggle')
+                const soundToggle = document.getElementById('soundToggle')
+                const voiceActivityToggle = document.getElementById('voiceActivityToggle')
+                const pushToTalkToggle = document.getElementById('pushToTalkToggle')
+
                 const updates = {
-                    bio: document.getElementById('bioInput').value,
-                    status: document.getElementById('statusSelect').value,
-                    theme: document.getElementById('themeSelect').value,
-                    language: document.getElementById('languageSelect').value
+                    bio: bioInput ? bioInput.value : '',
+                    status: statusSelect ? statusSelect.value : 'online',
+                    theme: themeSwitch ? (themeSwitch.checked ? 'light' : 'dark') : 'dark',
+                    custom_status: customStatus ? customStatus.value : ''
                 }
 
                 const { error } = await supabase
@@ -374,11 +395,11 @@
                 // Update settings
                 const settings = {
                     user_id: storedUser.id,
-                    email_notifications: document.getElementById('notificationsToggle').checked,
-                    sound_enabled: document.getElementById('soundToggle').checked,
-                    voice_activity: document.getElementById('voiceActivityToggle').checked,
-                    push_to_talk: document.getElementById('pushToTalkToggle').checked,
-                    custom_status: document.getElementById('customStatus').value
+                    email_notifications: notificationsToggle ? notificationsToggle.checked : true,
+                    sound_enabled: soundToggle ? soundToggle.checked : true,
+                    voice_activity: voiceActivityToggle ? voiceActivityToggle.checked : true,
+                    push_to_talk: pushToTalkToggle ? pushToTalkToggle.checked : false,
+                    custom_status: customStatus ? customStatus.value : ''
                 }
 
                 const { error: settingsError } = await supabase
@@ -470,7 +491,13 @@
         // Save changes when inputs change
         const saveInputs = document.querySelectorAll('input, select, textarea')
         saveInputs.forEach(input => {
-            input.addEventListener('change', saveProfile)
+            if (input) {
+                input.addEventListener('change', () => {
+                    // Add a small delay to prevent multiple rapid saves
+                    clearTimeout(window.saveTimeout)
+                    window.saveTimeout = setTimeout(saveProfile, 500)
+                })
+            }
         })
     </script>
 
