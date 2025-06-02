@@ -106,6 +106,22 @@
 
                 <!-- Music Player Section -->
                 <div class="music-player">
+                    <!-- Search Section - Moved to top for better visibility -->
+                    <div class="music-search">
+                        <div class="search-header">
+                            <h3><i class="fas fa-music"></i> Search Music</h3>
+                        </div>
+                        <div class="search-input">
+                            <input type="text" id="musicSearch" placeholder="Type a song name and press Enter...">
+                            <button id="searchBtn" class="search-btn">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                        <div class="search-results" id="searchResults">
+                            <!-- Search results will be added here dynamically -->
+                        </div>
+                    </div>
+
                     <div class="music-controls">
                         <div class="now-playing">
                             <div class="track-info">
@@ -137,26 +153,16 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="queue-section">
                         <div class="queue-header">
-                            <h3>Queue</h3>
+                            <h3><i class="fas fa-list"></i> Queue</h3>
                             <button id="clearQueue" class="queue-btn" title="Clear Queue">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                         <div class="queue-list" id="queueList">
                             <!-- Queue items will be added here dynamically -->
-                        </div>
-                    </div>
-                    <div class="music-search">
-                        <div class="search-input">
-                            <input type="text" id="musicSearch" placeholder="Search for a song...">
-                            <button id="searchBtn" class="search-btn">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        <div class="search-results" id="searchResults">
-                            <!-- Search results will be added here dynamically -->
                         </div>
                     </div>
                 </div>
