@@ -249,7 +249,7 @@
             window.location.href = 'auth.html'
         })
 
-        // Function to create user list item with improved avatar handling
+        // Function to create user list item
         function createUserListItem(userData) {
             console.log('Creating user item with data:', userData); // Debug log: Check the input data
             const userItem = document.createElement('div');
@@ -259,38 +259,18 @@
             // Default avatar SVG (inline for reliability)
             const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
 
-            // Use the avatar_url from userData if available
-            const avatarUrl = userData.avatar_url;
-            // Check if it's a string and starts with http (basic URL validation for images)
-            const useImageAvatar = avatarUrl && typeof avatarUrl === 'string' && avatarUrl.startsWith('http'); 
-            
-            let avatarContentHTML = '';
-            if (useImageAvatar) {
-                // If we have a valid URL, use the image tag
-                avatarContentHTML = `
+            // Get avatar URL from data, fallback to default if not available
+            // This fallback is also handled in updateUsersList, but kept here as a safeguard
+            const avatarUrl = userData.avatar_url || defaultAvatar;
+            console.log('Avatar URL being used in createUserListItem:', avatarUrl); // Debug log
+
+            // --- START: HTML structure for user item including avatar container ---
+            userItem.innerHTML = `
+                <div class="user-avatar-container">
                     <img src="${avatarUrl}"
                          alt="${userData.displayName}'s avatar"
-                         class="user-avatar-image"
-                         onerror="this.onerror=null; this.closest('.user-avatar-container').classList.add('show-initial'); this.style.display='none';">
-                `;
-            } else {
-                // If no valid URL, we'll show the initial by default (handled by CSS class)
-                // Include a hidden image tag still for the onerror fallback consistency
-                avatarContentHTML = `
-                    <img src="" style="display: none;" 
-                         alt="${userData.displayName}'s avatar"
-                         class="user-avatar-image"
-                         onerror="this.onerror=null; this.closest('.user-avatar-container').classList.add('show-initial'); this.style.display='none';">
-                `;
-            }
-
-             // Generate initial
-             const initial = (userData.displayName && userData.displayName.length > 0) ? userData.displayName[0].toUpperCase() : '?';
-
-            userItem.innerHTML = `
-                <div class="user-avatar-container ${useImageAvatar ? '' : 'show-initial'}">
-                     ${avatarContentHTML}
-                     <div class="user-avatar-initial">${initial}</div>
+                         class="user-avatar"
+                         onerror="this.onerror=null; this.src='${defaultAvatar}'">
                     <div class="user-status-indicator"></div>
                 </div>
                 <div class="user-details">
@@ -298,16 +278,16 @@
                     <span class="user-status">Online</span>
                 </div>
             `;
+            // --- END: HTML structure ---
 
             console.log('User item HTML created:', userItem.innerHTML); // Debug log: Check the generated HTML
 
             return userItem;
         }
 
-        // Function to update users list with improved avatar handling
-        // This function is primarily called by socket event handlers with the definitive list
-        async function updateUsersList(usersData) {
-            console.log('Updating users list with data:', usersData); // Debug log
+        // Function to update users list
+        async function updateUsersList(users) {
+            console.log('Updating users list with users:', users); // Debug log
             const usersList = document.getElementById('usersList');
             if (!usersList) {
                 console.error('usersList element not found!');
@@ -315,198 +295,142 @@
             }
             usersList.innerHTML = ''; // Clear existing users
 
-            // Remove duplicates by using a Map based on user id (socketId is used from server)
+            // Remove duplicates by using a Map
             const uniqueUsers = new Map();
-            usersData.forEach(user => {
-                // Use socketId from server data for uniqueness
-                const userIdKey = user.id || user.socketId; // Use id if present, otherwise socketId
-                if (userIdKey && !uniqueUsers.has(userIdKey)) {
-                    uniqueUsers.set(userIdKey, user);
+            users.forEach(user => {
+                if (!uniqueUsers.has(user.id)) {
+                    uniqueUsers.set(user.id, user);
                 }
             });
 
             console.log('Unique users to display:', uniqueUsers.size); // Debug log
 
             for (const userData of uniqueUsers.values()) {
-                // Create the user item HTML element using the data provided by the server event
-                const userItem = createUserListItem(userData);
+                console.log('Processing user for list:', userData); // Debug log: See data before fetch
+                let userAvatarUrl = userData.avatar_url; // Start with existing data
+
+                try {
+                    // Get user's avatar from database (This part fetches the URL)
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('avatar_url')
+                        .eq('id', userData.id)
+                        .single();
+
+                    console.log('Supabase avatar data fetched for', userData.displayName, ':', data); // Debug log
+
+                    if (!error && data && data.avatar_url) {
+                        userAvatarUrl = data.avatar_url; // Use fetched URL if available
+                        console.log('Using fetched avatar_url:', userAvatarUrl); // Debug log
+                    } else {
+                         console.log('No avatar_url found for', userData.displayName, 'or error:', error, '. Using default or existing.'); // Debug log
+                         // userAvatarUrl remains whatever it was (default or initial socket data)
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching avatar from Supabase for', userData.displayName, ':', error); // Debug log
+                    // userAvatarUrl remains whatever it was (default or initial socket data)
+                }
+                
+                // Ensure user data object passed to createUserListItem has the potentially updated avatar_url
+                const userItemData = { ...userData, avatar_url: userAvatarUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+' }; // Explicitly set avatar_url, fallback to default SVG
+                console.log('Data passed to createUserListItem:', userItemData); // Debug log
+
+                // Create the user item HTML element
+                const userItem = createUserListItem(userItemData);
 
                 // Append the created user item element to the list
                 usersList.appendChild(userItem);
 
-                console.log('Appended user item for', userData.displayName); // Debug log: Confirm append
+                console.log('Appended user item for', userItemData.displayName); // Debug log
 
-                // Avatar loading and initial fallback is now handled within createUserListItem
-                // based on the avatar_url provided in the usersData from the server event.
-                // The onerror handler on the image takes care of fallback if the URL is bad or image fails.
+                // Force image reload (This helps in some caching scenarios)
+                const img = userItem.querySelector('.user-avatar');
+                if (img) {
+                     // Setting src to itself can trigger reload
+                    const currentSrc = img.src;
+                    img.src = ''; // Clear source briefly
+                    img.src = currentSrc; // Set source again
+                    console.log('Attempted to force reload avatar for', userItemData.displayName); // Debug log
+                } else {
+                     console.log('Image element .user-avatar not found in created item for', userItemData.displayName); // Debug log
+                }
             }
              console.log('Finished updating users list.'); // Debug log
         }
 
         // Function to initialize socket handlers
         function initializeSocketHandlers() {
-            if (typeof socket !== 'undefined' && socket && !socketInitialized) { // Added !socketInitialized check
-                socketInitialized = true;
-                console.log('Initializing socket handlers...');
+            if (typeof socket !== 'undefined' && socket) {
+                socketInitialized = true
                 
                 socket.on('connect', () => {
-                    console.log('Connected to server');
-                });
+                    console.log('Connected to server')
+                })
 
-                // Handle a new user joining (server broadcasts this)
-                socket.on('user-joined', (userData) => {
-                    console.log('Socket event: user-joined', userData);
-                    // Add the new user to the local list and update the display
-                    const existingUserIndex = users.findIndex(u => u.id === userData.id || u.socketId === userData.socketId); // Check by id or socketId
-                    if (existingUserIndex === -1) {
-                         // Add user to local list only if they don't exist
-                         // Note: The socket event might provide 'socketId' from server
-                         const userToAdd = { ...userData, id: userData.id || userData.socketId }; // Ensure id is present
-                         users.push(userToAdd);
-                         console.log('Added user from user-joined event to local list:', users);
-                         // Re-render the entire list to handle potential order changes or quick successive joins
-                         updateUsersList(users);
-                    } else {
-                         console.log('User from user-joined event already in local list.', userData);
-                         // If user already exists, update their data in the local list
-                         users[existingUserIndex] = { ...users[existingUserIndex], ...userData }; // Merge data
-                         // Re-render the entire list to reflect potential data updates
-                         updateUsersList(users);
-                    }
-                     // You might want to trigger peer connection creation here if needed
-                    // createPeerConnection(userData.socketId, true); // Example
-                });
+                socket.on('userJoined', (userData) => {
+                    users = [...users, userData]
+                    updateUsersList(users)
+                })
 
-                // Handle a user leaving (server broadcasts this)
-                socket.on('user-left', (data) => {
-                     console.log('Socket event: user-left', data);
-                     const userIdToRemove = data.userId || data.socketId; // Handle either id or socketId
-                    users = users.filter(user => user.id !== userIdToRemove && user.socketId !== userIdToRemove);
-                    console.log('Removed user from local list:', users);
-                    // Re-render the entire list
-                    updateUsersList(users);
-                     // You might want to close peer connection here
-                    // closePeerConnection(userIdToRemove); // Example
-                });
+                socket.on('userLeft', (userId) => {
+                    users = users.filter(user => user.id !== userId)
+                    updateUsersList(users)
+                })
 
-                // Handle receiving the list of existing users when joining (server sends this)
-                socket.on('existing-users', (usersData) => {
-                     console.log('Socket event: existing-users', usersData);
-                     // This is the definitive list from the server - replace our local list
-                    users = usersData.map(user => ({ ...user, id: user.id || user.socketId })); // Ensure id is present
-                     console.log('Replaced local list with existing-users data:', users);
-                     // Update the display based on the server's list
-                    updateUsersList(users);
-                     // You might want to create peer connections with existing users here
-                    // usersData.forEach(user => createPeerConnection(user.socketId, false)); // Example
-                });
-
-                // ... Keep existing speaking/mute/deafen handlers ...
+                socket.on('usersList', (usersList) => {
+                    users = usersList
+                    updateUsersList(users)
+                })
 
                 // Add speaking state handlers
-                socket.on('speaking', (data) => { // Using 'speaking' event name from your socket.emit
-                     console.log('Socket event: speaking', data);
-                    const userItem = document.querySelector(`[data-user-id="${data.userId || data.socketId}"]`);
+                socket.on('userSpeaking', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator');
-                        const status = userItem.querySelector('.user-status');
-                        if(indicator) indicator.className = 'user-status-indicator speaking';
-                        if(status) status.textContent = 'Speaking...';
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator speaking'
+                        status.textContent = 'Speaking...'
                     }
-                });
+                })
 
-                socket.on('stoppedSpeaking', (data) => { // Using 'stoppedSpeaking' event name
-                     console.log('Socket event: stoppedSpeaking', data);
-                    const userItem = document.querySelector(`[data-user-id="${data.userId || data.socketId}"]`);
+                socket.on('userStoppedSpeaking', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator');
-                        const status = userItem.querySelector('.user-status');
-                         // Only change status back to Online if not Muted or Deafened
-                         if(indicator && !indicator.classList.contains('muted') && !indicator.classList.contains('deafened')) {
-                             indicator.className = 'user-status-indicator';
-                              if(status) status.textContent = 'Online';
-                         } else if (indicator && indicator.classList.contains('muted')) {
-                             if(status) status.textContent = 'Muted';
-                         } else if (indicator && indicator.classList.contains('deafened')) {
-                             if(status) status.textContent = 'Deafened';
-                         }
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator'
+                        status.textContent = 'Online'
                     }
-                });
+                })
 
-                 // Handle mute state (Assuming server broadcasts these states)
-                 socket.on('userMuted', (data) => { // Assuming 'userMuted' event name
-                      console.log('Socket event: userMuted', data);
-                     const userItem = document.querySelector(`[data-user-id="${data.userId || data.socketId}"]`);
-                     if (userItem) {
-                         const indicator = userItem.querySelector('.user-status-indicator');
-                         const status = userItem.querySelector('.user-status');
-                         if(indicator) indicator.className = 'user-status-indicator muted';
-                         if(status) status.textContent = 'Muted';
-                     }
-                 });
+                // Handle mute state
+                socket.on('userMuted', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    if (userItem) {
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator muted'
+                        status.textContent = 'Muted'
+                    }
+                })
 
-                 socket.on('userUnmuted', (data) => { // Assuming 'userUnmuted' event name
-                      console.log('Socket event: userUnmuted', data);
-                     const userItem = document.querySelector(`[data-user-id="${data.userId || data.socketId}"]`);
-                     if (userItem) {
-                         const indicator = userItem.querySelector('.user-status-indicator');
-                         const status = userItem.querySelector('.user-status');
-                         // Only change status back to Online if not Deafened
-                          if(indicator && !indicator.classList.contains('deafened')) {
-                             indicator.className = 'user-status-indicator';
-                              if(status) status.textContent = 'Online';
-                          } else if (indicator && indicator.classList.contains('deafened')) {
-                              if(status) status.textContent = 'Deafened';
-                          }
-                     }
-                 });
-
-                  // Handle deafen state (Assuming server broadcasts these states)
-                 socket.on('userDeafened', (data) => { // Assuming 'userDeafened' event name
-                      console.log('Socket event: userDeafened', data);
-                     const userItem = document.querySelector(`[data-user-id="${data.userId || data.socketId}"]`);
-                     if (userItem) {
-                         const indicator = userItem.querySelector('.user-status-indicator');
-                         const status = userItem.querySelector('.user-status');
-                         if(indicator) indicator.className = 'user-status-indicator deafened';
-                         if(status) status.textContent = 'Deafened';
-                     }
-                 });
-
-                 socket.on('userUndeafened', (data) => { // Assuming 'userUndeafened' event name
-                      console.log('Socket event: userUndeafened', data);
-                     const userItem = document.querySelector(`[data-user-id="${data.userId || data.socketId}"]`);
-                     if (userItem) {
-                         const indicator = userItem.querySelector('.user-status-indicator');
-                         const status = userItem.querySelector('.user-status');
-                         // Only change status back to Online if not Muted
-                         if(indicator && !indicator.classList.contains('muted')) {
-                             indicator.className = 'user-status-indicator';
-                             if(status) status.textContent = 'Online';
-                         } else if (indicator && indicator.classList.contains('muted')) {
-                              if(status) status.textContent = 'Muted';
-                         }
-                     }
-                 });
-
-
-            } else if (typeof socket === 'undefined') {
-                 console.error('Socket is not defined. Make sure socket.io.min.js is loaded.');
-            } else if (socketInitialized) {
-                 console.log('Socket handlers already initialized.');
+                socket.on('userUnmuted', (data) => {
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    if (userItem) {
+                        const indicator = userItem.querySelector('.user-status-indicator')
+                        const status = userItem.querySelector('.user-status')
+                        indicator.className = 'user-status-indicator'
+                        status.textContent = 'Online'
+                    }
+                })
+            } else {
+                setTimeout(initializeSocketHandlers, 100)
             }
         }
 
         // Start initializing socket handlers
-        // Ensure this is called after socket object is available
-        // The socket object is created by <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-        // which is loaded before this script block.
-        // A small delay might still be needed if the socket object isn't immediately ready
-        // although placing the script tag at the end of the body usually suffices.
-        // Let's add a slight delay just in case or ensure initialization happens after DOMContentLoaded
-        // window.addEventListener('DOMContentLoaded', initializeSocketHandlers); // Alternative way to ensure DOM is ready
-         // For simplicity and consistency with existing structure, keep setTimeout for now but be mindful of timing
-        setTimeout(initializeSocketHandlers, 50); // Reduced delay slightly
+        initializeSocketHandlers()
 
         // Initialize audio analysis
         async function initializeAudioAnalysis() {
@@ -554,58 +478,50 @@
                 return
             }
 
-            if (!socketInitialized || typeof socket === 'undefined' || !socket.connected) { // Added more robust check
+            if (!socketInitialized) {
                 document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...'
-                 console.warn('Join button clicked before socket was fully initialized or connected.'); // Warning
                 return
             }
 
-            document.getElementById('warningMessage').textContent = ''; // Clear previous warnings
-            document.getElementById('joinBtn').classList.add('loading'); // Show loading state
-            document.getElementById('joinBtn').disabled = true; // Disable button
-
             try {
-                // Get user's avatar before joining from Supabase
+                // Get user's avatar before joining
                 const { data, error } = await supabase
                     .from('users')
                     .select('avatar_url')
                     .eq('id', user.id)
                     .single()
 
-                if (error) { // Log Supabase fetch errors but don't necessarily block joining
-                    console.error('Supabase avatar fetch error:', error);
-                }
-                // Get avatar URL - use fetched data or null
-                const userAvatarUrl = data?.avatar_url || null;
-                console.log('Avatar URL fetched for joining:', userAvatarUrl);
+                console.log('User avatar data:', data); // Debug log
 
-                // Initialize audio analysis - crucial for voice features
-                await initializeAudioAnalysis();
-                 console.log('Audio analysis initialized.');
+                if (error) throw error
 
-                // Show channel section UI
-                document.getElementById('welcomeSection').classList.add('hidden');
-                document.getElementById('channelSection').classList.remove('hidden');
-                document.getElementById('channelSection').classList.add('visible');
-                 console.log('UI switched to channel view.');
+                // Initialize audio analysis
+                await initializeAudioAnalysis()
 
-                // Emit joinChannel event to the server with avatar URL
-                socket.emit('join-room', { // Using 'join-room' event name from server
-                    id: user.id, // Include user ID if needed by server beyond socket.id
+                // Show channel section
+                document.getElementById('welcomeSection').classList.add('hidden')
+                document.getElementById('channelSection').classList.remove('hidden')
+                document.getElementById('channelSection').classList.add('visible')
+
+                // Join the channel with avatar
+                socket.emit('joinChannel', {
+                    id: user.id,
                     displayName: displayName,
-                    avatar_url: userAvatarUrl // Include the fetched avatar URL
-                });
-                 console.log('Emitted join-room event to server.');
+                    avatar_url: data?.avatar_url || null
+                })
 
-                 // Server will respond with 'existing-users' and 'user-joined' events
-                 // which will trigger updateUsersList
+                // Add current user to the list immediately
+                const currentUser = {
+                    id: user.id,
+                    displayName: displayName,
+                    avatar_url: data?.avatar_url || null
+                }
+                users = [currentUser]
+                updateUsersList(users)
 
             } catch (error) {
-                console.error('Error during join process:', error);
-                document.getElementById('warningMessage').textContent = 'Error joining channel.';
-                 // Re-enable button and remove loading state if join fails
-                document.getElementById('joinBtn').classList.remove('loading');
-                document.getElementById('joinBtn').disabled = false;
+                console.error('Error joining channel:', error)
+                document.getElementById('warningMessage').textContent = 'Error joining channel'
             }
         })
 
@@ -621,43 +537,8 @@
                     <i class="fas fa-${isMuted ? 'microphone-slash' : 'microphone'}"></i>
                     <span>${isMuted ? 'Unmute' : 'Mute'}</span>
                 `
-            } else {
-                 console.warn('Media stream not available to mute/unmute.'); // Added warning
             }
-             // Emit mute state change
-            const isMuted = mediaStream ? !mediaStream.getAudioTracks()[0].enabled : false; // Determine current mute state
-            socket.emit('userMuted', { userId: user.id, isMuted: isMuted }); // Emit state
         })
-
-        // Handle deafen button
-        document.getElementById('deafenBtn').addEventListener('click', () => {
-            // Find all audio tracks from remote peers
-            // Note: This assumes you have a way to access remote audio tracks, e.g., via WebRTC connections
-            // This part needs to be implemented based on your WebRTC setup
-            console.warn('Deafen functionality not fully implemented yet.');
-            // Example (conceptual): Iterate through peer connections and disable their audio tracks
-            // peerConnections.forEach(pc => {
-            //     pc.getReceivers().forEach(receiver => {
-            //         if (receiver.track && receiver.track.kind === 'audio') {
-            //             receiver.track.enabled = !receiver.track.enabled;
-            //         }
-            //     });
-            // });
-
-            // Toggle the deafen state visually (optional, depends on implementation)
-            const deafenButton = document.getElementById('deafenBtn');
-            const isDeafened = !deafenButton.classList.toggle('active'); // Toggle active class
-
-            // Update the button text/icon
-            deafenButton.innerHTML = `
-                <i class="fas fa-${isDeafened ? 'volume-off' : 'volume-mute'}"></i>
-                <span>${isDeafened ? 'Undeafen' : 'Deafen'}</span>
-            `;
-
-             // Emit deafen state change (if your server handles this)
-            socket.emit('userDeafened', { userId: user.id, isDeafened: isDeafened }); // Emit state
-        })
-
 
         // Handle leave button
         document.getElementById('leaveBtn').addEventListener('click', () => {
@@ -667,13 +548,10 @@
             if (audioContext) {
                 audioContext.close()
             }
-            socket.emit('leaveChannel', { userId: user.id }) // Assuming 'leaveChannel' is the event name
+            socket.emit('leaveChannel', { userId: user.id })
             document.getElementById('welcomeSection').classList.remove('hidden')
             document.getElementById('channelSection').classList.remove('visible')
             document.getElementById('channelSection').classList.add('hidden')
-            users = []; // Clear local user list on leave
-            updateUsersList([]); // Update display to be empty
-             console.log('Left channel, UI updated.');
         })
 
         // Add hamburger menu functionality
@@ -687,11 +565,9 @@
 
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
-            const isClickInsideMenu = navMenu.contains(e.target) || hamburgerMenu.contains(e.target);
-            // Check if the menu is active and the click is outside
-            if (navMenu.classList.contains('active') && !isClickInsideMenu) {
-                hamburgerMenu.classList.remove('active');
-                navMenu.classList.remove('active');
+            if (!hamburgerMenu.contains(e.target) && !navMenu.contains(e.target)) {
+                hamburgerMenu.classList.remove('active')
+                navMenu.classList.remove('active')
             }
         })
 
@@ -704,4 +580,4 @@
         })
     </script>
 </body>
-</html>
+</html> 
