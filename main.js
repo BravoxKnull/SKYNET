@@ -156,6 +156,7 @@ function initializeEventListeners() {
                 isMuted: isMuted,
                 displayName: currentUser.displayName
             });
+            console.log('Broadcasting mute status:', { userId: currentUser.id, isMuted: isMuted });
         }
 
         // Update local UI
@@ -177,6 +178,7 @@ function initializeEventListeners() {
                 isDeafened: isDeafened,
                 displayName: currentUser.displayName
             });
+            console.log('Broadcasting deafen status:', { userId: currentUser.id, isDeafened: isDeafened });
         }
 
         // Update local UI
@@ -434,16 +436,21 @@ function initializeSocket() {
             
             // Send current status to new user
             if (socket) {
+                // Broadcast current mute status
                 socket.emit('userMuteStatus', {
                     userId: currentUser.id,
                     isMuted: isMuted,
                     displayName: currentUser.displayName
                 });
+                console.log('Broadcasting initial mute status to new user:', { userId: currentUser.id, isMuted: isMuted });
+
+                // Broadcast current deafen status
                 socket.emit('userDeafenStatus', {
                     userId: currentUser.id,
                     isDeafened: isDeafened,
                     displayName: currentUser.displayName
                 });
+                console.log('Broadcasting initial deafen status to new user:', { userId: currentUser.id, isDeafened: isDeafened });
             }
         }
     });
@@ -582,19 +589,18 @@ function initializeSocket() {
         }
     });
 
-    // Add new socket event listeners for mute/deafen status
+    // Update the mute status event handler
     socket.on('userMuteStatus', (data) => {
         console.log('Received mute status update:', data);
-        if (data.userId !== currentUser.id) {
-            updateUserMuteStatus(data.userId, data.isMuted);
-        }
+        // Remove the self-check to allow updates from all users
+        updateUserMuteStatus(data.userId, data.isMuted);
     });
 
+    // Update the deafen status event handler
     socket.on('userDeafenStatus', (data) => {
         console.log('Received deafen status update:', data);
-        if (data.userId !== currentUser.id) {
-            updateUserDeafenStatus(data.userId, data.isDeafened);
-        }
+        // Remove the self-check to allow updates from all users
+        updateUserDeafenStatus(data.userId, data.isDeafened);
     });
 }
 
@@ -676,6 +682,7 @@ async function updateUsersList(users) {
 
 // Function to update user mute status in UI
 function updateUserMuteStatus(userId, isMuted) {
+    console.log('Updating mute status for user:', userId, 'isMuted:', isMuted);
     const userItem = document.querySelector(`[data-user-id="${userId}"]`);
     if (userItem) {
         const status = userItem.querySelector('.user-status');
@@ -693,11 +700,14 @@ function updateUserMuteStatus(userId, isMuted) {
             micStatus.innerHTML = '<i class="fas fa-microphone"></i><span class="status-text">Active</span>';
             micStatus.classList.remove('inactive');
         }
+    } else {
+        console.warn('User item not found for ID:', userId);
     }
 }
 
 // Function to update user deafen status in UI
 function updateUserDeafenStatus(userId, isDeafened) {
+    console.log('Updating deafen status for user:', userId, 'isDeafened:', isDeafened);
     const userItem = document.querySelector(`[data-user-id="${userId}"]`);
     if (userItem) {
         const status = userItem.querySelector('.user-status');
@@ -715,6 +725,8 @@ function updateUserDeafenStatus(userId, isDeafened) {
             speakerStatus.innerHTML = '<i class="fas fa-volume-up"></i><span class="status-text">Active</span>';
             speakerStatus.classList.remove('inactive');
         }
+    } else {
+        console.warn('User item not found for ID:', userId);
     }
 }
 
