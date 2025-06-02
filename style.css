@@ -470,12 +470,16 @@ body {
 
 .user-details {
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: orange;
+    border: 2px dashed purple;
 }
 
 .user-name {
     font-weight: 600;
     color: var(--text-color);
-    margin-bottom: 2px;
     text-shadow: 0 0 10px rgba(230, 241, 255, 0.3);
     font-size: 1rem;
     text-align: center;
@@ -489,6 +493,9 @@ body {
     font-size: 0.8rem;
     color: var(--accent-color);
     transition: all 0.3s ease;
+    display: block;
+    background: cyan;
+    border: 1px dashed green;
 }
 
 .user-item:hover .user-status {
