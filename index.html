@@ -251,44 +251,24 @@
 
         // Function to create user list item with improved avatar handling
         function createUserListItem(userData) {
-            console.log('Creating user item with data:', userData); // Debug log: Check the input data
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             userItem.setAttribute('data-user-id', userData.id);
 
-            // Default avatar SVG (inline for reliability) - Still useful as a fallback for onerror
+            // Default avatar SVG (inline for reliability)
             const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
 
-            // Use the avatar_url from userData if available
-            const avatarUrl = userData.avatar_url;
-            const useImageAvatar = avatarUrl && typeof avatarUrl === 'string' && avatarUrl.startsWith('http'); // Check if it's a valid URL
-            
-            let avatarContentHTML = '';
-            if (useImageAvatar) {
-                // If we have a valid URL, use the image tag
-                avatarContentHTML = `
-                    <img src="${avatarUrl}"
-                         alt="${userData.displayName}'s avatar"
-                         class="user-avatar-image"
-                         onerror="this.onerror=null; this.closest('.user-avatar-container').classList.add('show-initial'); this.style.display='none';">
-                `;
-            } else {
-                // If no valid URL, we'll show the initial by default (handled by CSS class)
-                avatarContentHTML = `
-                    <img src="${defaultAvatar}" style="display: none;" 
-                         alt="${userData.displayName}'s avatar"
-                         class="user-avatar-image"
-                         onerror="this.onerror=null; this.closest('.user-avatar-container').classList.add('show-initial'); this.style.display='none';">
-                `;
-            }
+            // Generate initial from display name
+            const initial = userData.displayName ? userData.displayName.charAt(0).toUpperCase() : '?';
 
-             // Generate initial
-             const initial = (userData.displayName && userData.displayName.length > 0) ? userData.displayName[0].toUpperCase() : '?';
-
+            // Create the user item HTML
             userItem.innerHTML = `
-                <div class="user-avatar-container ${useImageAvatar ? '' : 'show-initial'}">
-                     ${avatarContentHTML}
-                     <div class="user-avatar-initial">${initial}</div>
+                <div class="user-avatar-container">
+                    <img src="${userData.avatar_url || defaultAvatar}" 
+                         alt="${userData.displayName}'s avatar" 
+                         class="user-avatar-image"
+                         onerror="this.src='${defaultAvatar}'">
+                    <div class="user-avatar-initial">${initial}</div>
                     <div class="user-status-indicator"></div>
                 </div>
                 <div class="user-details">
@@ -297,84 +277,35 @@
                 </div>
             `;
 
-            console.log('User item HTML created:', userItem.innerHTML); // Debug log: Check the generated HTML
+            // Show initial if avatar fails to load
+            const avatarImg = userItem.querySelector('.user-avatar-image');
+            avatarImg.onerror = function() {
+                this.style.display = 'none';
+                this.parentElement.querySelector('.user-avatar-initial').style.display = 'flex';
+            };
+
+            // If no avatar URL, show initial immediately
+            if (!userData.avatar_url) {
+                avatarImg.style.display = 'none';
+                userItem.querySelector('.user-avatar-initial').style.display = 'flex';
+            }
 
             return userItem;
         }
 
-        // Function to update users list with improved avatar handling
-        async function updateUsersList(users) {
-            const usersList = document.getElementById('usersList');
-            if (!usersList) return;
-            
-            usersList.innerHTML = ''; // Clear existing users
+        // Function to update users list
+        function updateUsersList(usersList) {
+            const usersContainer = document.getElementById('usersList');
+            if (!usersContainer) return;
 
-            // Remove duplicates by using a Map
-            const uniqueUsers = new Map();
-            users.forEach(user => {
-                if (!uniqueUsers.has(user.id)) {
-                    uniqueUsers.set(user.id, user);
-                }
+            // Clear existing users
+            usersContainer.innerHTML = '';
+
+            // Add each user to the container
+            usersList.forEach(userData => {
+                const userItem = createUserListItem(userData);
+                usersContainer.appendChild(userItem);
             });
-
-            for (const userData of uniqueUsers.values()) {
-                try {
-                    // Create the user item with the current data (which might not have avatar_url yet)
-                    const userItem = createUserListItem(userData);
-                    usersList.appendChild(userItem);
-
-                    // Then try to fetch updated avatar if the current data didn't have a valid URL
-                    const hasValidAvatarUrl = userData.avatar_url && typeof userData.avatar_url === 'string' && userData.avatar_url.startsWith('http');
-                    if (!hasValidAvatarUrl) {
-                        const { data, error } = await supabase
-                            .from('users')
-                            .select('avatar_url')
-                            .eq('id', userData.id)
-                            .single();
-
-                        if (!error && data && data.avatar_url && typeof data.avatar_url === 'string' && data.avatar_url.startsWith('http')) {
-                             // If we got a new valid URL, update the image source and show the image
-                            const img = userItem.querySelector('.user-avatar-image');
-                            const initialDiv = userItem.querySelector('.user-avatar-initial');
-                            if (img) {
-                                img.src = data.avatar_url;
-                                 img.style.display = 'block'; // Show the image
-                                 // Remove the show-initial class to hide the initial
-                                userItem.querySelector('.user-avatar-container').classList.remove('show-initial');
-                            }
-                             // Ensure the initial is hidden if the image loads
-                            if(initialDiv) initialDiv.style.display = 'none';
-                        } else {
-                            // If fetch failed or no valid URL found, ensure initial is shown
-                             const avatarContainer = userItem.querySelector('.user-avatar-container');
-                             const img = userItem.querySelector('.user-avatar-image');
-                             const initialDiv = userItem.querySelector('.user-avatar-initial');
-                             if(avatarContainer) avatarContainer.classList.add('show-initial');
-                             if(img) img.style.display = 'none'; // Hide the image
-                             if(initialDiv) initialDiv.style.display = 'flex'; // Show the initial (using flex for centering)
-
-                        }
-                    } else {
-                         // If initial data already had a valid avatar URL, ensure image is shown and initial is hidden
-                         const img = userItem.querySelector('.user-avatar-image');
-                         const initialDiv = userItem.querySelector('.user-avatar-initial');
-                          if(img) img.style.display = 'block'; // Show the image
-                          if(initialDiv) initialDiv.style.display = 'none'; // Hide the initial
-                          const avatarContainer = userItem.querySelector('.user-avatar-container');
-                          if(avatarContainer) avatarContainer.classList.remove('show-initial'); // Ensure initial is not shown
-                    }
-
-                } catch (error) {
-                    console.error('Error processing user:', error);
-                    // In case of any error, fall back to showing the initial
-                    const avatarContainer = userItem.querySelector('.user-avatar-container');
-                    const img = userItem.querySelector('.user-avatar-image');
-                    const initialDiv = userItem.querySelector('.user-avatar-initial');
-                    if(avatarContainer) avatarContainer.classList.add('show-initial');
-                    if(img) img.style.display = 'none'; // Hide the image
-                    if(initialDiv) initialDiv.style.display = 'flex'; // Show the initial (using flex for centering)
-                }
-            }
         }
 
         // Function to initialize socket handlers
@@ -388,131 +319,127 @@
 
                 socket.on('userJoined', (userData) => {
                     console.log('User joined:', userData);
-                    // Add the new user to the existing list if not already present
+                    // Check if user already exists
                     const existingUserIndex = users.findIndex(u => u.id === userData.id);
                     if (existingUserIndex === -1) {
-                         users = [...users, userData];
-                         console.log('Added user to local list:', users);
+                        users.push(userData);
                     } else {
-                         // Optionally update existing user data if needed
-                         users[existingUserIndex] = userData;
-                         console.log('Updated existing user in local list:', users);
+                        // Update existing user
+                        users[existingUserIndex] = userData;
                     }
-                    // Call updateUsersList with the modified local list
                     updateUsersList(users);
                 })
 
                 socket.on('userLeft', (userId) => {
                     console.log('User left:', userId);
-                    users = users.filter(user => user.id !== userId)
-                    updateUsersList(users)
+                    users = users.filter(user => user.id !== userId);
+                    updateUsersList(users);
                 })
 
                 socket.on('usersList', (usersList) => {
-                     console.log('Received usersList from server:', usersList);
-                     // This is the definitive list, replace the local list and update
-                     users = usersList;
-                     updateUsersList(users);
+                    console.log('Received initial users list:', usersList);
+                    users = usersList;
+                    updateUsersList(users);
                 })
 
-                // Add speaking state handlers
+                // Speaking status handlers
                 socket.on('userSpeaking', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator speaking'
-                        status.textContent = 'Speaking...'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.classList.add('speaking');
+                        status.textContent = 'Speaking';
                     }
                 })
 
                 socket.on('userStoppedSpeaking', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator'
-                        status.textContent = 'Online'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.classList.remove('speaking');
+                        status.textContent = 'Online';
                     }
                 })
 
-                // Handle mute state
+                // Mute status handlers
                 socket.on('userMuted', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator muted'
-                        status.textContent = 'Muted'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.classList.add('muted');
+                        status.textContent = 'Muted';
                     }
                 })
 
                 socket.on('userUnmuted', (data) => {
-                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`)
+                    const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
                     if (userItem) {
-                        const indicator = userItem.querySelector('.user-status-indicator')
-                        const status = userItem.querySelector('.user-status')
-                        indicator.className = 'user-status-indicator'
-                        status.textContent = 'Online'
+                        const indicator = userItem.querySelector('.user-status-indicator');
+                        const status = userItem.querySelector('.user-status');
+                        indicator.classList.remove('muted');
+                        status.textContent = 'Online';
                     }
                 })
             } else {
-                setTimeout(initializeSocketHandlers, 100)
+                setTimeout(initializeSocketHandlers, 100);
             }
         }
 
         // Start initializing socket handlers
-        initializeSocketHandlers()
+        initializeSocketHandlers();
 
         // Initialize audio analysis
         async function initializeAudioAnalysis() {
             try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-                audioContext = new (window.AudioContext || window.webkitAudioContext)()
-                analyser = audioContext.createAnalyser()
-                const source = audioContext.createMediaStreamSource(mediaStream)
-                source.connect(analyser)
-                analyser.fftSize = 256
-                const bufferLength = analyser.frequencyBinCount
-                const dataArray = new Uint8Array(bufferLength)
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
 
                 // Start analyzing audio
                 function analyzeAudio() {
-                    analyser.getByteFrequencyData(dataArray)
-                    const average = dataArray.reduce((a, b) => a + b) / bufferLength
-                    const db = 20 * Math.log10(average / 255)
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+                    const db = 20 * Math.log10(average / 255);
 
                     if (db > speakingThreshold && !isSpeaking) {
-                        isSpeaking = true
-                        socket.emit('speaking', { userId: user.id })
-                        clearTimeout(speakingTimeout)
+                        isSpeaking = true;
+                        socket.emit('speaking', { userId: user.id });
+                        clearTimeout(speakingTimeout);
                     } else if (db <= speakingThreshold && isSpeaking) {
-                        isSpeaking = false
+                        isSpeaking = false;
                         speakingTimeout = setTimeout(() => {
-                            socket.emit('stoppedSpeaking', { userId: user.id })
-                        }, 1000) // Wait 1 second before emitting stopped speaking
+                            socket.emit('stoppedSpeaking', { userId: user.id });
+                        }, 1000);
                     }
 
-                    requestAnimationFrame(analyzeAudio)
+                    requestAnimationFrame(analyzeAudio);
                 }
 
-                analyzeAudio()
+                analyzeAudio();
             } catch (error) {
-                console.error('Error accessing microphone:', error)
+                console.error('Error accessing microphone:', error);
             }
         }
 
         // Join channel button handler
         document.getElementById('joinBtn').addEventListener('click', async () => {
-            const displayName = document.getElementById('displayName').value.trim()
+            const displayName = document.getElementById('displayName').value.trim();
             if (!displayName) {
-                document.getElementById('warningMessage').textContent = 'Please enter a display name'
-                return
+                document.getElementById('warningMessage').textContent = 'Please enter a display name';
+                return;
             }
 
             if (!socketInitialized) {
-                document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...'
-                return
+                document.getElementById('warningMessage').textContent = 'Please wait, connecting to server...';
+                return;
             }
 
             try {
@@ -521,121 +448,98 @@
                     .from('users')
                     .select('avatar_url')
                     .eq('id', user.id)
-                    .single()
+                    .single();
 
-                if (error) throw error
+                if (error) throw error;
 
                 // Initialize audio analysis
-                await initializeAudioAnalysis()
+                await initializeAudioAnalysis();
 
                 // Show channel section
-                document.getElementById('welcomeSection').classList.add('hidden')
-                document.getElementById('channelSection').classList.remove('hidden')
-                document.getElementById('channelSection').classList.add('visible')
+                document.getElementById('welcomeSection').classList.add('hidden');
+                document.getElementById('channelSection').classList.remove('hidden');
+                document.getElementById('channelSection').classList.add('visible');
 
                 // Join the channel with avatar
                 socket.emit('joinChannel', {
                     id: user.id,
                     displayName: displayName,
                     avatar_url: data?.avatar_url || null
-                })
+                });
 
             } catch (error) {
-                console.error('Error joining channel:', error)
-                document.getElementById('warningMessage').textContent = 'Error joining channel'
+                console.error('Error joining channel:', error);
+                document.getElementById('warningMessage').textContent = 'Error joining channel';
             }
-        })
+        });
 
         // Handle mute button
         document.getElementById('muteBtn').addEventListener('click', () => {
             if (mediaStream) {
-                const audioTracks = mediaStream.getAudioTracks()
+                const audioTracks = mediaStream.getAudioTracks();
                 audioTracks.forEach(track => {
-                    track.enabled = !track.enabled
-                })
-                const isMuted = !audioTracks[0].enabled
+                    track.enabled = !track.enabled;
+                });
+                const isMuted = !audioTracks[0].enabled;
                 document.getElementById('muteBtn').innerHTML = `
                     <i class="fas fa-${isMuted ? 'microphone-slash' : 'microphone'}"></i>
                     <span>${isMuted ? 'Unmute' : 'Mute'}</span>
-                `
-            } else {
-                 console.warn('Media stream not available to mute/unmute.'); // Added warning
+                `;
+                socket.emit('userMuted', { userId: user.id, isMuted: isMuted });
             }
-             // Emit mute state change
-            const isMuted = mediaStream ? !mediaStream.getAudioTracks()[0].enabled : false; // Determine current mute state
-            socket.emit('userMuted', { userId: user.id, isMuted: isMuted }); // Emit state
-        })
+        });
 
         // Handle deafen button
         document.getElementById('deafenBtn').addEventListener('click', () => {
-            // Find all audio tracks from remote peers
-            // Note: This assumes you have a way to access remote audio tracks, e.g., via WebRTC connections
-            // This part needs to be implemented based on your WebRTC setup
-            console.warn('Deafen functionality not fully implemented yet.');
-            // Example (conceptual): Iterate through peer connections and disable their audio tracks
-            // peerConnections.forEach(pc => {
-            //     pc.getReceivers().forEach(receiver => {
-            //         if (receiver.track && receiver.track.kind === 'audio') {
-            //             receiver.track.enabled = !receiver.track.enabled;
-            //         }
-            //     });
-            // });
-
-            // Toggle the deafen state visually (optional, depends on implementation)
-            const isDeafened = !document.getElementById('deafenBtn').classList.toggle('active'); // Simple toggle
-
-            // Update the button text/icon
+            const isDeafened = !document.getElementById('deafenBtn').classList.toggle('active');
             document.getElementById('deafenBtn').innerHTML = `
                 <i class="fas fa-${isDeafened ? 'volume-off' : 'volume-mute'}"></i>
                 <span>${isDeafened ? 'Undeafen' : 'Deafen'}</span>
             `;
-
-             // Emit deafen state change (if your server handles this)
-            socket.emit('userDeafened', { userId: user.id, isDeafened: isDeafened }); // Emit state
-        })
+            socket.emit('userDeafened', { userId: user.id, isDeafened: isDeafened });
+        });
 
         // Handle leave button
         document.getElementById('leaveBtn').addEventListener('click', () => {
             if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop())
+                mediaStream.getTracks().forEach(track => track.stop());
             }
             if (audioContext) {
-                audioContext.close()
+                audioContext.close();
             }
-            socket.emit('leaveChannel', { userId: user.id })
-            document.getElementById('welcomeSection').classList.remove('hidden')
-            document.getElementById('channelSection').classList.remove('visible')
-            document.getElementById('channelSection').classList.add('hidden')
-            users = []; // Clear local user list on leave
-            updateUsersList(users); // Update display to be empty
-        })
+            socket.emit('leaveChannel', { userId: user.id });
+            document.getElementById('welcomeSection').classList.remove('hidden');
+            document.getElementById('channelSection').classList.remove('visible');
+            document.getElementById('channelSection').classList.add('hidden');
+            users = [];
+            updateUsersList(users);
+        });
 
-        // Add hamburger menu functionality
-        const hamburgerMenu = document.getElementById('hamburgerMenu')
-        const navMenu = document.getElementById('navMenu')
+        // Hamburger menu functionality
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const navMenu = document.getElementById('navMenu');
 
         hamburgerMenu.addEventListener('click', () => {
-            hamburgerMenu.classList.toggle('active')
-            navMenu.classList.toggle('active')
-        })
+            hamburgerMenu.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
 
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
             const isClickInsideMenu = navMenu.contains(e.target) || hamburgerMenu.contains(e.target);
-            // Check if the menu is active and the click is outside
             if (navMenu.classList.contains('active') && !isClickInsideMenu) {
                 hamburgerMenu.classList.remove('active');
                 navMenu.classList.remove('active');
             }
-        })
+        });
 
         // Close menu when window is resized
         window.addEventListener('resize', () => {
             if (window.innerWidth > 768) {
-                hamburgerMenu.classList.remove('active')
-                navMenu.classList.remove('active')
+                hamburgerMenu.classList.remove('active');
+                navMenu.classList.remove('active');
             }
-        })
+        });
     </script>
 </body>
-</html> 
+</html>
