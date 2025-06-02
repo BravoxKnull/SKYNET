@@ -103,6 +103,63 @@
                         <span>Leave</span>
                     </button>
                 </div>
+
+                <!-- Music Player Section -->
+                <div class="music-player">
+                    <div class="music-controls">
+                        <div class="now-playing">
+                            <div class="track-info">
+                                <img id="currentTrackArt" src="assets/images/default-album-art.png" alt="Album Art" class="album-art">
+                                <div class="track-details">
+                                    <span id="currentTrackName" class="track-name">No track playing</span>
+                                    <span id="currentTrackArtist" class="track-artist">-</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress" id="musicProgress"></div>
+                                <span id="currentTime">0:00</span>
+                                <span id="totalTime">0:00</span>
+                            </div>
+                        </div>
+                        <div class="control-buttons">
+                            <button id="prevTrack" class="music-btn" title="Previous Track">
+                                <i class="fas fa-step-backward"></i>
+                            </button>
+                            <button id="playPause" class="music-btn play-btn" title="Play/Pause">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button id="nextTrack" class="music-btn" title="Next Track">
+                                <i class="fas fa-step-forward"></i>
+                            </button>
+                            <div class="volume-control">
+                                <i class="fas fa-volume-up"></i>
+                                <input type="range" id="volumeSlider" min="0" max="100" value="100">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="queue-section">
+                        <div class="queue-header">
+                            <h3>Queue</h3>
+                            <button id="clearQueue" class="queue-btn" title="Clear Queue">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="queue-list" id="queueList">
+                            <!-- Queue items will be added here dynamically -->
+                        </div>
+                    </div>
+                    <div class="music-search">
+                        <div class="search-input">
+                            <input type="text" id="musicSearch" placeholder="Search for a song...">
+                            <button id="searchBtn" class="search-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div class="search-results" id="searchResults">
+                            <!-- Search results will be added here dynamically -->
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
 
@@ -216,6 +273,13 @@
         let speakingThreshold = -50 // dB
         let isSpeaking = false
         let speakingTimeout = null
+
+        // Music Player Variables
+        let currentTrack = null;
+        let isPlaying = false;
+        let queue = [];
+        let audioSource = null;
+        let gainNode = null;
 
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName
@@ -421,6 +485,168 @@
             }
         }
 
+        // Initialize Audio Context
+        async function initAudio() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                gainNode = audioContext.createGain();
+                gainNode.connect(audioContext.destination);
+            } catch (error) {
+                console.error('Error initializing audio:', error);
+            }
+        }
+
+        // Play Music Function
+        async function playMusic(songName) {
+            try {
+                if (!audioContext) {
+                    await initAudio();
+                }
+
+                // Emit play command to server
+                socket.emit('playMusic', { songName });
+
+                // Update UI
+                document.getElementById('currentTrackName').textContent = songName;
+                document.getElementById('currentTrackArtist').textContent = 'Loading...';
+                document.getElementById('playPause').innerHTML = '<i class="fas fa-pause"></i>';
+                isPlaying = true;
+
+            } catch (error) {
+                console.error('Error playing music:', error);
+                showNotification('Error playing music. Please try again.');
+            }
+        }
+
+        // Search and Play
+        async function searchAndPlay(query) {
+            try {
+                // Emit search command to server
+                socket.emit('searchMusic', { query });
+            } catch (error) {
+                console.error('Error searching music:', error);
+                showNotification('Error searching music. Please try again.');
+            }
+        }
+
+        // Handle Search Results
+        socket.on('searchResults', (results) => {
+            const searchResults = document.getElementById('searchResults');
+            searchResults.innerHTML = '';
+
+            results.forEach(result => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result-item';
+                resultItem.innerHTML = `
+                    <img src="${result.thumbnail || 'assets/images/default-album-art.png'}" alt="Album Art">
+                    <div class="search-result-info">
+                        <div class="search-result-title">${result.title}</div>
+                        <div class="search-result-artist">${result.artist || 'Unknown Artist'}</div>
+                    </div>
+                `;
+                resultItem.onclick = () => playMusic(result.title);
+                searchResults.appendChild(resultItem);
+            });
+        });
+
+        // Handle Music State Updates
+        socket.on('musicState', (state) => {
+            if (state.currentTrack) {
+                document.getElementById('currentTrackName').textContent = state.currentTrack.title;
+                document.getElementById('currentTrackArtist').textContent = state.currentTrack.artist || 'Unknown Artist';
+                document.getElementById('currentTrackArt').src = state.currentTrack.thumbnail || 'assets/images/default-album-art.png';
+                document.getElementById('currentTime').textContent = formatTime(state.currentTime);
+                document.getElementById('totalTime').textContent = formatTime(state.duration);
+                document.getElementById('musicProgress').style.width = `${(state.currentTime / state.duration) * 100}%`;
+            }
+
+            // Update queue
+            queue = state.queue;
+            updateQueueDisplay();
+        });
+
+        // Update Queue Display
+        function updateQueueDisplay() {
+            const queueList = document.getElementById('queueList');
+            queueList.innerHTML = '';
+
+            queue.forEach((track, index) => {
+                const queueItem = document.createElement('div');
+                queueItem.className = 'queue-item';
+                queueItem.innerHTML = `
+                    <img src="${track.thumbnail || 'assets/images/default-album-art.png'}" alt="Album Art">
+                    <div class="queue-item-info">
+                        <div class="queue-item-title">${track.title}</div>
+                        <div class="queue-item-artist">${track.artist || 'Unknown Artist'}</div>
+                    </div>
+                `;
+                queueList.appendChild(queueItem);
+            });
+        }
+
+        // Format Time
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        // Show Notification
+        function showNotification(message) {
+            // You can implement a custom notification system here
+            alert(message);
+        }
+
+        // Event Listeners
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const query = document.getElementById('musicSearch').value.trim();
+            if (query) {
+                searchAndPlay(query);
+            }
+        });
+
+        document.getElementById('musicSearch').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) {
+                    searchAndPlay(query);
+                }
+            }
+        });
+
+        document.getElementById('playPause').addEventListener('click', () => {
+            if (isPlaying) {
+                socket.emit('pauseMusic');
+                document.getElementById('playPause').innerHTML = '<i class="fas fa-play"></i>';
+            } else {
+                socket.emit('resumeMusic');
+                document.getElementById('playPause').innerHTML = '<i class="fas fa-pause"></i>';
+            }
+            isPlaying = !isPlaying;
+        });
+
+        document.getElementById('nextTrack').addEventListener('click', () => {
+            socket.emit('nextTrack');
+        });
+
+        document.getElementById('prevTrack').addEventListener('click', () => {
+            socket.emit('prevTrack');
+        });
+
+        document.getElementById('volumeSlider').addEventListener('input', (e) => {
+            const volume = e.target.value / 100;
+            socket.emit('setVolume', { volume });
+            if (gainNode) {
+                gainNode.gain.value = volume;
+            }
+        });
+
+        document.getElementById('clearQueue').addEventListener('click', () => {
+            socket.emit('clearQueue');
+        });
+
         // Join channel button handler
         document.getElementById('joinBtn').addEventListener('click', async () => {
             const displayName = document.getElementById('displayName').value.trim()
@@ -467,6 +693,9 @@
                 }
                 users = [currentUser]
                 updateUsersList(users)
+
+                // Initialize audio when joining channel
+                await initAudio();
 
             } catch (error) {
                 console.error('Error joining channel:', error)
