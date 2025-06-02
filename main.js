@@ -153,7 +153,8 @@ function initializeEventListeners() {
         if (socket) {
             socket.emit('userMuteStatus', {
                 userId: currentUser.id,
-                isMuted: isMuted
+                isMuted: isMuted,
+                displayName: currentUser.displayName
             });
         }
 
@@ -173,7 +174,8 @@ function initializeEventListeners() {
         if (socket) {
             socket.emit('userDeafenStatus', {
                 userId: currentUser.id,
-                isDeafened: isDeafened
+                isDeafened: isDeafened,
+                displayName: currentUser.displayName
             });
         }
 
@@ -429,6 +431,20 @@ function initializeSocket() {
             users = [...users, userData];
             updateUsersList(users);
             await createPeerConnection(userData.id, true);
+            
+            // Send current status to new user
+            if (socket) {
+                socket.emit('userMuteStatus', {
+                    userId: currentUser.id,
+                    isMuted: isMuted,
+                    displayName: currentUser.displayName
+                });
+                socket.emit('userDeafenStatus', {
+                    userId: currentUser.id,
+                    isDeafened: isDeafened,
+                    displayName: currentUser.displayName
+                });
+            }
         }
     });
 
@@ -568,13 +584,17 @@ function initializeSocket() {
 
     // Add new socket event listeners for mute/deafen status
     socket.on('userMuteStatus', (data) => {
-        console.log('User mute status changed:', data);
-        updateUserMuteStatus(data.userId, data.isMuted);
+        console.log('Received mute status update:', data);
+        if (data.userId !== currentUser.id) {
+            updateUserMuteStatus(data.userId, data.isMuted);
+        }
     });
 
     socket.on('userDeafenStatus', (data) => {
-        console.log('User deafen status changed:', data);
-        updateUserDeafenStatus(data.userId, data.isDeafened);
+        console.log('Received deafen status update:', data);
+        if (data.userId !== currentUser.id) {
+            updateUserDeafenStatus(data.userId, data.isDeafened);
+        }
     });
 }
 
