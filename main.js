@@ -258,7 +258,8 @@ async function createPeerConnection(userId, isInitiator) {
                     username: '000000002064061488',
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
-            ]
+            ],
+            iceCandidatePoolSize: 10
         };
 
         const peerConnection = new RTCPeerConnection(configuration);
@@ -300,13 +301,28 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
+        // Handle ICE connection state changes
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log(`ICE connection state for ${userId}:`, peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                peerConnection.restartIce();
+            }
+        };
+
         if (isInitiator) {
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            socket.emit('offer', {
-                targetUserId: userId,
-                offer: offer
-            });
+            try {
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    voiceActivityDetection: true
+                });
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('offer', {
+                    targetUserId: userId,
+                    offer: offer
+                });
+            } catch (error) {
+                console.error('Error creating offer:', error);
+            }
         }
 
         return peerConnection;
@@ -441,35 +457,68 @@ function initializeSocket() {
 
     socket.on('offer', async (data) => {
         console.log('Received offer from:', data.senderId);
-        const peerConnection = await createPeerConnection(data.senderId, false);
-        if (peerConnection) {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit('answer', {
-                targetUserId: data.senderId,
-                answer: answer
-            });
+        try {
+            let peerConnection = peerConnections[data.senderId];
+            if (!peerConnection) {
+                peerConnection = await createPeerConnection(data.senderId, false);
+            }
+
+            if (peerConnection) {
+                // Check if we're in a state where we can set the remote description
+                if (peerConnection.signalingState !== 'stable') {
+                    console.log('Connection not in stable state, ignoring offer');
+                    return;
+                }
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.emit('answer', {
+                    targetUserId: data.senderId,
+                    answer: answer
+                });
+            }
+        } catch (error) {
+            console.error('Error handling offer:', error);
         }
     });
 
     socket.on('answer', async (data) => {
         console.log('Received answer from:', data.senderId);
-        const peerConnection = peerConnections[data.senderId];
-        if (peerConnection) {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        try {
+            const peerConnection = peerConnections[data.senderId];
+            if (peerConnection) {
+                // Check if we're in a state where we can set the remote description
+                if (peerConnection.signalingState !== 'have-local-offer') {
+                    console.log('Connection not in have-local-offer state, ignoring answer');
+                    return;
+                }
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            }
+        } catch (error) {
+            console.error('Error handling answer:', error);
         }
     });
 
     socket.on('ice-candidate', async (data) => {
         console.log('Received ICE candidate from:', data.senderId);
-        const peerConnection = peerConnections[data.senderId];
-        if (peerConnection) {
-            try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-            } catch (error) {
-                console.error('Error adding ICE candidate:', error);
+        try {
+            const peerConnection = peerConnections[data.senderId];
+            if (peerConnection) {
+                // Only add ICE candidates if we have a remote description
+                if (peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                } else {
+                    // Store the candidate for later
+                    if (!peerConnection.queuedIceCandidates) {
+                        peerConnection.queuedIceCandidates = [];
+                    }
+                    peerConnection.queuedIceCandidates.push(data.candidate);
+                }
             }
+        } catch (error) {
+            console.error('Error adding ICE candidate:', error);
         }
     });
 
