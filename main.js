@@ -324,11 +324,10 @@ async function createPeerConnection(userId, isInitiator) {
             delete peerConnections[userId];
         }
 
-        // Enhanced ICE server configuration
+        // Fixed ICE server configuration
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478?transport=udp' },
                 { 
                     urls: 'turn:numb.viagenie.ca',
                     credential: 'muazkh',
