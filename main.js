@@ -592,15 +592,19 @@ function initializeSocket() {
     // Update the mute status event handler
     socket.on('userMuteStatus', (data) => {
         console.log('Received mute status update:', data);
-        // Remove the self-check to allow updates from all users
-        updateUserMuteStatus(data.userId, data.isMuted);
+        // Force a UI update
+        requestAnimationFrame(() => {
+            updateUserMuteStatus(data.userId, data.isMuted);
+        });
     });
 
     // Update the deafen status event handler
     socket.on('userDeafenStatus', (data) => {
         console.log('Received deafen status update:', data);
-        // Remove the self-check to allow updates from all users
-        updateUserDeafenStatus(data.userId, data.isDeafened);
+        // Force a UI update
+        requestAnimationFrame(() => {
+            updateUserDeafenStatus(data.userId, data.isDeafened);
+        });
     });
 }
 
@@ -609,6 +613,7 @@ function createUserListItem(userData) {
     const userItem = document.createElement('div');
     userItem.className = 'user-item';
     userItem.setAttribute('data-user-id', userData.id);
+    userItem.setAttribute('data-username', userData.displayName);
 
     const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
 
@@ -690,18 +695,32 @@ function updateUserMuteStatus(userId, isMuted) {
         const micStatus = userItem.querySelector('.mic-status');
         
         if (isMuted) {
-            status.textContent = 'Muted';
-            indicator.className = 'user-status-indicator muted';
-            micStatus.innerHTML = '<i class="fas fa-microphone-slash"></i><span class="status-text">Muted</span>';
-            micStatus.classList.add('inactive');
+            if (status) status.textContent = 'Muted';
+            if (indicator) indicator.className = 'user-status-indicator muted';
+            if (micStatus) {
+                micStatus.innerHTML = '<i class="fas fa-microphone-slash"></i><span class="status-text">Muted</span>';
+                micStatus.classList.add('inactive');
+            }
         } else {
-            status.textContent = 'Online';
-            indicator.className = 'user-status-indicator';
-            micStatus.innerHTML = '<i class="fas fa-microphone"></i><span class="status-text">Active</span>';
-            micStatus.classList.remove('inactive');
+            if (status) status.textContent = 'Online';
+            if (indicator) indicator.className = 'user-status-indicator';
+            if (micStatus) {
+                micStatus.innerHTML = '<i class="fas fa-microphone"></i><span class="status-text">Active</span>';
+                micStatus.classList.remove('inactive');
+            }
         }
     } else {
         console.warn('User item not found for ID:', userId);
+        // Try to find the user in the users array and update the list
+        const user = users.find(u => u.id === userId);
+        if (user) {
+            console.log('Found user in array, updating list...');
+            updateUsersList(users);
+            // Try updating again after a short delay
+            setTimeout(() => {
+                updateUserMuteStatus(userId, isMuted);
+            }, 100);
+        }
     }
 }
 
@@ -715,18 +734,32 @@ function updateUserDeafenStatus(userId, isDeafened) {
         const speakerStatus = userItem.querySelector('.speaker-status');
         
         if (isDeafened) {
-            status.textContent = 'Deafened';
-            indicator.className = 'user-status-indicator deafened';
-            speakerStatus.innerHTML = '<i class="fas fa-volume-mute"></i><span class="status-text">Deafened</span>';
-            speakerStatus.classList.add('inactive');
+            if (status) status.textContent = 'Deafened';
+            if (indicator) indicator.className = 'user-status-indicator deafened';
+            if (speakerStatus) {
+                speakerStatus.innerHTML = '<i class="fas fa-volume-mute"></i><span class="status-text">Deafened</span>';
+                speakerStatus.classList.add('inactive');
+            }
         } else {
-            status.textContent = 'Online';
-            indicator.className = 'user-status-indicator';
-            speakerStatus.innerHTML = '<i class="fas fa-volume-up"></i><span class="status-text">Active</span>';
-            speakerStatus.classList.remove('inactive');
+            if (status) status.textContent = 'Online';
+            if (indicator) indicator.className = 'user-status-indicator';
+            if (speakerStatus) {
+                speakerStatus.innerHTML = '<i class="fas fa-volume-up"></i><span class="status-text">Active</span>';
+                speakerStatus.classList.remove('inactive');
+            }
         }
     } else {
         console.warn('User item not found for ID:', userId);
+        // Try to find the user in the users array and update the list
+        const user = users.find(u => u.id === userId);
+        if (user) {
+            console.log('Found user in array, updating list...');
+            updateUsersList(users);
+            // Try updating again after a short delay
+            setTimeout(() => {
+                updateUserDeafenStatus(userId, isDeafened);
+            }, 100);
+        }
     }
 }
 
