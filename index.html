@@ -11,7 +11,6 @@
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="main.js"></script>
 </head>
 <body>
     <!-- Auth Check Script -->
@@ -199,6 +198,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="main.js"></script>
     <script>
         // Initialize Supabase client
         const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
@@ -209,8 +209,6 @@
         let users = []
         let socketInitialized = false
         let mediaStream = null
-        let isMuted = false
-        let isDeafened = false
 
         // Set the authenticated user's display name and avatar
         document.getElementById('userDisplayName').textContent = user.displayName

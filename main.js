@@ -1,13 +1,13 @@
 // DOM Elements
-const displayNameInput = document.getElementById('displayName');
-const joinBtn = document.getElementById('joinBtn');
-const warningMessage = document.getElementById('warningMessage');
-const welcomeSection = document.getElementById('welcomeSection');
-const channelSection = document.getElementById('channelSection');
-const usersList = document.getElementById('usersList');
-const muteBtn = document.getElementById('muteBtn');
-const deafenBtn = document.getElementById('deafenBtn');
-const leaveBtn = document.getElementById('leaveBtn');
+let displayNameInput;
+let joinBtn;
+let warningMessage;
+let welcomeSection;
+let channelSection;
+let usersList;
+let muteBtn;
+let deafenBtn;
+let leaveBtn;
 
 // State
 let localStream = null;
@@ -21,6 +21,126 @@ let analyser = null;
 let speakingThreshold = -50; // dB
 let isSpeaking = false;
 let speakingTimeout = null;
+
+// Initialize DOM elements
+function initializeDOMElements() {
+    displayNameInput = document.getElementById('displayName');
+    joinBtn = document.getElementById('joinBtn');
+    warningMessage = document.getElementById('warningMessage');
+    welcomeSection = document.getElementById('welcomeSection');
+    channelSection = document.getElementById('channelSection');
+    usersList = document.getElementById('usersList');
+    muteBtn = document.getElementById('muteBtn');
+    deafenBtn = document.getElementById('deafenBtn');
+    leaveBtn = document.getElementById('leaveBtn');
+}
+
+// Initialize event listeners
+function initializeEventListeners() {
+    joinBtn.addEventListener('click', async () => {
+        const name = displayNameInput.value.trim();
+        if (!name) {
+            warningMessage.textContent = 'Please enter your display name';
+            return;
+        }
+
+        // Add loading state to button
+        joinBtn.classList.add('loading');
+        joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
+        joinBtn.disabled = true;
+
+        try {
+            // Initialize WebRTC first
+            const webRTCInitialized = await initializeWebRTC();
+            if (!webRTCInitialized) {
+                warningMessage.textContent = 'Error accessing microphone';
+                return;
+            }
+
+            displayName = name;
+            initializeSocket();
+
+            // Show channel section
+            welcomeSection.classList.add('hidden');
+            channelSection.classList.remove('hidden');
+            channelSection.classList.add('visible');
+
+            // Update UI
+            displayNameInput.disabled = true;
+            warningMessage.textContent = '';
+        } catch (error) {
+            console.error('Error joining channel:', error);
+            warningMessage.textContent = 'Failed to join channel. Please try again.';
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+            joinBtn.disabled = false;
+        }
+    });
+
+    muteBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        if (localStream) {
+            localStream.getAudioTracks().forEach(track => {
+                track.enabled = !isMuted;
+            });
+        }
+        muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+        muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
+    });
+
+    deafenBtn.addEventListener('click', () => {
+        isDeafened = !isDeafened;
+        document.querySelectorAll('audio').forEach(audio => {
+            audio.muted = isDeafened;
+        });
+        deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+        deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
+    });
+
+    leaveBtn.addEventListener('click', () => {
+        // Animate channel section out
+        channelSection.classList.remove('visible');
+        channelSection.classList.add('hidden');
+
+        // Wait for animation to complete
+        setTimeout(() => {
+            // Reset UI
+            displayNameInput.disabled = false;
+            joinBtn.disabled = false;
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+            usersList.innerHTML = '';
+            warningMessage.textContent = '';
+
+            // Show welcome section
+            welcomeSection.classList.remove('hidden');
+
+            // Clean up connections
+            Object.keys(peerConnections).forEach(socketId => {
+                closePeerConnection(socketId);
+            });
+            peerConnections = {};
+
+            // Disconnect socket
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+
+            // Stop local stream
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+        }, 500);
+    });
+}
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDOMElements();
+    initializeEventListeners();
+});
 
 // Initialize WebRTC
 async function initializeWebRTC() {
@@ -242,102 +362,3 @@ function initializeSocket() {
         }
     });
 }
-
-// Event Listeners
-joinBtn.addEventListener('click', async () => {
-    const name = displayNameInput.value.trim();
-    if (!name) {
-        warningMessage.textContent = 'Please enter your display name';
-        return;
-    }
-
-    // Add loading state to button
-    joinBtn.classList.add('loading');
-    joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
-    joinBtn.disabled = true;
-
-    try {
-        // Initialize WebRTC first
-        const webRTCInitialized = await initializeWebRTC();
-        if (!webRTCInitialized) {
-            warningMessage.textContent = 'Error accessing microphone';
-            return;
-        }
-
-        displayName = name;
-        initializeSocket();
-
-        // Show channel section
-        welcomeSection.classList.add('hidden');
-        channelSection.classList.remove('hidden');
-        channelSection.classList.add('visible');
-
-        // Update UI
-        displayNameInput.disabled = true;
-        warningMessage.textContent = '';
-    } catch (error) {
-        console.error('Error joining channel:', error);
-        warningMessage.textContent = 'Failed to join channel. Please try again.';
-        joinBtn.classList.remove('loading');
-        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-        joinBtn.disabled = false;
-    }
-});
-
-muteBtn.addEventListener('click', () => {
-    isMuted = !isMuted;
-    if (localStream) {
-        localStream.getAudioTracks().forEach(track => {
-            track.enabled = !isMuted;
-        });
-    }
-    muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
-    muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
-});
-
-deafenBtn.addEventListener('click', () => {
-    isDeafened = !isDeafened;
-    document.querySelectorAll('audio').forEach(audio => {
-        audio.muted = isDeafened;
-    });
-    deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-    deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
-});
-
-leaveBtn.addEventListener('click', () => {
-    // Animate channel section out
-    channelSection.classList.remove('visible');
-    channelSection.classList.add('hidden');
-
-    // Wait for animation to complete
-    setTimeout(() => {
-        // Reset UI
-        displayNameInput.disabled = false;
-        joinBtn.disabled = false;
-        joinBtn.classList.remove('loading');
-        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-        usersList.innerHTML = '';
-        warningMessage.textContent = '';
-
-        // Show welcome section
-        welcomeSection.classList.remove('hidden');
-
-        // Clean up connections
-        Object.keys(peerConnections).forEach(socketId => {
-            closePeerConnection(socketId);
-        });
-        peerConnections = {};
-
-        // Disconnect socket
-        if (socket) {
-            socket.disconnect();
-            socket = null;
-        }
-
-        // Stop local stream
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-            localStream = null;
-        }
-    }, 500);
-});
