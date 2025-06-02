@@ -820,8 +820,81 @@ function updateUserDeafenStatus(userId, isDeafened) {
     }
 }
 
-// Initialize the application
+// Theme Management
+function initializeTheme() {
+    // Get saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Initialize theme switch
+    const themeSwitch = document.getElementById('themeSwitch');
+    if (themeSwitch) {
+        themeSwitch.checked = savedTheme === 'light';
+        themeSwitch.addEventListener('change', (e) => {
+            const newTheme = e.target.checked ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.classList.add('theme-transition');
+    setTimeout(() => {
+        document.body.classList.remove('theme-transition');
+    }, 300);
+}
+
+// Add theme switch to the appearance section
+function createThemeSwitch() {
+    const appearanceSection = document.querySelector('.appearance-section');
+    if (appearanceSection) {
+        const themeSwitchContainer = document.createElement('div');
+        themeSwitchContainer.className = 'theme-switch-container';
+        themeSwitchContainer.innerHTML = `
+            <span class="theme-switch-label">Dark Theme</span>
+            <label class="theme-switch">
+                <input type="checkbox" id="themeSwitch">
+                <span class="theme-slider">
+                    <i class="fas fa-sun theme-icon sun"></i>
+                    <i class="fas fa-moon theme-icon moon"></i>
+                </span>
+            </label>
+            <span class="theme-switch-label">Light Theme</span>
+        `;
+        appearanceSection.appendChild(themeSwitchContainer);
+
+        // Add theme preview
+        const themePreview = document.createElement('div');
+        themePreview.className = 'theme-preview';
+        themePreview.innerHTML = `
+            <div class="preview-item">
+                <h4>Primary Elements</h4>
+                <p>Buttons, links, and important actions</p>
+                <button class="control-btn">Sample Button</button>
+            </div>
+            <div class="preview-item">
+                <h4>Text & Background</h4>
+                <p>Main content and text elements</p>
+                <div class="input-field">Sample Input</div>
+            </div>
+            <div class="preview-item">
+                <h4>Cards & Containers</h4>
+                <p>UI containers and cards</p>
+                <div class="user-item">Sample Card</div>
+            </div>
+        `;
+        appearanceSection.appendChild(themePreview);
+    }
+}
+
+// Initialize theme when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    initializeTheme();
+    createThemeSwitch();
+    
+    // Rest of your initialization code...
     if (!initializeUserData()) {
         return;
     }

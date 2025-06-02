@@ -114,23 +114,38 @@
                         </div>
                     </section>
 
-                    <section class="profile-section">
-                        <h3>Appearance</h3>
-                        <div class="form-group">
-                            <label for="themeSelect">Theme</label>
-                            <select id="themeSelect">
-                                <option value="dark">Dark</option>
-                                <option value="light">Light</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="languageSelect">Language</label>
-                            <select id="languageSelect">
-                                <option value="en">English</option>
-                                <option value="es">Español</option>
-                                <option value="fr">Français</option>
-                                <option value="de">Deutsch</option>
-                            </select>
+                    <section class="profile-section appearance-section">
+                        <h2>Appearance</h2>
+                        <div class="section-content">
+                            <div class="theme-switch-container">
+                                <span class="theme-switch-label">Dark Theme</span>
+                                <label class="theme-switch">
+                                    <input type="checkbox" id="themeSwitch">
+                                    <span class="theme-slider">
+                                        <i class="fas fa-sun theme-icon sun"></i>
+                                        <i class="fas fa-moon theme-icon moon"></i>
+                                    </span>
+                                </label>
+                                <span class="theme-switch-label">Light Theme</span>
+                            </div>
+                            
+                            <div class="theme-preview">
+                                <div class="preview-item">
+                                    <h4>Primary Elements</h4>
+                                    <p>Buttons, links, and important actions</p>
+                                    <button class="control-btn">Sample Button</button>
+                                </div>
+                                <div class="preview-item">
+                                    <h4>Text & Background</h4>
+                                    <p>Main content and text elements</p>
+                                    <div class="input-field">Sample Input</div>
+                                </div>
+                                <div class="preview-item">
+                                    <h4>Cards & Containers</h4>
+                                    <p>UI containers and cards</p>
+                                    <div class="user-item">Sample Card</div>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
@@ -458,5 +473,32 @@
             input.addEventListener('change', saveProfile)
         })
     </script>
+
+    <style>
+    .profile-section {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border-color);
+    }
+
+    .profile-section h2 {
+        color: var(--text-color);
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+    }
+
+    .section-content {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .appearance-section {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    </style>
 </body>
 </html> 
