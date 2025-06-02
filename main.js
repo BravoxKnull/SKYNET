@@ -324,21 +324,12 @@ async function createPeerConnection(userId, isInitiator) {
             delete peerConnections[userId];
         }
 
-        // Updated ICE server configuration with more reliable servers
+        // Simplified ICE server configuration with only essential servers
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
                 {
                     urls: 'turn:relay1.expressturn.com:3480',
-                    username: '000000002064061488',
-                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
-                },
-                {
-                    urls: 'turn:relay2.expressturn.com:3480',
                     username: '000000002064061488',
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
@@ -450,10 +441,12 @@ async function createPeerConnection(userId, isInitiator) {
             console.log(`ICE gathering state for ${userId}:`, peerConnection.iceGatheringState);
         };
 
-        // Add ICE candidate error handling
+        // Add ICE candidate error handling with reduced logging
         peerConnection.onicecandidateerror = (event) => {
-            console.error(`ICE candidate error for ${userId}:`, event);
-            // If we get too many errors from a particular server, we could implement a fallback mechanism here
+            // Only log if it's not a common UDP transport error
+            if (event.errorCode !== 701) {
+                console.error(`ICE candidate error for ${userId}:`, event);
+            }
         };
 
         // Enhanced signaling state monitoring
