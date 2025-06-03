@@ -687,13 +687,13 @@ function initializeSocket() {
                 // it means both sides sent offers simultaneously. We need to decide who wins.
                 // A common strategy is to compare user IDs. The client with the lexicographically smaller ID wins.
                 if (peerConnection.signalingState === 'have-local-offer') {
-                    console.warn(`Glare detected with user ${data.senderId}. Current state: have-local-offer.`);
+                    console.log(`Glare detected with user ${data.senderId}. Current state: have-local-offer. Resolving conflict...`);
                     // Compare user IDs to resolve glare
                     if (currentUser.id < data.senderId) {
-                        console.log(`Winning glare, processing offer from ${data.senderId}`);
+                        console.log(`Winning glare resolution, processing offer from ${data.senderId}`);
                         // This client wins, proceed to set remote offer and send answer
                     } else {
-                        console.log(`Losing glare, ignoring offer from ${data.senderId}`);
+                        console.log(`Losing glare resolution, ignoring offer from ${data.senderId}.`);
                         // This client loses, ignore the incoming offer and wait for the other side's answer to our offer
                         return; 
                     }
@@ -706,7 +706,7 @@ function initializeSocket() {
 
                  // If state is invalid for setting a remote offer, ignore.
                  if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
-                      console.warn(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}`);
+                      console.log(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}.`);
                       return; // Ignore offer if state is invalid for setting a remote offer
                  }
             }
