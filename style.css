@@ -1213,7 +1213,7 @@ body {
 #logoutBtn:hover {
     background: rgba(255, 77, 77, 0.2);
     transform: translateY(-2px);
-}
+    }
 
 #logoutBtn i {
     font-size: 1.1rem;
@@ -1268,7 +1268,7 @@ body {
 
 .device-status.inactive i {
     color: #f44336 !important;
-}
+    }
 
 .device-status.inactive .status-text {
     color: #f44336 !important;
@@ -1302,7 +1302,7 @@ body {
     width: 60px;
     height: 34px;
     margin: 0 10px;
-}
+    }
 
 .theme-switch input {
     opacity: 0;

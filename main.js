@@ -324,7 +324,7 @@ async function createPeerConnection(userId, isInitiator) {
             delete peerConnections[userId];
         }
 
-        // Simplified ICE server configuration with only essential servers
+        // Enhanced ICE server configuration
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -335,7 +335,17 @@ async function createPeerConnection(userId, isInitiator) {
                 }
             ],
             iceTransportPolicy: 'all',
-            iceCandidatePoolSize: 10
+            iceCandidatePoolSize: 10,
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: 'turn:relay1.expressturn.com:3480',
+                    username: '000000002064061488',
+                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+                }
+            ]
         };
 
         const peerConnection = new RTCPeerConnection(configuration);
@@ -363,7 +373,7 @@ async function createPeerConnection(userId, isInitiator) {
             return null;
         }
 
-        // Enhanced ICE candidate handling
+        // Enhanced ICE candidate handling with deduplication
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
                 console.log('Sending ICE candidate to:', userId, event.candidate);
@@ -442,7 +452,7 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
-        // Add connection state monitoring
+        // Enhanced connection state monitoring with automatic recovery
         peerConnection.onconnectionstatechange = () => {
             console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
             if (peerConnection.connectionState === 'connected') {
@@ -468,7 +478,7 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
-        // Add ICE connection state monitoring
+        // Enhanced ICE connection state monitoring
         peerConnection.oniceconnectionstatechange = () => {
             console.log(`ICE connection state for ${userId}:`, peerConnection.iceConnectionState);
             if (peerConnection.iceConnectionState === 'connected') {
@@ -486,12 +496,12 @@ async function createPeerConnection(userId, isInitiator) {
             }
         };
 
-        // Add ICE gathering state monitoring
+        // Enhanced ICE gathering state monitoring
         peerConnection.onicegatheringstatechange = () => {
             console.log(`ICE gathering state for ${userId}:`, peerConnection.iceGatheringState);
         };
 
-        // Add ICE candidate error handling with reduced logging
+        // Enhanced ICE candidate error handling with reduced logging
         peerConnection.onicecandidateerror = (event) => {
             // Only log if it's not a common UDP transport error
             if (event.errorCode !== 701) {
@@ -513,7 +523,8 @@ async function createPeerConnection(userId, isInitiator) {
                 console.log(`Creating offer for ${userId}`);
                 const offer = await peerConnection.createOffer({
                     offerToReceiveAudio: true,
-                    voiceActivityDetection: true
+                    voiceActivityDetection: true,
+                    iceRestart: true
                 });
                 await peerConnection.setLocalDescription(offer);
                 console.log('Sending offer:', offer);
@@ -750,21 +761,21 @@ function initializeSocket() {
                 if (peerConnection.signalingState === 'have-local-offer') {
                     try {
                         console.log(`Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
 
                         // Process any queued ICE candidates
                         if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
                             console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
-                            for (const candidate of peerConnection.queuedIceCandidates) {
+            for (const candidate of peerConnection.queuedIceCandidates) {
                                 try {
-                                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                                 } catch (error) {
                                     console.warn('Error adding queued ICE candidate:', error);
                                 }
-                            }
-                            peerConnection.queuedIceCandidates = [];
-                        }
-                    } catch (error) {
+            }
+            peerConnection.queuedIceCandidates = [];
+        }
+    } catch (error) {
                         console.error('Error setting remote description:', error);
                         // Close connection on error to prevent hanging states
                         peerConnection.close();
@@ -789,28 +800,28 @@ function initializeSocket() {
         try {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
-                if (peerConnection.remoteDescription) {
+        if (peerConnection.remoteDescription) {
                     try {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
                     } catch (error) {
                         console.warn('Error adding ICE candidate:', error);
                     }
-                } else {
+        } else {
                     // Queue the ICE candidate if remote description is not set yet
-                    if (!peerConnection.queuedIceCandidates) {
-                        peerConnection.queuedIceCandidates = [];
-                    }
+            if (!peerConnection.queuedIceCandidates) {
+                peerConnection.queuedIceCandidates = [];
+            }
                     const isDuplicate = peerConnection.queuedIceCandidates.some(
                         existing => existing.candidate === data.candidate.candidate
                     );
                     if (!isDuplicate) {
-                        peerConnection.queuedIceCandidates.push(data.candidate);
+            peerConnection.queuedIceCandidates.push(data.candidate);
                     }
                 }
-            }
-        } catch (error) {
-            console.error('Error handling ICE candidate:', error);
         }
+    } catch (error) {
+        console.error('Error handling ICE candidate:', error);
+    }
     });
 
     socket.on('userSpeaking', (data) => {
@@ -911,7 +922,7 @@ async function updateUsersList(users) {
     for (const userData of uniqueUsers.values()) {
         try {
             const userItem = createUserListItem(userData);
-            usersList.appendChild(userItem);
+    usersList.appendChild(userItem);
 
             if (!userData.avatar_url) {
                 const { data, error } = await supabase

@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
             isDeafened: data.isDeafened,
             displayName: data.displayName
         });
-    });
+        });
 
     // Handle user joining
     socket.on('joinChannel', (userData) => {
@@ -84,8 +84,8 @@ io.on('connection', (socket) => {
             console.log('Forwarding offer to:', targetSocketId);
             io.to(targetSocketId).emit('offer', {
                 senderId: connectedUsers.get(socket.id).id,
-                offer: data.offer
-            });
+            offer: data.offer
+        });
         } else {
             console.log('Target user not found:', data.targetUserId);
         }
@@ -99,8 +99,8 @@ io.on('connection', (socket) => {
             console.log('Forwarding answer to:', targetSocketId);
             io.to(targetSocketId).emit('answer', {
                 senderId: connectedUsers.get(socket.id).id,
-                answer: data.answer
-            });
+            answer: data.answer
+        });
         } else {
             console.log('Target user not found:', data.targetUserId);
         }
@@ -114,8 +114,8 @@ io.on('connection', (socket) => {
             console.log('Forwarding ICE candidate to:', targetSocketId);
             io.to(targetSocketId).emit('ice-candidate', {
                 senderId: connectedUsers.get(socket.id).id,
-                candidate: data.candidate
-            });
+            candidate: data.candidate
+        });
         } else {
             console.log('Target user not found:', data.targetUserId);
         }
