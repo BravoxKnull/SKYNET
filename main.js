@@ -674,27 +674,41 @@ function initializeSocket() {
         console.log('Received offer:', data);
         try {
             let peerConnection = peerConnections[data.senderId];
+            const isInitiator = false; // When receiving an offer, this client acts as answerer
 
             // If a peer connection for this sender doesn't exist, create one as the answerer
             if (!peerConnection) {
                 console.log(`No existing peer connection for ${data.senderId}, creating a new one as answerer`);
-                peerConnection = await createPeerConnection(data.senderId, false);
+                peerConnection = await createPeerConnection(data.senderId, isInitiator);
             } else {
                 console.log(`Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
-                // If a connection exists, we should only process the offer if the state allows.
-                // Receiving an offer in 'stable' state is typical for the initial offer/answer. 
-                // Receiving it in 'have-local-offer' means we sent an offer and are getting one back (glare), 
-                // which needs more complex handling or a conflict resolution strategy.
-                // Receiving it in 'have-remote-offer' or 'have-remote-pranswer' is usually an error.
-                // Receiving it in 'stable' after a connection was established might mean renegotiation or a late/duplicate offer.
 
-                // For now, let's proceed if the state is 'stable' or 'have-local-offer'.
-                // If it's any other state where setting a remote offer would be invalid, we'll warn and potentially ignore.
-                if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
-                     console.warn(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}`);
-                     return; // Ignore offer if state is invalid for setting a remote offer
+                // Glare handling: If we receive an offer and we are already in 'have-local-offer' state,
+                // it means both sides sent offers simultaneously. We need to decide who wins.
+                // A common strategy is to compare user IDs. The client with the lexicographically smaller ID wins.
+                if (peerConnection.signalingState === 'have-local-offer') {
+                    console.warn(`Glare detected with user ${data.senderId}. Current state: have-local-offer.`);
+                    // Compare user IDs to resolve glare
+                    if (currentUser.id < data.senderId) {
+                        console.log(`Winning glare, processing offer from ${data.senderId}`);
+                        // This client wins, proceed to set remote offer and send answer
+                    } else {
+                        console.log(`Losing glare, ignoring offer from ${data.senderId}`);
+                        // This client loses, ignore the incoming offer and wait for the other side's answer to our offer
+                        return; 
+                    }
                 }
-                 // If state is stable or have-local-offer, we proceed to setRemoteDescription below
+                 // If state is stable, it's likely the initial offer, proceed.
+                 // If state is neither 'have-local-offer' nor 'stable' (and not invalid), log a warning.
+                 else if (peerConnection.signalingState !== 'stable') {
+                     console.warn(`Received offer for ${data.senderId} in state ${peerConnection.signalingState}. Proceeding with caution.`);
+                 }
+
+                 // If state is invalid for setting a remote offer, ignore.
+                 if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
+                      console.warn(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}`);
+                      return; // Ignore offer if state is invalid for setting a remote offer
+                 }
             }
 
             if (peerConnection) {
@@ -714,7 +728,8 @@ function initializeSocket() {
                     });
                 } catch (error) {
                     console.error('Error handling offer (setting remote description or creating answer):', error);
-                    peerConnection.close(); // Close connection on error to prevent hanging states
+                    // Close connection on error to prevent hanging states
+                    peerConnection.close(); 
                     delete peerConnections[data.senderId];
                 }
             } else {
