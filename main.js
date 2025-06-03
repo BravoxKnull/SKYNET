@@ -63,6 +63,7 @@ function initializeUserData() {
 
 // Initialize DOM elements
 function initializeDOMElements() {
+    // Get all required DOM elements
     displayNameInput = document.getElementById('displayName');
     joinBtn = document.getElementById('joinBtn');
     warningMessage = document.getElementById('warningMessage');
@@ -95,177 +96,172 @@ function initializeDOMElements() {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    joinBtn.addEventListener('click', async () => {
-        const name = displayNameInput.value.trim();
-        if (!name) {
-            warningMessage.textContent = 'Please enter your display name';
-            return;
-        }
-
-        if (!currentUser) {
-            warningMessage.textContent = 'User data not found. Please log in again.';
-            return;
-        }
-
-        joinBtn.classList.add('loading');
-        joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
-        joinBtn.disabled = true;
-
-        try {
-            const webRTCInitialized = await initializeWebRTC();
-            if (!webRTCInitialized) {
-                warningMessage.textContent = 'Error accessing microphone';
-                joinBtn.classList.remove('loading');
-                joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-                joinBtn.disabled = false;
+    // Add null checks for all event listeners
+    if (joinBtn) {
+        joinBtn.addEventListener('click', async () => {
+            const name = displayNameInput ? displayNameInput.value.trim() : '';
+            if (!name) {
+                if (warningMessage) warningMessage.textContent = 'Please enter your display name';
                 return;
             }
 
-            displayName = name;
-            
-            if (!socket) {
-                initializeSocket();
+            if (!currentUser) {
+                if (warningMessage) warningMessage.textContent = 'User data not found. Please log in again.';
+                return;
             }
 
-            const { data, error } = await supabase
-                .from('users')
-                .select('avatar_url')
-                .eq('id', currentUser.id)
-                .single();
-
-            if (error) {
-                console.error('Error fetching user avatar:', error);
-            }
-
-            welcomeSection.classList.add('hidden');
-            channelSection.classList.remove('hidden');
-            channelSection.classList.add('visible');
-
-            socket.emit('joinChannel', {
-                id: currentUser.id,
-                displayName: displayName,
-                avatar_url: data?.avatar_url || null
-            });
-
-            const userData = {
-                id: currentUser.id,
-                displayName: displayName,
-                avatar_url: data?.avatar_url || null
-            };
-            users = [userData];
-            updateUsersList(users);
-
-            displayNameInput.disabled = true;
-            warningMessage.textContent = '';
-            
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
+            joinBtn.classList.add('loading');
+            joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
             joinBtn.disabled = true;
 
-        } catch (error) {
-            console.error('Error joining channel:', error);
-            warningMessage.textContent = 'Failed to join channel. Please try again.';
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-            joinBtn.disabled = false;
-        }
-    });
-
-    muteBtn.addEventListener('click', () => {
-        isMuted = !isMuted;
-        if (localStream) {
-            localStream.getAudioTracks().forEach(track => {
-                track.enabled = !isMuted;
-            });
-        }
-        muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
-        muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
-
-        // Broadcast mute status to all users
-        if (socket && socket.connected) {
-            const muteData = {
-                userId: currentUser.id,
-                isMuted: isMuted,
-                displayName: currentUser.displayName
-            };
-            console.log('Broadcasting mute status to server:', muteData);
             try {
-                socket.emit('userMuteStatus', muteData);
+                const webRTCInitialized = await initializeWebRTC();
+                if (!webRTCInitialized) {
+                    if (warningMessage) warningMessage.textContent = 'Error accessing microphone';
+                    joinBtn.classList.remove('loading');
+                    joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+                    joinBtn.disabled = false;
+                    return;
+                }
+
+                displayName = name;
+                
+                if (!socket) {
+                    initializeSocket();
+                }
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('avatar_url')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error fetching user avatar:', error);
+                }
+
+                if (welcomeSection) welcomeSection.classList.add('hidden');
+                if (channelSection) {
+                    channelSection.classList.remove('hidden');
+                    channelSection.classList.add('visible');
+                }
+
+                socket.emit('joinChannel', {
+                    id: currentUser.id,
+                    displayName: displayName,
+                    avatar_url: data?.avatar_url || null
+                });
+
+                const userData = {
+                    id: currentUser.id,
+                    displayName: displayName,
+                    avatar_url: data?.avatar_url || null
+                };
+                users = [userData];
+                updateUsersList(users);
+
+                if (displayNameInput) displayNameInput.disabled = true;
+                if (warningMessage) warningMessage.textContent = '';
+                
+                joinBtn.classList.remove('loading');
+                joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
+                joinBtn.disabled = true;
+
             } catch (error) {
-                console.error('Error emitting mute status:', error);
+                console.error('Error joining channel:', error);
+                if (warningMessage) warningMessage.textContent = 'Failed to join channel. Please try again.';
+                joinBtn.classList.remove('loading');
+                joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+                joinBtn.disabled = false;
             }
-        } else {
-            console.warn('Socket not connected, cannot broadcast mute status');
-        }
-
-        // Update local UI
-        updateUserMuteStatus(currentUser.id, isMuted);
-    });
-
-    deafenBtn.addEventListener('click', () => {
-        isDeafened = !isDeafened;
-        document.querySelectorAll('audio').forEach(audio => {
-            audio.muted = isDeafened;
         });
-        deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-        deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
+    }
 
-        // Broadcast deafen status to all users
-        if (socket && socket.connected) {
-            const deafenData = {
-                userId: currentUser.id,
-                isDeafened: isDeafened,
-                displayName: currentUser.displayName
-            };
-            console.log('Broadcasting deafen status to server:', deafenData);
-            try {
-                socket.emit('userDeafenStatus', deafenData);
-            } catch (error) {
-                console.error('Error emitting deafen status:', error);
-            }
-        } else {
-            console.warn('Socket not connected, cannot broadcast deafen status');
-        }
-
-        // Update local UI
-        updateUserDeafenStatus(currentUser.id, isDeafened);
-    });
-
-    leaveBtn.addEventListener('click', () => {
-        channelSection.classList.remove('visible');
-        channelSection.classList.add('hidden');
-
-        setTimeout(() => {
-            displayNameInput.disabled = false;
-            joinBtn.disabled = false;
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-            usersList.innerHTML = '';
-            warningMessage.textContent = '';
-
-            welcomeSection.classList.remove('hidden');
-
-            Object.keys(peerConnections).forEach(userId => {
-                closePeerConnection(userId);
-            });
-            peerConnections = {};
-
-            if (socket) {
-                socket.disconnect();
-                socket = null;
-            }
-
+    if (muteBtn) {
+        muteBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = !isMuted;
+                });
+            }
+            muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+            muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
+
+            if (socket && socket.connected) {
+                const muteData = {
+                    userId: currentUser.id,
+                    isMuted: isMuted,
+                    displayName: currentUser.displayName
+                };
+                socket.emit('userMuteStatus', muteData);
+            }
+            updateUserMuteStatus(currentUser.id, isMuted);
+        });
+    }
+
+    if (deafenBtn) {
+        deafenBtn.addEventListener('click', () => {
+            isDeafened = !isDeafened;
+            document.querySelectorAll('audio').forEach(audio => {
+                audio.muted = isDeafened;
+            });
+            deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+            deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
+
+            if (socket && socket.connected) {
+                const deafenData = {
+                    userId: currentUser.id,
+                    isDeafened: isDeafened,
+                    displayName: currentUser.displayName
+                };
+                socket.emit('userDeafenStatus', deafenData);
+            }
+            updateUserDeafenStatus(currentUser.id, isDeafened);
+        });
+    }
+
+    if (leaveBtn) {
+        leaveBtn.addEventListener('click', () => {
+            if (channelSection) {
+                channelSection.classList.remove('visible');
+                channelSection.classList.add('hidden');
             }
 
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
-            }
-        }, 500);
-    });
+            setTimeout(() => {
+                if (displayNameInput) displayNameInput.disabled = false;
+                if (joinBtn) {
+                    joinBtn.disabled = false;
+                    joinBtn.classList.remove('loading');
+                    joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+                }
+                if (usersList) usersList.innerHTML = '';
+                if (warningMessage) warningMessage.textContent = '';
+
+                if (welcomeSection) welcomeSection.classList.remove('hidden');
+
+                Object.keys(peerConnections).forEach(userId => {
+                    closePeerConnection(userId);
+                });
+                peerConnections = {};
+
+                if (socket) {
+                    socket.disconnect();
+                    socket = null;
+                }
+
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+
+                if (audioContext) {
+                    audioContext.close();
+                    audioContext = null;
+                }
+            }, 500);
+        });
+    }
 }
 
 // Initialize WebRTC with simplified constraints
@@ -1042,8 +1038,75 @@ function sendFriendRequest(receiverId, receiverName) {
 
 // Function to open chat with a user
 function openChat(userId, userName) {
-    // This will be implemented when we add the chat feature
-    console.log(`Opening chat with ${userName} (${userId})`);
+    if (!chatSidebar || !chatWindow || !chatMessages) return;
+
+    // Set active chat
+    activeChat = { id: userId, name: userName };
+
+    // Update chat window header
+    const chatUserName = chatWindow.querySelector('.chat-user-name');
+    if (chatUserName) chatUserName.textContent = userName;
+
+    // Show chat window and sidebar
+    chatSidebar.classList.add('active');
+    chatWindow.classList.remove('hidden');
+
+    // Clear previous messages
+    chatMessages.innerHTML = '';
+
+    // Load chat history if available
+    if (chatHistory[userId]) {
+        chatHistory[userId].forEach(message => {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.senderId === currentUser.id ? 'sent' : 'received'}`;
+            messageElement.innerHTML = `
+                <div class="message-content">
+                    <div class="message-sender">${message.senderName}</div>
+                    <div class="message-text">${message.text}</div>
+                    <div class="message-time">${message.time}</div>
+                </div>
+            `;
+            chatMessages.appendChild(messageElement);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+// Function to send a message
+function sendMessage(text) {
+    if (!activeChat || !socket) return;
+
+    const message = {
+        senderId: currentUser.id,
+        senderName: currentUser.displayName,
+        text: text,
+        time: new Date().toLocaleTimeString()
+    };
+
+    // Add message to chat history
+    if (!chatHistory[activeChat.id]) {
+        chatHistory[activeChat.id] = [];
+    }
+    chatHistory[activeChat.id].push(message);
+
+    // Emit message to server
+    socket.emit('privateMessage', {
+        targetUserId: activeChat.id,
+        message: text
+    });
+
+    // Add message to chat window
+    const messageElement = document.createElement('div');
+    messageElement.className = 'message sent';
+    messageElement.innerHTML = `
+        <div class="message-content">
+            <div class="message-sender">${message.senderName}</div>
+            <div class="message-text">${message.text}</div>
+            <div class="message-time">${message.time}</div>
+        </div>
+    `;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // Function to update users list
@@ -1430,20 +1493,28 @@ function initChatSystem() {
     closeChat = document.getElementById('closeChat');
 
     // Add click event for close button
-    closeChat.addEventListener('click', () => {
-        chatSidebar.classList.remove('active');
-    });
+    if (closeChat) {
+        closeChat.addEventListener('click', () => {
+            if (chatSidebar) {
+                chatSidebar.classList.remove('active');
+            }
+        });
+    }
 
     // Add click event for chat input
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && chatInput.value.trim()) {
-            sendMessage(chatInput.value.trim());
-            chatInput.value = '';
-        }
-    });
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim()) {
+                sendMessage(chatInput.value.trim());
+                chatInput.value = '';
+            }
+        });
+    }
 
     // Listen for new messages
-    socket.on('privateMessage', handlePrivateMessage);
+    if (socket) {
+        socket.on('privateMessage', handlePrivateMessage);
+    }
 }
 
 // Show welcome section
