@@ -460,19 +460,13 @@ body {
     background: var(--glass-bg); /* Use glass background */
     backdrop-filter: blur(15px); /* Increased blur */
     color: var(--text-color);
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
     z-index: 10;
-    border: 1px solid var(--glass-border); /* Use glass border */
-    box-shadow: var(--glass-shadow); /* Use glass shadow */
 }
 
 .channel-section.visible {
     display: flex;
     animation: fadeIn 0.5s ease;
+    margin-top: 2rem; /* Space above the channel section */
 }
 
 .channel-header {
@@ -1181,7 +1175,13 @@ body {
 
     .main-content {
         padding: 1rem;
-        height: calc(100vh - 120px); /* Adjust height for smaller screens */
+        height: auto; /* Allow height to be determined by content */
+    }
+
+    .welcome-section {
+        width: 100%;
+        padding: 1rem; /* Adjust padding */
+        min-height: auto; /* Allow height to shrink */
     }
 
     .welcome-features {
@@ -1191,6 +1191,27 @@ body {
 
     .footer {
         padding: 3rem 1rem 1.5rem;
+    }
+
+    /* Ensure channel section displays correctly in main flow */
+    .channel-section {
+        position: static; /* Remove absolute positioning */
+        width: 100%;
+        height: auto; /* Allow height to be determined by content */
+        padding: 1rem; /* Adjust padding */
+        border: 1px solid var(--glass-border); /* Ensure border is visible */
+        box-shadow: var(--glass-shadow); /* Ensure shadow is visible */
+        margin-top: 2rem; /* Add space above channel section when it appears */
+    }
+
+    .users-grid {
+        max-height: none; /* Remove max height constraint in responsive view */
+        margin-bottom: 0; /* Remove bottom margin */
+    }
+
+    .channel-controls {
+        position: static; /* Remove fixed positioning */
+        margin-top: 1.5rem; /* Add space above controls */
     }
 }
 
@@ -1277,6 +1298,14 @@ body {
     .footer-grid {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 2rem;
+    }
+
+    .channel-section {
+        padding: 1rem; /* Adjusted padding */
+    }
+
+    .welcome-section {
+        padding: 1.5rem; /* Adjusted padding */
     }
 }
 
@@ -1436,6 +1465,14 @@ body {
 
     .newsletter-form button {
         padding: 0.7rem 1.2rem; /* Adjusted padding */
+    }
+
+    .channel-section {
+        padding: 0.8rem; /* Adjusted padding */
+    }
+
+    .welcome-section {
+        padding: 1rem; /* Adjusted padding */
     }
 }
 
@@ -1786,13 +1823,8 @@ body {
 /* Ensure the channel section takes full width on small screens */
 @media (max-width: 1024px) {
     .channel-section {
-        position: absolute; /* Ensure it overlays main content */
-        top: 0; 
-        left: 0;
-        right: 0;
-        bottom: 0;
         width: 100%;
-        height: 100%;
+        height: auto; /* Allow height to be determined by content */
         padding-top: calc(1rem + 70px); /* Adjust padding to not be hidden by header */
         padding-bottom: 90px; /* Adjusted padding for controls */
     }
@@ -1821,6 +1853,7 @@ body {
     .welcome-section {
         width: 100%;
         padding: 2rem; /* Adjusted padding */
+        min-height: auto; /* Allow height to shrink */
     }
 }
 
