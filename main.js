@@ -325,15 +325,15 @@ async function createPeerConnection(userId, isInitiator) {
         }
 
         // Enhanced ICE server configuration
-        const configuration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                {
-                    urls: 'turn:relay1.expressturn.com:3480',
-                    username: '000000002064061488',
-                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
-                }
-            ],
+    const configuration = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            {
+                urls: 'turn:relay1.expressturn.com:3480',
+                username: '000000002064061488',
+                credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+            }
+        ],
             iceTransportPolicy: 'all',
             iceCandidatePoolSize: 10,
             bundlePolicy: 'max-bundle',
@@ -346,16 +346,16 @@ async function createPeerConnection(userId, isInitiator) {
                     credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
                 }
             ]
-        };
+    };
 
-        const peerConnection = new RTCPeerConnection(configuration);
+    const peerConnection = new RTCPeerConnection(configuration);
         peerConnections[userId] = peerConnection;
 
         // Queue for ICE candidates
         peerConnection.queuedIceCandidates = [];
 
         // Add local stream with explicit audio track handling
-        if (localStream) {
+    if (localStream) {
             const audioTrack = localStream.getAudioTracks()[0];
             if (audioTrack) {
                 console.log('Adding audio track to peer connection:', {
@@ -374,15 +374,15 @@ async function createPeerConnection(userId, isInitiator) {
         }
 
         // Enhanced ICE candidate handling with deduplication
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
                 console.log('Sending ICE candidate to:', userId, event.candidate);
-                socket.emit('ice-candidate', {
+            socket.emit('ice-candidate', {
                     targetUserId: userId,
-                    candidate: event.candidate
-                });
-            }
-        };
+                candidate: event.candidate
+            });
+        }
+    };
 
         // Enhanced track handling with verification
         peerConnection.ontrack = (event) => {
@@ -453,7 +453,7 @@ async function createPeerConnection(userId, isInitiator) {
         };
 
         // Enhanced connection state monitoring with automatic recovery
-        peerConnection.onconnectionstatechange = () => {
+    peerConnection.onconnectionstatechange = () => {
             console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
             if (peerConnection.connectionState === 'connected') {
                 console.log(`Connection established with ${userId}, checking audio tracks...`);
@@ -466,9 +466,9 @@ async function createPeerConnection(userId, isInitiator) {
                     });
                 });
             }
-            if (peerConnection.connectionState === 'failed') {
+        if (peerConnection.connectionState === 'failed') {
                 console.log(`Connection failed for ${userId}, attempting to restart ICE`);
-                peerConnection.restartIce();
+            peerConnection.restartIce();
                 setTimeout(async () => {
                     if (peerConnection.connectionState === 'failed') {
                         console.log(`Recreating connection to ${userId}`);
@@ -479,14 +479,14 @@ async function createPeerConnection(userId, isInitiator) {
         };
 
         // Enhanced ICE connection state monitoring
-        peerConnection.oniceconnectionstatechange = () => {
+    peerConnection.oniceconnectionstatechange = () => {
             console.log(`ICE connection state for ${userId}:`, peerConnection.iceConnectionState);
             if (peerConnection.iceConnectionState === 'connected') {
                 console.log(`ICE connection established with ${userId}`);
             }
-            if (peerConnection.iceConnectionState === 'failed') {
+        if (peerConnection.iceConnectionState === 'failed') {
                 console.log(`ICE connection failed for ${userId}, attempting to restart ICE`);
-                peerConnection.restartIce();
+            peerConnection.restartIce();
                 setTimeout(async () => {
                     if (peerConnection.iceConnectionState === 'failed') {
                         console.log(`Recreating ICE connection to ${userId}`);
@@ -516,24 +516,24 @@ async function createPeerConnection(userId, isInitiator) {
                 console.log(`Connection to ${userId} closed, cleaning up`);
                 delete peerConnections[userId];
             }
-        };
+    };
 
-        if (isInitiator) {
-            try {
+    if (isInitiator) {
+        try {
                 console.log(`Creating offer for ${userId}`);
-                const offer = await peerConnection.createOffer({
-                    offerToReceiveAudio: true,
+            const offer = await peerConnection.createOffer({
+                offerToReceiveAudio: true,
                     voiceActivityDetection: true,
                     iceRestart: true
-                });
-                await peerConnection.setLocalDescription(offer);
+            });
+            await peerConnection.setLocalDescription(offer);
                 console.log('Sending offer:', offer);
-                socket.emit('offer', {
+            socket.emit('offer', {
                     targetUserId: userId,
                     offer: offer
-                });
-            } catch (error) {
-                console.error('Error creating offer:', error);
+            });
+        } catch (error) {
+            console.error('Error creating offer:', error);
                 peerConnection.close();
                 delete peerConnections[userId];
                 return null;
@@ -1124,4 +1124,219 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     initializeDOMElements();
     initializeEventListeners();
+});
+
+// Initialize particles.js
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof particlesJS !== 'undefined') {
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 80,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: '#00ff9d'
+                },
+                shape: {
+                    type: 'circle'
+                },
+                opacity: {
+                    value: 0.5,
+                    random: false
+                },
+                size: {
+                    value: 3,
+                    random: true
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#00ff9d',
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 140,
+                        line_linked: {
+                            opacity: 1
+                        }
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
+        });
+    }
+});
+
+// Theme Toggle
+const themeToggle = document.getElementById('themeToggle');
+if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+}
+
+// Load saved theme
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// Enhanced User Status Updates
+function updateUserStatus(userId, status) {
+    const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+    if (userItem) {
+        const statusIndicator = userItem.querySelector('.avatar-status');
+        if (statusIndicator) {
+            statusIndicator.className = 'avatar-status';
+            statusIndicator.classList.add(`status-${status.toLowerCase()}`);
+        }
+    }
+}
+
+// Enhanced Audio Controls
+function setupAudioControls() {
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.addEventListener('play', () => {
+            const userItem = audio.closest('.user-item');
+            if (userItem) {
+                userItem.classList.add('speaking');
+            }
+        });
+
+        audio.addEventListener('pause', () => {
+            const userItem = audio.closest('.user-item');
+            if (userItem) {
+                userItem.classList.remove('speaking');
+            }
+        });
+    });
+}
+
+// Enhanced Error Handling with UI Feedback
+function showError(message, duration = 3000) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+        errorDiv.classList.add('fade-out');
+        setTimeout(() => errorDiv.remove(), 500);
+    }, duration);
+}
+
+// Enhanced Connection Status Updates
+function updateConnectionStatus(status) {
+    const statusIndicator = document.querySelector('.connection-status');
+    if (statusIndicator) {
+        statusIndicator.className = 'connection-status';
+        statusIndicator.classList.add(`status-${status.toLowerCase()}`);
+        statusIndicator.textContent = status;
+    }
+}
+
+// Enhanced Welcome Section Transitions
+function showWelcomeSection() {
+    const welcomeSection = document.querySelector('.welcome-section');
+    if (welcomeSection) {
+        welcomeSection.style.display = 'flex';
+        setTimeout(() => welcomeSection.classList.add('visible'), 50);
+    }
+}
+
+function hideWelcomeSection() {
+    const welcomeSection = document.querySelector('.welcome-section');
+    if (welcomeSection) {
+        welcomeSection.classList.remove('visible');
+        setTimeout(() => welcomeSection.style.display = 'none', 500);
+    }
+}
+
+// Enhanced Channel Section Transitions
+function showChannelSection() {
+    const channelSection = document.querySelector('.channel-section');
+    if (channelSection) {
+        channelSection.style.display = 'flex';
+        setTimeout(() => channelSection.classList.add('visible'), 50);
+    }
+}
+
+function hideChannelSection() {
+    const channelSection = document.querySelector('.channel-section');
+    if (channelSection) {
+        channelSection.classList.remove('visible');
+        setTimeout(() => channelSection.style.display = 'none', 500);
+    }
+}
+
+// Enhanced User List Updates
+function updateUserList(users) {
+    const usersGrid = document.querySelector('.users-grid');
+    if (usersGrid) {
+        usersGrid.innerHTML = '';
+        users.forEach(user => {
+            const userItem = createUserItem(user);
+            usersGrid.appendChild(userItem);
+        });
+    }
+}
+
+function createUserItem(user) {
+    const userItem = document.createElement('div');
+    userItem.className = 'user-item';
+    userItem.setAttribute('data-user-id', user.id);
+
+    userItem.innerHTML = `
+        <div class="avatar-wrapper">
+            <img src="${user.avatar || 'default-avatar.png'}" alt="${user.name}" class="user-avatar">
+            <div class="avatar-status status-${user.status.toLowerCase()}"></div>
+        </div>
+        <span class="user-name">${user.name}</span>
+        <span class="user-status">${user.status}</span>
+        <audio id="audio-${user.id}" autoplay></audio>
+    `;
+
+    return userItem;
+}
+
+// Initialize UI
+document.addEventListener('DOMContentLoaded', () => {
+    setupAudioControls();
+    showWelcomeSection();
 });

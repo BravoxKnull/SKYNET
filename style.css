@@ -43,6 +43,9 @@ button:disabled, input:disabled {
     --shadow-color: rgba(0, 0, 0, 0.2);
     --input-bg: rgba(10, 25, 47, 0.5);
     --header-bg: rgba(10, 25, 47, 0.95);
+    --glass-bg: rgba(10, 25, 47, 0.7);
+    --glass-border: rgba(100, 255, 218, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 /* Light Theme */
@@ -61,6 +64,9 @@ button:disabled, input:disabled {
     --shadow-color: rgba(0, 0, 0, 0.1);
     --input-bg: rgba(255, 255, 255, 0.9);
     --header-bg: rgba(255, 255, 255, 0.95);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 204, 126, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
 
 /* Theme Transition */
@@ -74,6 +80,18 @@ body {
     color: var(--text-color);
     line-height: 1.6;
     overflow-x: hidden;
+    position: relative;
+}
+
+/* Particles.js Background */
+#particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
 }
 
 .app-container {
@@ -87,21 +105,23 @@ body {
     min-height: 100vh;
     overflow: hidden; /* Prevent double scrollbars */
     background-color: var(--background-color);
+    position: relative;
 }
 
 /* Header Styles */
 .header {
     grid-area: header;
-    background: var(--header-bg);
+    background: var(--glass-bg);
     backdrop-filter: blur(10px);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
     z-index: 1000;
+    box-shadow: var(--glass-shadow);
 }
 
 .logo-container {
@@ -110,9 +130,31 @@ body {
     gap: 1rem;
 }
 
-.logo {
+.logo-wrapper {
+    position: relative;
+    width: 40px;
     height: 40px;
+}
+
+.logo {
+    height: 100%;
+    width: auto;
     animation: pulse 2s infinite;
+    position: relative;
+    z-index: 2;
+}
+
+.logo-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background: var(--primary-color);
+    filter: blur(10px);
+    opacity: 0.5;
+    animation: glow 2s infinite;
 }
 
 .header h1 {
@@ -139,15 +181,36 @@ body {
     gap: 10px;
     padding: 5px 10px;
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--glass-bg);
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--glass-border);
+}
+
+.avatar-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
 }
 
 .nav-avatar {
-    width: 32px;
-    height: 32px;
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.avatar-status {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--success-color);
+    border: 2px solid var(--background-color);
+    transition: all 0.3s ease;
 }
 
 #userDisplayName {
@@ -281,25 +344,59 @@ body {
     opacity: 1;
     transform: translateY(0);
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
-.welcome-section.hidden {
-    display: none;
-}
-
-.animated-text {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 3rem;
-    font-weight: 700;
+.welcome-content {
     text-align: center;
-    position: relative;
+    padding: 2rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    animation: fadeIn 1s ease;
 }
 
-.glitch-text {
-    position: relative;
+.welcome-subtitle {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    margin: 1rem 0;
+    opacity: 0.8;
+}
+
+.welcome-features {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--glass-bg);
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.feature:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--glass-shadow);
+}
+
+.feature i {
+    font-size: 1.5rem;
     color: var(--primary-color);
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
-    animation: glitch 2s infinite;
+}
+
+.feature span {
+    font-size: 0.9rem;
+    color: var(--text-color);
 }
 
 /* Channel Section Styles */
@@ -307,7 +404,8 @@ body {
     display: none;
     flex-direction: column;
     height: 100%;
-    background: rgba(10, 25, 47, 0.95);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
     color: var(--text-color);
     position: absolute;
     top: 0;
@@ -315,12 +413,13 @@ body {
     right: 0;
     bottom: 0;
     z-index: 10;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(100, 255, 218, 0.1);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
 }
 
 .channel-section.visible {
     display: flex;
+    animation: fadeIn 0.5s ease;
 }
 
 .channel-header {
@@ -382,8 +481,8 @@ body {
 .users-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-    padding: 8px;
+    gap: 1rem;
+    padding: 1rem;
     overflow-y: auto;
     flex: 1;
     max-height: calc(100vh - 280px);
@@ -391,46 +490,22 @@ body {
 }
 
 .user-item {
-    background: var(--card-bg);
-    border-radius: 8px;
-    padding: 12px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(5px);
+    border-radius: 15px;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
     transition: all 0.3s ease;
-    aspect-ratio: 1;
-    border: 2px solid var(--border-color);
-    box-shadow: 0 4px 12px var(--shadow-color);
-    min-width: 180px;
-    max-width: 100%;
-    position: relative;
-    min-height: 160px;
-}
-
-/* Different colors for user boxes */
-.user-item:nth-child(3n+1) {
-    background: rgba(10, 25, 47, 0.8);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 15px rgba(0, 255, 157, 0.1);
-}
-
-.user-item:nth-child(3n+2) {
-    background: rgba(10, 25, 47, 0.8);
-    border-color: var(--accent-color);
-    box-shadow: 0 0 15px rgba(100, 255, 218, 0.1);
-}
-
-.user-item:nth-child(3n+3) {
-    background: rgba(10, 25, 47, 0.8);
-    border-color: var(--warning-color);
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
 }
 
 .user-item:hover {
-    transform: translateY(-2px);
-    background: var(--hover-bg);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar-container {
@@ -590,36 +665,36 @@ body {
 .channel-controls {
     display: flex;
     justify-content: center;
-    gap: 16px;
-    padding: 16px;
-    background: rgba(10, 25, 47, 0.8);
-    border-top: 1px solid rgba(100, 255, 218, 0.1);
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--glass-border);
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 100;
-    backdrop-filter: blur(10px);
 }
 
 .control-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 4px;
-    border: 1px solid rgba(100, 255, 218, 0.2);
-    background: rgba(10, 25, 47, 0.5);
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
     color: var(--text-color);
     cursor: pointer;
     transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 
 .control-btn:hover {
-    background: rgba(100, 255, 218, 0.1);
-    border-color: var(--primary-color);
     transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
+    box-shadow: var(--glass-shadow);
+    border-color: var(--primary-color);
 }
 
 .control-btn.danger {
@@ -956,41 +1031,29 @@ body {
     }
 }
 
-@keyframes glitch {
+@keyframes glow {
     0% {
-        text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75),
-                     -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
-                     0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
-    }
-    14% {
-        text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75),
-                     -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
-                     0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
-    }
-    15% {
-        text-shadow: -0.05em -0.025em 0 rgba(255, 0, 0, 0.75),
-                     0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-                     -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
-    }
-    49% {
-        text-shadow: -0.05em -0.025em 0 rgba(255, 0, 0, 0.75),
-                     0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-                     -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1);
     }
     50% {
-        text-shadow: 0.025em 0.05em 0 rgba(255, 0, 0, 0.75),
-                     0.05em 0 0 rgba(0, 255, 0, 0.75),
-                     0 -0.05em 0 rgba(0, 0, 255, 0.75);
-    }
-    99% {
-        text-shadow: 0.025em 0.05em 0 rgba(255, 0, 0, 0.75),
-                     0.05em 0 0 rgba(0, 255, 0, 0.75),
-                     0 -0.05em 0 rgba(0, 0, 255, 0.75);
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.2);
     }
     100% {
-        text-shadow: -0.025em 0 0 rgba(255, 0, 0, 0.75),
-                     -0.025em -0.025em 0 rgba(0, 255, 0, 0.75),
-                     -0.025em -0.05em 0 rgba(0, 0, 255, 0.75);
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -1029,121 +1092,53 @@ body {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-    .users-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 6px;
-        padding: 6px;
+    .app-container {
+        grid-template-columns: 1fr;
     }
 
-    .user-item {
-        min-width: 160px;
+    .sidebar {
+        display: none;
     }
 
-    .user-avatar-container {
-        width: 70px;
-        height: 70px;
+    .welcome-features {
+        flex-direction: column;
+        gap: 1rem;
     }
 }
 
 @media (max-width: 768px) {
-    .users-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 4px;
-        padding: 4px;
-    }
-
-    .user-item {
-        min-width: 140px;
-        padding: 8px;
-    }
-
-    .user-avatar-container {
-        width: 60px;
-        height: 60px;
-    }
-
-    .user-name {
-        font-size: 0.9rem;
-    }
-
-    .user-status {
-        font-size: 0.75rem;
-    }
-
     .header {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .header h1 {
         font-size: 1.5rem;
     }
 
-    .logo {
-        height: 30px;
+    .welcome-content {
+        padding: 1rem;
     }
 
-    .user-info {
-        padding: 4px 8px;
-    }
-
-    .nav-avatar {
-        width: 28px;
-        height: 28px;
-    }
-
-    #userDisplayName {
-        font-size: 0.9rem;
+    .welcome-subtitle {
+        font-size: 1rem;
     }
 }
 
 @media (max-width: 480px) {
-    .users-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 3px;
-        padding: 3px;
-    }
-
-    .user-item {
-        min-width: 110px;
-        padding: 6px;
-    }
-
-    .user-avatar-container {
-        width: 50px;
-        height: 50px;
-    }
-
-    .user-name {
-        font-size: 0.8rem;
-    }
-
-    .user-status {
-        font-size: 0.7rem;
-    }
-
     .header {
-        padding: 0.75rem;
+        padding: 0.5rem;
     }
 
     .header h1 {
         font-size: 1.2rem;
     }
 
-    .logo {
-        height: 25px;
+    .welcome-content {
+        padding: 0.75rem;
     }
 
-    .user-info {
-        padding: 3px 6px;
-    }
-
-    .nav-avatar {
-        width: 24px;
-        height: 24px;
-    }
-
-    #userDisplayName {
-        font-size: 0.8rem;
+    .feature {
+        padding: 0.75rem;
     }
 }
 
