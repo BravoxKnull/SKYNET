@@ -29,11 +29,6 @@ let currentUser = null;
 let users = [];
 let socketInitialized = false;
 
-// Initialize Supabase client
-const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
-
 // Initialize user data
 function initializeUserData() {
     try {
@@ -909,19 +904,37 @@ function initializeSocket() {
 function createUserListItem(userData) {
     const userItem = document.createElement('div');
     userItem.className = 'user-item';
+    userItem.setAttribute('data-user-id', userData.id);
+    userItem.setAttribute('data-username', userData.displayName);
+
+    const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
+
+    const avatarUrl = userData.avatar_url || defaultAvatar;
+
     userItem.innerHTML = `
         <div class="user-avatar-container">
-            <img class="user-avatar" src="${userData.avatar_url || 'assets/images/default-avatar.svg'}" 
-                 alt="${userData.displayName || 'User'}" 
-                 data-user-id="${userData.id}"
-                 onerror="this.src='assets/images/default-avatar.svg'">
-            <div class="user-status-indicator ${userData.status || 'offline'}"></div>
+            <img src="${avatarUrl}"
+                 alt="${userData.displayName}'s avatar"
+                 class="user-avatar"
+                 onerror="this.onerror=null; this.src='${defaultAvatar}'">
+            <div class="user-status-indicator"></div>
         </div>
-        <div class="user-info">
-            <h3 class="user-name">${userData.displayName || 'User'}</h3>
-            <p class="user-status">${userData.status || 'offline'}</p>
+        <div class="user-details">
+            <span class="user-name">${userData.displayName}</span>
+            <span class="user-status">Online</span>
+            <div class="user-device-status">
+                <div class="device-status mic-status" title="Microphone Status">
+                    <i class="fas fa-microphone"></i>
+                    <span class="status-text">Active</span>
+                </div>
+                <div class="device-status speaker-status" title="Speaker Status">
+                    <i class="fas fa-volume-up"></i>
+                    <span class="status-text">Active</span>
+                </div>
+            </div>
         </div>
     `;
+
     return userItem;
 }
 
@@ -1365,49 +1378,3 @@ document.addEventListener('DOMContentLoaded', () => {
 // Note: Logic to select and save cursor style needs to be implemented on the profile page.
 // The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
 // to localStorage with the key 'cursorStyle'.
-
-// Subscribe to real-time changes for the current user's avatar
-function subscribeToAvatarChanges() {
-    const user = JSON.parse(localStorage.getItem('user'))
-    if (!user) return
-
-    const subscription = supabase
-        .channel('avatar_changes')
-        .on(
-            'postgres_changes',
-            {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'users',
-                filter: `id=eq.${user.id}`
-            },
-            (payload) => {
-                if (payload.new.avatar_url) {
-                    // Update avatar in navigation
-                    const navAvatar = document.getElementById('navAvatar')
-                    if (navAvatar) {
-                        navAvatar.src = payload.new.avatar_url
-                    }
-                    
-                    // Update avatar in users list if it exists
-                    const userAvatar = document.querySelector(`.user-avatar[data-user-id="${user.id}"]`)
-                    if (userAvatar) {
-                        userAvatar.src = payload.new.avatar_url
-                    }
-                }
-            }
-        )
-        .subscribe()
-
-    return subscription
-}
-
-// Initialize real-time subscription
-let avatarSubscription = subscribeToAvatarChanges()
-
-// Clean up subscription when page is unloaded
-window.addEventListener('beforeunload', () => {
-    if (avatarSubscription) {
-        avatarSubscription.unsubscribe()
-    }
-})
