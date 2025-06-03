@@ -64,78 +64,44 @@ function initializeDOMElements() {
 // Initialize event listeners
 function initializeEventListeners() {
     joinBtn.addEventListener('click', async () => {
-        const name = displayNameInput.value.trim();
-        if (!name) {
-            warningMessage.textContent = 'Please enter your display name';
+        const username = displayNameInput.value.trim();
+        const channel = channelInput.value.trim();
+        
+        if (!username || !channel) {
+            showError('Please enter both username and channel name');
             return;
         }
-
-        if (!currentUser) {
-            warningMessage.textContent = 'User data not found. Please log in again.';
-            return;
-        }
-
-        joinBtn.classList.add('loading');
-        joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
-        joinBtn.disabled = true;
-
+        
         try {
-            const webRTCInitialized = await initializeWebRTC();
-            if (!webRTCInitialized) {
-                warningMessage.textContent = 'Error accessing microphone';
-                joinBtn.classList.remove('loading');
-                joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-                joinBtn.disabled = false;
-                return;
-            }
-
-            displayName = name;
-            
-            if (!socket) {
-                initializeSocket();
-            }
-
-            const { data, error } = await supabase
-                .from('users')
-                .select('avatar_url')
-                .eq('id', currentUser.id)
-                .single();
-
-            if (error) {
-                console.error('Error fetching user avatar:', error);
-            }
-
-            welcomeSection.classList.add('hidden');
-            channelSection.classList.remove('hidden');
-            channelSection.classList.add('visible');
-
-            socket.emit('joinChannel', {
-                id: currentUser.id,
-                displayName: displayName,
-                avatar_url: data?.avatar_url || null
-            });
-
-            const userData = {
-                id: currentUser.id,
-                displayName: displayName,
-                avatar_url: data?.avatar_url || null
-            };
-            users = [userData];
-            updateUsersList(users);
-
-            displayNameInput.disabled = true;
-            warningMessage.textContent = '';
-            
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
             joinBtn.disabled = true;
-
+            joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining...';
+            
+            // Hide welcome section with animation
+            hideWelcomeSection();
+            
+            // Show channel section with animation
+            showChannelSection();
+            
+            // Update UI
+            currentUsername = username;
+            currentChannel = channel;
+            channelName.textContent = channel;
+            
+            // Connect to WebRTC
+            await connectToWebRTC(channel);
+            
+            // Update user list
+            updateUserList();
+            
         } catch (error) {
             console.error('Error joining channel:', error);
-            warningMessage.textContent = 'Failed to join channel. Please try again.';
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+            showError('Failed to join channel. Please try again.');
+            
+            // Show welcome section again if there's an error
+            showWelcomeSection();
+        } finally {
             joinBtn.disabled = false;
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join Channel';
         }
     });
 
@@ -1274,35 +1240,34 @@ function updateConnectionStatus(status) {
 // Enhanced Welcome Section Transitions
 function showWelcomeSection() {
     const welcomeSection = document.querySelector('.welcome-section');
-    if (welcomeSection) {
-        welcomeSection.style.display = 'flex';
-        setTimeout(() => welcomeSection.classList.add('visible'), 50);
-    }
+    const channelSection = document.querySelector('.channel-section');
+    
+    welcomeSection.classList.remove('hidden');
+    channelSection.classList.remove('visible');
+    channelSection.classList.add('hidden');
+    
+    // Reset channel state
+    currentChannel = null;
+    userList.innerHTML = '';
+    updateUserCount(0);
 }
 
 function hideWelcomeSection() {
     const welcomeSection = document.querySelector('.welcome-section');
-    if (welcomeSection) {
-        welcomeSection.classList.remove('visible');
-        setTimeout(() => welcomeSection.style.display = 'none', 500);
-    }
+    welcomeSection.classList.add('hidden');
 }
 
 // Enhanced Channel Section Transitions
 function showChannelSection() {
     const channelSection = document.querySelector('.channel-section');
-    if (channelSection) {
-        channelSection.style.display = 'flex';
-        setTimeout(() => channelSection.classList.add('visible'), 50);
-    }
+    channelSection.classList.remove('hidden');
+    channelSection.classList.add('visible');
 }
 
 function hideChannelSection() {
     const channelSection = document.querySelector('.channel-section');
-    if (channelSection) {
-        channelSection.classList.remove('visible');
-        setTimeout(() => channelSection.style.display = 'none', 500);
-    }
+    channelSection.classList.remove('visible');
+    channelSection.classList.add('hidden');
 }
 
 // Enhanced User List Updates
