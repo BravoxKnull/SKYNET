@@ -365,7 +365,7 @@
                     source: 'profile'
                 };
 
-                // Method 1: BroadcastChannel (for cross-tab communication)
+                // Method 1: BroadcastChannel
                 if (window.BroadcastChannel) {
                     const channel = new BroadcastChannel('avatar_updates');
                     channel.postMessage({
@@ -375,14 +375,16 @@
                     console.log('BroadcastChannel message sent');
                 }
 
-                // Method 2: Custom Event (for same-window updates)
+                // Method 2: Custom Event
                 const avatarUpdateEvent = new CustomEvent('avatarUpdate', {
                     detail: updateData
                 });
                 window.dispatchEvent(avatarUpdateEvent);
                 console.log('Custom event dispatched');
 
-                // Method 3: localStorage (for cross-tab fallback)
+                // Method 3: localStorage with proper event triggering
+                localStorage.setItem('avatarUpdate', JSON.stringify(updateData));
+                localStorage.removeItem('avatarUpdate'); // Trigger storage event
                 localStorage.setItem('avatarUpdate', JSON.stringify(updateData));
                 console.log('localStorage update set');
 

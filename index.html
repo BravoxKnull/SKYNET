@@ -280,7 +280,8 @@
             const navAvatar = document.getElementById('navAvatar');
             if (navAvatar && userId === user?.id) {
                 console.log('Updating nav avatar');
-                navAvatar.src = avatarUrl;
+                // Create a new URL with timestamp to bust cache
+                navAvatar.src = `${avatarUrl}?${Date.now()}`;
             }
             
             // Update user list avatars
@@ -288,7 +289,8 @@
                 const avatarUserId = avatar.closest('[data-user-id]')?.dataset.userId;
                 if (avatarUserId === userId) {
                     console.log('Updating user list avatar for:', userId);
-                    avatar.src = avatarUrl;
+                    // Create a new URL with timestamp to bust cache
+                    avatar.src = `${avatarUrl}?${Date.now()}`;
                 }
             });
         }
@@ -296,11 +298,10 @@
         // Method 1: Custom Event listener (for same-window updates)
         window.addEventListener('avatarUpdate', (event) => {
             console.log('Received custom event update:', event.detail);
-            if (event.detail && event.detail.avatarUrl) {
+            if (event.detail && event.detail.avatarUrl && event.detail.userId) {
                 handleAvatarUpdate(event.detail.avatarUrl, event.detail.userId);
             }
         });
-        console.log('Custom event listener set up');
 
         // Method 2: BroadcastChannel listener (for cross-tab communication)
         if (window.BroadcastChannel) {
@@ -311,7 +312,6 @@
                     handleAvatarUpdate(event.data.avatarUrl, event.data.userId);
                 }
             };
-            console.log('BroadcastChannel listener set up');
         }
 
         // Method 3: localStorage event listener (fallback for cross-tab)
@@ -320,7 +320,7 @@
                 try {
                     const updateData = JSON.parse(event.newValue);
                     console.log('Received localStorage update:', updateData);
-                    if (updateData && updateData.avatarUrl) {
+                    if (updateData && updateData.avatarUrl && updateData.userId) {
                         handleAvatarUpdate(updateData.avatarUrl, updateData.userId);
                     }
                 } catch (error) {
@@ -328,7 +328,6 @@
                 }
             }
         });
-        console.log('localStorage listener set up');
 
         // Also listen for page visibility changes in case we missed updates
         document.addEventListener('visibilitychange', () => {
@@ -337,6 +336,13 @@
                 loadUserAvatar(); // Re-fetch the avatar when page becomes visible
             }
         });
+
+        // Periodic avatar check (every 30 seconds)
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                loadUserAvatar();
+            }
+        }, 30000);
 
         // Load user avatar
         async function loadUserAvatar() {
@@ -352,7 +358,8 @@
                 if (data && data.avatar_url) {
                     const navAvatar = document.getElementById('navAvatar');
                     if (navAvatar) {
-                        navAvatar.src = data.avatar_url;
+                        // Add cache busting to the avatar URL
+                        navAvatar.src = `${data.avatar_url}?${Date.now()}`;
                     }
                 }
             } catch (error) {
