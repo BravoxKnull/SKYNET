@@ -359,6 +359,17 @@
                 } catch (error) {
                     console.error('Error processing avatar update:', error);
                 }
+            } else if (event.key === 'user') {
+                try {
+                    const updatedUser = JSON.parse(event.newValue);
+                    if (updatedUser && updatedUser.avatar_url && 
+                        updatedUser.id === user?.id) {
+                        console.log('Processing user storage update');
+                        updateAvatar(updatedUser.avatar_url);
+                    }
+                } catch (error) {
+                    console.error('Error processing user storage update:', error);
+                }
             }
         });
 

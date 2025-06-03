@@ -386,7 +386,8 @@
                     key: 'user',
                     newValue: JSON.stringify(storedUser),
                     oldValue: localStorage.getItem('user'),
-                    storageArea: localStorage
+                    storageArea: localStorage,
+                    url: window.location.href
                 });
                 window.dispatchEvent(userStorageEvent);
 
@@ -396,10 +397,17 @@
                     key: 'avatarUpdate',
                     newValue: JSON.stringify(updateData),
                     oldValue: localStorage.getItem('avatarUpdate'),
-                    storageArea: localStorage
+                    storageArea: localStorage,
+                    url: window.location.href
                 });
                 window.dispatchEvent(avatarStorageEvent);
                 console.log('Storage events dispatched');
+
+                // Force a reload of the avatar in the current page
+                const currentAvatarPreview = document.getElementById('avatarPreview');
+                if (currentAvatarPreview) {
+                    currentAvatarPreview.src = publicUrl + '?t=' + Date.now();
+                }
 
                 showMessage('Avatar updated successfully!', 'success')
             } catch (error) {
