@@ -293,7 +293,16 @@
             });
         }
 
-        // Method 1: BroadcastChannel listener
+        // Method 1: Custom Event listener (for same-window updates)
+        window.addEventListener('avatarUpdate', (event) => {
+            console.log('Received custom event update:', event.detail);
+            if (event.detail && event.detail.avatarUrl) {
+                handleAvatarUpdate(event.detail.avatarUrl, event.detail.userId);
+            }
+        });
+        console.log('Custom event listener set up');
+
+        // Method 2: BroadcastChannel listener (for cross-tab communication)
         if (window.BroadcastChannel) {
             const channel = new BroadcastChannel('avatar_updates');
             channel.onmessage = (event) => {
@@ -305,7 +314,7 @@
             console.log('BroadcastChannel listener set up');
         }
 
-        // Method 2: localStorage event listener
+        // Method 3: localStorage event listener (fallback for cross-tab)
         window.addEventListener('storage', (event) => {
             if (event.key === 'avatarUpdate') {
                 try {

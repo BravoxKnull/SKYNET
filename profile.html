@@ -357,35 +357,34 @@
 
                 console.log('Avatar updated, broadcasting change...');
 
-                // Update method 1: BroadcastChannel (for modern browsers)
-                if (window.BroadcastChannel) {
-                    const channel = new BroadcastChannel('avatar_updates');
-                    channel.postMessage({
-                        type: 'avatarUpdate',
-                        avatarUrl: publicUrl,
-                        userId: storedUser.id,
-                        source: 'profile'
-                    });
-                    console.log('BroadcastChannel message sent');
-                }
-
-                // Update method 2: localStorage event (fallback)
+                // Create update data
                 const updateData = {
                     avatarUrl: publicUrl,
                     userId: storedUser.id,
                     timestamp: Date.now(),
                     source: 'profile'
                 };
+
+                // Method 1: BroadcastChannel (for cross-tab communication)
+                if (window.BroadcastChannel) {
+                    const channel = new BroadcastChannel('avatar_updates');
+                    channel.postMessage({
+                        type: 'avatarUpdate',
+                        ...updateData
+                    });
+                    console.log('BroadcastChannel message sent');
+                }
+
+                // Method 2: Custom Event (for same-window updates)
+                const avatarUpdateEvent = new CustomEvent('avatarUpdate', {
+                    detail: updateData
+                });
+                window.dispatchEvent(avatarUpdateEvent);
+                console.log('Custom event dispatched');
+
+                // Method 3: localStorage (for cross-tab fallback)
                 localStorage.setItem('avatarUpdate', JSON.stringify(updateData));
                 console.log('localStorage update set');
-
-                // Force dispatch the storage event (since it normally only works between tabs)
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'avatarUpdate',
-                    newValue: JSON.stringify(updateData),
-                    source: 'profile'
-                }));
-                console.log('StorageEvent manually dispatched');
 
                 showMessage('Avatar updated successfully!', 'success')
             } catch (error) {
