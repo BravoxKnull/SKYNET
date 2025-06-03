@@ -77,8 +77,8 @@ function initializeDOMElements() {
     userJoinedSound = document.getElementById('userJoinedSound');
     userLeftSound = document.getElementById('userLeftSound');
 
-    // Set initial display name if user data is available
-    if (currentUser && currentUser.displayName) {
+    // Set initial display name if user data is available and input exists
+    if (currentUser && currentUser.displayName && displayNameInput) {
         displayNameInput.value = currentUser.displayName;
     }
 
@@ -1254,254 +1254,69 @@ function createThemeSwitch() {
     }
 }
 
-// Initialize theme when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    initializeTheme();
-    createThemeSwitch();
-    
-    // Rest of your initialization code...
-    if (!initializeUserData()) {
-        return;
+// Initialize notification system
+function initNotificationSystem() {
+    // Create notification container if it doesn't exist
+    let notificationContainer = document.getElementById('notificationContainer');
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notificationContainer';
+        document.body.appendChild(notificationContainer);
     }
-    initializeDOMElements();
-    initializeEventListeners();
-});
 
-// Initialize particles.js
-document.addEventListener('DOMContentLoaded', () => {
-    if (typeof particlesJS !== 'undefined') {
-        particlesJS('particles-js', {
-            particles: {
-                number: {
-                    value: 80,
-                    density: {
-                        enable: true,
-                        value_area: 800
-                    }
-                },
-                color: {
-                    value: '#00ff9d'
-                },
-                shape: {
-                    type: 'circle'
-                },
-                opacity: {
-                    value: 0.5,
-                    random: false
-                },
-                size: {
-                    value: 3,
-                    random: true
-                },
-                line_linked: {
-                    enable: true,
-                    distance: 150,
-                    color: '#00ff9d',
-                    opacity: 0.4,
-                    width: 1
-                },
-                move: {
-                    enable: true,
-                    speed: 2,
-                    direction: 'none',
-                    random: false,
-                    straight: false,
-                    out_mode: 'out',
-                    bounce: false
-                }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: {
-                    onhover: {
-                        enable: true,
-                        mode: 'grab'
-                    },
-                    onclick: {
-                        enable: true,
-                        mode: 'push'
-                    },
-                    resize: true
-                },
-                modes: {
-                    grab: {
-                        distance: 140,
-                        line_linked: {
-                            opacity: 1
-                        }
-                    },
-                    push: {
-                        particles_nb: 4
-                    }
-                }
-            },
-            retina_detect: true
-        });
-    }
-});
+    // Function to add a notification
+    window.addNotification = function(notification) {
+        notifications.push(notification);
+        showNotification(notification);
+    };
 
-// Theme Toggle
-const themeToggle = document.getElementById('themeToggle');
-if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-    });
-}
-
-// Load saved theme
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme) {
-    document.documentElement.setAttribute('data-theme', savedTheme);
-}
-
-// Enhanced User Status Updates
-function updateUserStatus(userId, status) {
-    const userItem = document.querySelector(`[data-user-id="${userId}"]`);
-    if (userItem) {
-        const statusIndicator = userItem.querySelector('.avatar-status');
-        if (statusIndicator) {
-            statusIndicator.className = 'avatar-status';
-            statusIndicator.classList.add(`status-${status.toLowerCase()}`);
-        }
-    }
-}
-
-// Enhanced Audio Controls
-function setupAudioControls() {
-    const audioElements = document.querySelectorAll('audio');
-    audioElements.forEach(audio => {
-        audio.addEventListener('play', () => {
-            const userItem = audio.closest('.user-item');
-            if (userItem) {
-                userItem.classList.add('speaking');
-            }
-        });
-
-        audio.addEventListener('pause', () => {
-            const userItem = audio.closest('.user-item');
-            if (userItem) {
-                userItem.classList.remove('speaking');
-            }
-        });
-    });
-}
-
-// Enhanced Error Handling with UI Feedback
-function showError(message, duration = 3000) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-
-    setTimeout(() => {
-        errorDiv.classList.add('fade-out');
-        setTimeout(() => errorDiv.remove(), 500);
-    }, duration);
-}
-
-// Enhanced Connection Status Updates
-function updateConnectionStatus(status) {
-    const statusIndicator = document.querySelector('.connection-status');
-    if (statusIndicator) {
-        statusIndicator.className = 'connection-status';
-        statusIndicator.classList.add(`status-${status.toLowerCase()}`);
-        statusIndicator.textContent = status;
-    }
-}
-
-// Enhanced Welcome Section Transitions
-function showWelcomeSection() {
-    const welcomeSection = document.querySelector('.welcome-section');
-    if (welcomeSection) {
-        welcomeSection.style.display = 'flex';
-        setTimeout(() => welcomeSection.classList.add('visible'), 50);
-    }
-}
-
-function hideWelcomeSection() {
-    const welcomeSection = document.querySelector('.welcome-section');
-    if (welcomeSection) {
-        welcomeSection.classList.remove('visible');
-        setTimeout(() => welcomeSection.style.display = 'none', 500);
-    }
-}
-
-// Enhanced Channel Section Transitions
-function showChannelSection() {
-    const channelSection = document.querySelector('.channel-section');
-    if (channelSection) {
-        channelSection.style.display = 'flex';
-        setTimeout(() => channelSection.classList.add('visible'), 50);
-    }
-}
-
-function hideChannelSection() {
-    const channelSection = document.querySelector('.channel-section');
-    if (channelSection) {
-        channelSection.classList.remove('visible');
-        setTimeout(() => channelSection.style.display = 'none', 500);
-    }
-}
-
-// Enhanced User List Updates
-function updateUserList(users) {
-    const usersGrid = document.querySelector('.users-grid');
-    if (usersGrid) {
-        usersGrid.innerHTML = '';
-        users.forEach(user => {
-            const userItem = createUserItem(user);
-            usersGrid.appendChild(userItem);
-        });
-    }
-}
-
-// Create user item
-function createUserItem(user) {
-    const userItem = document.createElement('div');
-    userItem.className = 'user-item';
-    userItem.dataset.userId = user.id;
-    userItem.dataset.muted = user.isMuted;
-    userItem.dataset.deafened = user.isDeafened;
-
-    userItem.innerHTML = `
-        <div class="user-avatar-container">
-            <img src="${user.avatar || 'default-avatar.png'}" alt="${user.displayName}" class="user-avatar">
-            <div class="user-status-indicator ${user.isSpeaking ? 'speaking' : ''}"></div>
-        </div>
-        <div class="user-details">
-            <div class="user-name">${user.displayName}</div>
-            <div class="user-status">${user.isSpeaking ? 'Speaking' : ''}</div>
-            <div class="user-device-status">
-                <div class="device-status ${user.isMuted ? 'inactive' : ''}">
-                    <i class="fas fa-microphone"></i>
-                    <span class="status-text">${user.isMuted ? 'Muted' : 'Unmuted'}</span>
-                </div>
-                <div class="device-status ${user.isDeafened ? 'inactive' : ''}">
-                    <i class="fas fa-headphones"></i>
-                    <span class="status-text">${user.isDeafened ? 'Deafened' : 'Undeafened'}</span>
-                </div>
+    // Function to show a notification
+    function showNotification(notification) {
+        const notificationElement = document.createElement('div');
+        notificationElement.className = 'notification';
+        notificationElement.innerHTML = `
+            <div class="notification-content">
+                <img src="${notification.avatar || 'default-avatar.png'}" alt="Avatar" class="notification-avatar">
+                <div class="notification-message">${notification.message}</div>
             </div>
-        </div>
-    `;
+            <div class="notification-actions">
+                ${notification.type === 'friend_request' ? `
+                    <button class="accept-btn">Accept</button>
+                    <button class="decline-btn">Decline</button>
+                ` : ''}
+            </div>
+        `;
 
-    // Add chat button
-    const chatBtn = document.createElement('button');
-    chatBtn.className = 'chat-btn';
-    chatBtn.innerHTML = '<i class="fas fa-comment"></i>';
-    chatBtn.title = 'Start Chat';
-    
-    chatBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        chatSidebar.classList.add('active');
-        openChat(user);
-    });
+        notificationContainer.appendChild(notificationElement);
 
-    userItem.appendChild(chatBtn);
+        // Add event listeners for friend request buttons
+        if (notification.type === 'friend_request') {
+            const acceptBtn = notificationElement.querySelector('.accept-btn');
+            const declineBtn = notificationElement.querySelector('.decline-btn');
 
-    return userItem;
+            acceptBtn.addEventListener('click', () => {
+                socket.emit('acceptFriendRequest', {
+                    requestId: notification.requestId,
+                    senderId: notification.senderId
+                });
+                notificationElement.remove();
+            });
+
+            declineBtn.addEventListener('click', () => {
+                socket.emit('declineFriendRequest', {
+                    requestId: notification.requestId,
+                    senderId: notification.senderId
+                });
+                notificationElement.remove();
+            });
+        }
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notificationElement.classList.add('fade-out');
+            setTimeout(() => notificationElement.remove(), 500);
+        }, 5000);
+    }
 }
 
 // Initialize chat system when document is ready
@@ -1514,6 +1329,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Initialize chat system
 function initChatSystem() {
+    // Create chat sidebar if it doesn't exist
+    if (!document.getElementById('chatSidebar')) {
+        const chatSidebarHTML = `
+            <div id="chatSidebar" class="chat-sidebar">
+                <div class="chat-header">
+                    <h3>Chats</h3>
+                    <button id="closeChat" class="close-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="chatList" class="chat-list">
+                    <!-- Chat list items will be added here -->
+                </div>
+                <div id="chatWindow" class="chat-window">
+                    <div class="chat-window-header">
+                        <div class="chat-user-info">
+                            <img src="" alt="" class="chat-user-avatar">
+                            <div class="chat-user-details">
+                                <h4 class="chat-user-name"></h4>
+                                <span class="chat-user-status">Online</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="chatMessages" class="chat-messages">
+                        <!-- Messages will be added here -->
+                    </div>
+                    <div class="chat-input-container">
+                        <button class="emoji-btn">
+                            <i class="fas fa-smile"></i>
+                        </button>
+                        <input type="text" id="chatInput" placeholder="Type a message...">
+                        <button class="attachment-btn">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="voice-btn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', chatSidebarHTML);
+    }
+
+    // Get references to chat elements
+    chatSidebar = document.getElementById('chatSidebar');
+    chatList = document.getElementById('chatList');
+    chatWindow = document.getElementById('chatWindow');
+    chatMessages = document.getElementById('chatMessages');
+    chatInput = document.getElementById('chatInput');
+    closeChat = document.getElementById('closeChat');
+
     // Add click event for close button
     closeChat.addEventListener('click', () => {
         chatSidebar.classList.remove('active');
