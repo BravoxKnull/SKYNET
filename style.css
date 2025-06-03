@@ -2041,8 +2041,8 @@ body {
 .menu-item i {
     margin-right: 8px;
     width: 16px;
-    text-align: center;
-}
+        text-align: center;
+    }
 
 .menu-item:hover {
     background-color: var(--hover-color);
@@ -2217,7 +2217,7 @@ body {
     right: 20px;
     z-index: 9999;
     display: flex;
-    flex-direction: column;
+        flex-direction: column;
     gap: 10px;
     max-width: 300px;
 }
@@ -2231,7 +2231,7 @@ body {
     box-shadow: var(--glass-shadow);
     display: flex;
     align-items: center;
-    gap: 1rem;
+        gap: 1rem;
     animation: slideIn 0.3s ease, fadeOut 0.3s ease 14.7s;
     position: relative;
     overflow: hidden;
@@ -2288,7 +2288,7 @@ body {
     backdrop-filter: blur(10px);
     border-left: 1px solid var(--glass-border);
     display: flex;
-    flex-direction: column;
+        flex-direction: column;
     transition: right 0.3s ease;
     z-index: 1000;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
@@ -2309,7 +2309,7 @@ body {
 
 .chat-header-info {
     display: flex;
-    flex-direction: column;
+        flex-direction: column;
     gap: 5px;
 }
 
@@ -2346,7 +2346,7 @@ body {
 
 .chat-window {
     display: none;
-    flex-direction: column;
+        flex-direction: column;
     height: 100%;
     background: var(--glass-bg);
 }

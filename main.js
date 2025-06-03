@@ -43,6 +43,10 @@ let closeChat = document.getElementById('closeChat');
 let activeChat = null;
 let chatHistory = {};
 
+// Chat Sidebar Functionality
+const joinSection = document.getElementById('joinSection');
+const channelNameInput = document.getElementById('channelName');
+
 // Initialize user data
 function initializeUserData() {
     try {
@@ -1387,13 +1391,13 @@ function setupAudioControls() {
     // Create audio elements for notifications
     userJoinedSound = document.createElement('audio');
     userJoinedSound.id = 'userJoinedSound';
-    userJoinedSound.src = 'sounds/user-joined.mp3';
+    userJoinedSound.src = 'assets/sounds/user_joined.mp3';
     userJoinedSound.preload = 'auto';
     document.body.appendChild(userJoinedSound);
 
     userLeftSound = document.createElement('audio');
     userLeftSound.id = 'userLeftSound';
-    userLeftSound.src = 'sounds/user-left.mp3';
+    userLeftSound.src = 'assets/sounds/user_left.mp3';
     userLeftSound.preload = 'auto';
     document.body.appendChild(userLeftSound);
 
@@ -1523,9 +1527,9 @@ function showWelcomeSection() {
     const channelSection = document.getElementById('channelSection');
     
     if (welcomeSection && channelSection) {
-        welcomeSection.classList.remove('hidden');
+    welcomeSection.classList.remove('hidden');
         channelSection.classList.remove('visible');
-        channelSection.classList.add('hidden');
+    channelSection.classList.add('hidden');
     }
 }
 
@@ -1546,3 +1550,58 @@ function handlePrivateMessage(data) {
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
+// Show chat sidebar
+function showChatSidebar() {
+    chatSidebar.classList.add('active');
+    // Show join section by default
+    joinSection.style.display = 'flex';
+    chatList.style.display = 'none';
+    chatWindow.style.display = 'none';
+}
+
+// Hide chat sidebar
+function hideChatSidebar() {
+    chatSidebar.classList.remove('active');
+}
+
+// Close chat button click handler
+closeChat.addEventListener('click', hideChatSidebar);
+
+// Join channel button click handler
+joinBtn.addEventListener('click', () => {
+    const channelName = channelNameInput.value.trim();
+    const displayName = displayNameInput.value.trim();
+
+    if (!channelName || !displayName) {
+        warningMessage.textContent = 'Please enter both channel name and display name';
+        return;
+    }
+
+    // Hide join section and show chat list
+    joinSection.style.display = 'none';
+    chatList.style.display = 'block';
+    
+    // Add channel to chat list
+    const channelItem = document.createElement('div');
+    channelItem.className = 'chat-item';
+    channelItem.innerHTML = `
+        <div class="chat-item-info">
+            <i class="fas fa-hashtag"></i>
+            <span>${channelName}</span>
+        </div>
+        <span class="chat-item-status">Active</span>
+    `;
+    chatList.appendChild(channelItem);
+
+    // Show chat window
+    chatWindow.style.display = 'flex';
+    chatWindow.classList.add('active');
+});
+
+// Add click handler for menu items
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.menu-item[data-action="message"]')) {
+        showChatSidebar();
+    }
+});

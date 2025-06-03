@@ -222,12 +222,35 @@
         <div id="chatSidebar" class="chat-sidebar">
             <div class="chat-header">
                 <div class="chat-header-info">
-                    <h3>Direct Messages</h3>
+                    <h3>SKYNET Chat</h3>
                     <span class="online-count">0 online</span>
                 </div>
                 <button class="close-chat" id="closeChat">
                     <i class="fas fa-times"></i>
                 </button>
+            </div>
+
+            <!-- Channel Join Section -->
+            <div class="join-section" id="joinSection">
+                <div class="input-group">
+                    <label for="channelName">Channel Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="channelName" class="input-field" placeholder="Enter channel name">
+                        <i class="fas fa-hashtag input-icon"></i>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="displayName">Display Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="displayName" class="input-field" placeholder="Enter your display name">
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                </div>
+                <button id="joinBtn" class="join-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Join Channel
+                </button>
+                <div class="warning-message" id="warningMessage"></div>
             </div>
 
             <div class="chat-list" id="chatList">
