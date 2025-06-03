@@ -29,6 +29,20 @@ let currentUser = null;
 let users = [];
 let socketInitialized = false;
 
+// Notification System
+let notifications = [];
+let notificationTimeout = null;
+
+// Chat System
+let chatSidebar = document.getElementById('chatSidebar');
+let chatList = document.getElementById('chatList');
+let chatWindow = document.getElementById('chatWindow');
+let chatMessages = document.getElementById('chatMessages');
+let chatInput = document.getElementById('chatInput');
+let closeChat = document.getElementById('closeChat');
+let activeChat = null;
+let chatHistory = {};
+
 // Initialize user data
 function initializeUserData() {
     try {
@@ -898,6 +912,29 @@ function initializeSocket() {
             userLeftSound.play().catch(error => console.error('Error playing userLeftSound:', error));
         }
     });
+
+    // Add socket event listeners for friend requests
+    socket.on('friendRequest', (data) => {
+        // Add to notification list
+        addNotification({
+            type: 'friend_request',
+            requestId: data.requestId,
+            senderId: data.senderId,
+            senderName: data.senderName,
+            avatar: data.avatar,
+            message: `${data.senderName} sent you a friend request`
+        });
+
+        // Show push notification
+        showPushNotification({
+            type: 'friend_request',
+            requestId: data.requestId,
+            senderId: data.senderId,
+            senderName: data.senderName,
+            avatar: data.avatar,
+            message: `${data.senderName} sent you a friend request`
+        });
+    });
 }
 
 // Function to create user list item
@@ -933,9 +970,80 @@ function createUserListItem(userData) {
                 </div>
             </div>
         </div>
+        <div class="user-menu">
+            <button class="menu-button" title="More options">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <div class="menu-dropdown">
+                <button class="menu-item" data-action="message">
+                    <i class="fas fa-comment"></i>
+                    Message
+                </button>
+                <button class="menu-item" data-action="add-friend">
+                    <i class="fas fa-user-plus"></i>
+                    Add Friend
+                </button>
+            </div>
+        </div>
     `;
 
+    // Add event listeners for the menu
+    const menuButton = userItem.querySelector('.menu-button');
+    const menuDropdown = userItem.querySelector('.menu-dropdown');
+    const menuItems = userItem.querySelectorAll('.menu-item');
+
+    menuButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menuDropdown.classList.toggle('show');
+    });
+
+    menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = item.getAttribute('data-action');
+            if (action === 'add-friend') {
+                sendFriendRequest(userData.id, userData.displayName);
+            } else if (action === 'message') {
+                openChat(userData.id, userData.displayName);
+            }
+            menuDropdown.classList.remove('show');
+        });
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userItem.contains(e.target)) {
+            menuDropdown.classList.remove('show');
+        }
+    });
+
     return userItem;
+}
+
+// Function to send friend request
+function sendFriendRequest(receiverId, receiverName) {
+    if (!currentUser) return;
+    
+    // Check if we're not sending a request to ourselves
+    if (receiverId === currentUser.id) {
+        showError('You cannot send a friend request to yourself');
+        return;
+    }
+
+    // Emit socket event to send friend request
+    socket.emit('sendFriendRequest', {
+        senderId: currentUser.id,
+        receiverId: receiverId
+    });
+
+    // Show success message
+    showError(`Friend request sent to ${receiverName}`, 3000);
+}
+
+// Function to open chat with a user
+function openChat(userId, userName) {
+    // This will be implemented when we add the chat feature
+    console.log(`Opening chat with ${userName} (${userId})`);
 }
 
 // Function to update users list
@@ -1350,31 +1458,75 @@ function updateUserList(users) {
     }
 }
 
+// Create user item
 function createUserItem(user) {
     const userItem = document.createElement('div');
     userItem.className = 'user-item';
-    userItem.setAttribute('data-user-id', user.id);
+    userItem.dataset.userId = user.id;
+    userItem.dataset.muted = user.isMuted;
+    userItem.dataset.deafened = user.isDeafened;
 
     userItem.innerHTML = `
-        <div class="avatar-wrapper">
-            <img src="${user.avatar || 'default-avatar.png'}" alt="${user.name}" class="user-avatar">
-            <div class="avatar-status status-${user.status.toLowerCase()}"></div>
+        <div class="user-avatar-container">
+            <img src="${user.avatar || 'default-avatar.png'}" alt="${user.displayName}" class="user-avatar">
+            <div class="user-status-indicator ${user.isSpeaking ? 'speaking' : ''}"></div>
         </div>
-        <span class="user-name">${user.name}</span>
-        <span class="user-status">${user.status}</span>
-        <audio id="audio-${user.id}" autoplay></audio>
+        <div class="user-details">
+            <div class="user-name">${user.displayName}</div>
+            <div class="user-status">${user.isSpeaking ? 'Speaking' : ''}</div>
+            <div class="user-device-status">
+                <div class="device-status ${user.isMuted ? 'inactive' : ''}">
+                    <i class="fas fa-microphone"></i>
+                    <span class="status-text">${user.isMuted ? 'Muted' : 'Unmuted'}</span>
+                </div>
+                <div class="device-status ${user.isDeafened ? 'inactive' : ''}">
+                    <i class="fas fa-headphones"></i>
+                    <span class="status-text">${user.isDeafened ? 'Deafened' : 'Undeafened'}</span>
+                </div>
+            </div>
+        </div>
     `;
+
+    // Add chat button
+    const chatBtn = document.createElement('button');
+    chatBtn.className = 'chat-btn';
+    chatBtn.innerHTML = '<i class="fas fa-comment"></i>';
+    chatBtn.title = 'Start Chat';
+    
+    chatBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        chatSidebar.classList.add('active');
+        openChat(user);
+    });
+
+    userItem.appendChild(chatBtn);
 
     return userItem;
 }
 
-// Initialize UI
+// Initialize chat system when document is ready
 document.addEventListener('DOMContentLoaded', () => {
     setupAudioControls();
     showWelcomeSection();
+    initNotificationSystem();
+    initChatSystem();
 });
 
-// Function to get saved cursor style from localStorage
-// Note: Logic to select and save cursor style needs to be implemented on the profile page.
-// The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
-// to localStorage with the key 'cursorStyle'.
+// Initialize chat system
+function initChatSystem() {
+    // Add click event for close button
+    closeChat.addEventListener('click', () => {
+        chatSidebar.classList.remove('active');
+    });
+
+    // Add click event for chat input
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && chatInput.value.trim()) {
+            sendMessage(chatInput.value.trim());
+            chatInput.value = '';
+        }
+    });
+
+    // Listen for new messages
+    socket.on('privateMessage', handlePrivateMessage);
+}
