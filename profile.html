@@ -351,6 +351,15 @@
                 avatarPreview.style.opacity = '1'
                 avatarPreview.style.transition = 'opacity 0.3s ease'
 
+                // Broadcast avatar update to other pages
+                if (window.BroadcastChannel) {
+                    const channel = new BroadcastChannel('profile_updates');
+                    channel.postMessage({
+                        type: 'avatarUpdate',
+                        avatarUrl: publicUrl
+                    });
+                }
+
                 showMessage('Avatar updated successfully!', 'success')
             } catch (error) {
                 console.error('Error uploading avatar:', error)

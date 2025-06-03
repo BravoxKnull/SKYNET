@@ -291,6 +291,19 @@
         // Load avatar when page loads
         loadUserAvatar()
 
+        // Listen for avatar updates from profile page
+        if (window.BroadcastChannel) {
+            const channel = new BroadcastChannel('profile_updates');
+            channel.onmessage = (event) => {
+                if (event.data.type === 'avatarUpdate') {
+                    const navAvatar = document.getElementById('navAvatar');
+                    if (navAvatar) {
+                        navAvatar.src = event.data.avatarUrl;
+                    }
+                }
+            };
+        }
+
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('user')
