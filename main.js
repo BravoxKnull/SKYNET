@@ -679,59 +679,49 @@ function initializeSocket() {
             if (!peerConnection) {
                 console.log(`No existing peer connection for ${data.senderId}, creating a new one as answerer`);
                 peerConnection = await createPeerConnection(data.senderId, false);
+            } else {
+                console.log(`Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
+                // If a connection exists, we should only process the offer if the state allows.
+                // Receiving an offer in 'stable' state is typical for the initial offer/answer. 
+                // Receiving it in 'have-local-offer' means we sent an offer and are getting one back (glare), 
+                // which needs more complex handling or a conflict resolution strategy.
+                // Receiving it in 'have-remote-offer' or 'have-remote-pranswer' is usually an error.
+                // Receiving it in 'stable' after a connection was established might mean renegotiation or a late/duplicate offer.
+
+                // For now, let's proceed if the state is 'stable' or 'have-local-offer'.
+                // If it's any other state where setting a remote offer would be invalid, we'll warn and potentially ignore.
+                if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
+                     console.warn(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}`);
+                     return; // Ignore offer if state is invalid for setting a remote offer
+                }
+                 // If state is stable or have-local-offer, we proceed to setRemoteDescription below
             }
 
             if (peerConnection) {
-                // Check if the signaling state allows setting a remote offer
-                // Valid states are 'stable' (for initial offer) or 'have-local-offer' (for subsequent offers/renegotiation)
-                // However, based on the flow, when receiving an offer, the state should ideally be 'stable' 
-                // if it's the initial offer, or 'have-local-pranswer' if it's a subsequent offer after sending a pranswer.
-                // A simpler check might be to ensure it's not in a state where setting remote offer is invalid.
-                // For the initial offer, 'stable' is the correct state to receive an offer.
-                // For subsequent offers (renegotiation), states like 'have-local-offer' or 'have-remote-pranswer' might be relevant.
-                // Given the reported error related to answer in 'stable' state, let's focus on the initial offer scenario first.
-                // When receiving an offer, if the state is stable, we can proceed.
-                // If the state is already have-remote-offer, it might indicate a duplicate offer or a confused state, 
-                // which might require different handling (e.g., ignore, error, or renegotiation).
-                // For now, let's ensure we can set the remote description if the state is stable or have-local-offer 
-                // (as the latter might be a state after a previous offer/answer exchange, although less common for initial offers).
-                // A safer approach might be to only proceed if state is 'stable' for initial offer, 
-                // or handle renegotiation flows specifically if needed later.
-                // Let's stick to checking if setting remote offer is valid, which generally means state is not 'have-remote-offer' or 'closed'.
-
-                 // A more direct check for initial offer handling: state should be 'stable'
-                 // Or if a restartIce happened, it could be in 'have-local-offer' when receiving an offer from the other side
-                 // Let's check if state is not already 'have-remote-offer' or 'closed'
-
-                if (peerConnection.signalingState !== 'have-remote-offer' && peerConnection.signalingState !== 'closed') {
-                    try {
-                        console.log(`Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                        
-                        // Create and send answer only after setting remote offer
-                        console.log(`Creating answer for ${data.senderId}`);
-                        const answer = await peerConnection.createAnswer();
-                        await peerConnection.setLocalDescription(answer);
-                        console.log('Sending answer:', answer);
-                        socket.emit('answer', {
-                            targetUserId: data.senderId,
-                            answer: answer
-                        });
-                    } catch (error) {
-                        console.error('Error handling offer (setting remote description or creating answer):', error);
-                        peerConnection.close();
-                        delete peerConnections[data.senderId];
-                    }
-                } else {
-                    console.warn(`Ignoring received offer for ${data.senderId} in signaling state: ${peerConnection.signalingState}`);
-                    // Handle cases where offer is received in an unexpected state (e.g., duplicate offer)
-                    // For now, we just log and ignore to avoid further errors.
+                // Proceed to set remote description and create/send answer
+                try {
+                    console.log(`Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    
+                    // Create and send answer only after setting remote offer
+                    console.log(`Creating answer for ${data.senderId}`);
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    console.log('Sending answer:', answer);
+                    socket.emit('answer', {
+                        targetUserId: data.senderId,
+                        answer: answer
+                    });
+                } catch (error) {
+                    console.error('Error handling offer (setting remote description or creating answer):', error);
+                    peerConnection.close(); // Close connection on error to prevent hanging states
+                    delete peerConnections[data.senderId];
                 }
             } else {
-                 console.error('Failed to create or find peer connection for offer');
+                 console.error('Failed to create or find peer connection for offer processing');
             }
         } catch (error) {
-            console.error('Error handling offer:', error);
+            console.error('Error handling received offer event:', error);
         }
     });
 
@@ -741,9 +731,10 @@ function initializeSocket() {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
                 // Check signaling state before setting remote description
+                // An answer should typically be received when the state is 'have-local-offer'
                 if (peerConnection.signalingState === 'have-local-offer') {
                     try {
-                        console.log(`Setting remote description (answer) for ${data.senderId}`);
+                        console.log(`Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
 
                         // Process any queued ICE candidates
@@ -760,19 +751,21 @@ function initializeSocket() {
                         }
                     } catch (error) {
                         console.error('Error setting remote description:', error);
+                        // Close connection on error to prevent hanging states
                         peerConnection.close();
                         delete peerConnections[data.senderId];
                     }
                 } else {
-                    console.warn(`Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}`);
-                    // Depending on how frequently this happens and the impact, 
-                    // we might need more sophisticated handling, like re-negotiation.
+                    console.warn(`Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}. Ignoring answer.`);
+                    // If we receive an answer in a state like 'stable', it likely means the offer/answer 
+                    // exchange is already complete or in a confused state. Ignoring it is safer than 
+                    // attempting to set it, which causes the InvalidStateError.
                 }
             } else {
-                console.warn(`Received answer for unknown peer connection with user ${data.senderId}`);
+                console.warn(`Received answer for unknown or closed peer connection with user ${data.senderId}.`);
             }
         } catch (error) {
-            console.error('Error handling answer:', error);
+            console.error('Error handling received answer event:', error);
         }
     });
 
