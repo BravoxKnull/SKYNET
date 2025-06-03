@@ -8,6 +8,7 @@ let usersList;
 let muteBtn;
 let deafenBtn;
 let leaveBtn;
+let channelInput;
 
 // State
 let localStream = null;
@@ -54,6 +55,7 @@ function initializeDOMElements() {
     muteBtn = document.getElementById('muteBtn');
     deafenBtn = document.getElementById('deafenBtn');
     leaveBtn = document.getElementById('leaveBtn');
+    channelInput = document.getElementById('channelInput');
 
     // Set initial display name if user data is available
     if (currentUser && currentUser.displayName) {
@@ -1248,7 +1250,7 @@ function showWelcomeSection() {
     
     // Reset channel state
     currentChannel = null;
-    userList.innerHTML = '';
+    usersList.innerHTML = '';
     updateUserCount(0);
 }
 
