@@ -357,6 +357,12 @@
 
                 // Broadcast avatar update to other pages
                 if (window.BroadcastChannel) {
+                    console.log('Broadcasting avatar update:', {
+                        type: 'avatarUpdate',
+                        avatarUrl: publicUrl,
+                        userId: storedUser.id
+                    });
+                    
                     const channel = new BroadcastChannel('profile_updates');
                     channel.postMessage({
                         type: 'avatarUpdate',
@@ -364,14 +370,6 @@
                         userId: storedUser.id
                     });
                 }
-
-                // Update all avatar elements on the current page
-                const allAvatars = document.querySelectorAll('img[src*="avatar"]');
-                allAvatars.forEach(avatar => {
-                    if (avatar.id !== 'avatarPreview') {
-                        avatar.src = publicUrl;
-                    }
-                });
 
                 showMessage('Avatar updated successfully!', 'success')
             } catch (error) {

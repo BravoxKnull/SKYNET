@@ -269,6 +269,40 @@
         document.getElementById('userDisplayName').textContent = user.displayName
         document.getElementById('displayName').value = user.displayName
 
+        // Listen for avatar updates from profile page
+        if (window.BroadcastChannel) {
+            const channel = new BroadcastChannel('profile_updates');
+            channel.onmessage = (event) => {
+                if (event.data.type === 'avatarUpdate') {
+                    console.log('Received avatar update:', event.data);
+                    
+                    // Update navigation avatar
+                    const navAvatar = document.getElementById('navAvatar');
+                    if (navAvatar) {
+                        console.log('Updating nav avatar');
+                        navAvatar.src = event.data.avatarUrl;
+                    }
+
+                    // Update user avatar in the users list
+                    const userAvatars = document.querySelectorAll('.user-avatar');
+                    userAvatars.forEach(avatar => {
+                        if (avatar.dataset.userId === event.data.userId) {
+                            console.log('Updating user list avatar');
+                            avatar.src = event.data.avatarUrl;
+                        }
+                    });
+
+                    // Update local storage
+                    const storedUser = JSON.parse(localStorage.getItem('user'));
+                    if (storedUser && storedUser.id === event.data.userId) {
+                        console.log('Updating local storage');
+                        storedUser.avatar_url = event.data.avatarUrl;
+                        localStorage.setItem('user', JSON.stringify(storedUser));
+                    }
+                }
+            };
+        }
+
         // Load user avatar
         async function loadUserAvatar() {
             try {
@@ -281,7 +315,10 @@
                 if (error) throw error
 
                 if (data && data.avatar_url) {
-                    document.getElementById('navAvatar').src = data.avatar_url
+                    const navAvatar = document.getElementById('navAvatar');
+                    if (navAvatar) {
+                        navAvatar.src = data.avatar_url;
+                    }
                 }
             } catch (error) {
                 console.error('Error loading avatar:', error)
@@ -290,33 +327,6 @@
 
         // Load avatar when page loads
         loadUserAvatar()
-
-        // Listen for avatar updates from profile page
-        if (window.BroadcastChannel) {
-            const channel = new BroadcastChannel('profile_updates');
-            channel.onmessage = (event) => {
-                if (event.data.type === 'avatarUpdate') {
-                    // Update navigation avatar
-                    const navAvatar = document.getElementById('navAvatar');
-                    if (navAvatar) {
-                        navAvatar.src = event.data.avatarUrl;
-                    }
-
-                    // Update user avatar in the users list if it exists
-                    const userAvatar = document.querySelector(`.user-avatar[data-user-id="${event.data.userId}"]`);
-                    if (userAvatar) {
-                        userAvatar.src = event.data.avatarUrl;
-                    }
-
-                    // Update local storage
-                    const storedUser = JSON.parse(localStorage.getItem('user'));
-                    if (storedUser && storedUser.id === event.data.userId) {
-                        storedUser.avatar_url = event.data.avatarUrl;
-                        localStorage.setItem('user', JSON.stringify(storedUser));
-                    }
-                }
-            };
-        }
 
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
