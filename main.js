@@ -8,7 +8,6 @@ let usersList;
 let muteBtn;
 let deafenBtn;
 let leaveBtn;
-let channelInput;
 
 // State
 let localStream = null;
@@ -55,7 +54,6 @@ function initializeDOMElements() {
     muteBtn = document.getElementById('muteBtn');
     deafenBtn = document.getElementById('deafenBtn');
     leaveBtn = document.getElementById('leaveBtn');
-    channelInput = document.getElementById('channelInput');
 
     // Set initial display name if user data is available
     if (currentUser && currentUser.displayName) {
@@ -66,44 +64,78 @@ function initializeDOMElements() {
 // Initialize event listeners
 function initializeEventListeners() {
     joinBtn.addEventListener('click', async () => {
-        const username = displayNameInput.value.trim();
-        const channel = channelInput.value.trim();
-        
-        if (!username || !channel) {
-            showError('Please enter both username and channel name');
+        const name = displayNameInput.value.trim();
+        if (!name) {
+            warningMessage.textContent = 'Please enter your display name';
             return;
         }
-        
+
+        if (!currentUser) {
+            warningMessage.textContent = 'User data not found. Please log in again.';
+            return;
+        }
+
+        joinBtn.classList.add('loading');
+        joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
+        joinBtn.disabled = true;
+
         try {
+            const webRTCInitialized = await initializeWebRTC();
+            if (!webRTCInitialized) {
+                warningMessage.textContent = 'Error accessing microphone';
+                joinBtn.classList.remove('loading');
+                joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+                joinBtn.disabled = false;
+                return;
+            }
+
+            displayName = name;
+            
+            if (!socket) {
+                initializeSocket();
+            }
+
+            const { data, error } = await supabase
+                .from('users')
+                .select('avatar_url')
+                .eq('id', currentUser.id)
+                .single();
+
+            if (error) {
+                console.error('Error fetching user avatar:', error);
+            }
+
+            welcomeSection.classList.add('hidden');
+            channelSection.classList.remove('hidden');
+            channelSection.classList.add('visible');
+
+            socket.emit('joinChannel', {
+                id: currentUser.id,
+                displayName: displayName,
+                avatar_url: data?.avatar_url || null
+            });
+
+            const userData = {
+                id: currentUser.id,
+                displayName: displayName,
+                avatar_url: data?.avatar_url || null
+            };
+            users = [userData];
+            updateUsersList(users);
+
+            displayNameInput.disabled = true;
+            warningMessage.textContent = '';
+            
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
             joinBtn.disabled = true;
-            joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining...';
-            
-            // Hide welcome section with animation
-            hideWelcomeSection();
-            
-            // Show channel section with animation
-            showChannelSection();
-            
-            // Update UI
-            currentUsername = username;
-            currentChannel = channel;
-            channelName.textContent = channel;
-            
-            // Connect to WebRTC
-            await connectToWebRTC(channel);
-            
-            // Update user list
-            updateUserList();
-            
+
         } catch (error) {
             console.error('Error joining channel:', error);
-            showError('Failed to join channel. Please try again.');
-            
-            // Show welcome section again if there's an error
-            showWelcomeSection();
-        } finally {
+            warningMessage.textContent = 'Failed to join channel. Please try again.';
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
             joinBtn.disabled = false;
-            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join Channel';
         }
     });
 
@@ -875,15 +907,40 @@ function createUserListItem(userData) {
 
 // Function to update users list
 async function updateUsersList(users) {
-    const usersGrid = document.querySelector('.users-grid');
-    if (usersGrid) {
-        usersGrid.innerHTML = '';
-        users.forEach(user => {
-            const userItem = createUserItem(user);
-            usersGrid.appendChild(userItem);
-        });
-        // Call updateUserCount after updating the list
-        updateUserCount(users.length);
+    const usersList = document.getElementById('usersList');
+    if (!usersList) return;
+    
+    const uniqueUsers = new Map();
+    users.forEach(user => {
+        if (!uniqueUsers.has(user.id)) {
+            uniqueUsers.set(user.id, user);
+        }
+    });
+
+    usersList.innerHTML = '';
+
+    for (const userData of uniqueUsers.values()) {
+        try {
+            const userItem = createUserListItem(userData);
+    usersList.appendChild(userItem);
+
+            if (!userData.avatar_url) {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('avatar_url')
+                    .eq('id', userData.id)
+                    .single();
+
+                if (!error && data && data.avatar_url) {
+                    const img = userItem.querySelector('.user-avatar');
+                    if (img) {
+                        img.src = data.avatar_url;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error processing user:', error);
+        }
     }
 }
 
@@ -1217,34 +1274,35 @@ function updateConnectionStatus(status) {
 // Enhanced Welcome Section Transitions
 function showWelcomeSection() {
     const welcomeSection = document.querySelector('.welcome-section');
-    const channelSection = document.querySelector('.channel-section');
-    
-    welcomeSection.classList.remove('hidden');
-    channelSection.classList.remove('visible');
-    channelSection.classList.add('hidden');
-    
-    // Reset channel state
-    currentChannel = null;
-    usersList.innerHTML = '';
-    updateUserCount(0);
+    if (welcomeSection) {
+        welcomeSection.style.display = 'flex';
+        setTimeout(() => welcomeSection.classList.add('visible'), 50);
+    }
 }
 
 function hideWelcomeSection() {
     const welcomeSection = document.querySelector('.welcome-section');
-    welcomeSection.classList.add('hidden');
+    if (welcomeSection) {
+        welcomeSection.classList.remove('visible');
+        setTimeout(() => welcomeSection.style.display = 'none', 500);
+    }
 }
 
 // Enhanced Channel Section Transitions
 function showChannelSection() {
     const channelSection = document.querySelector('.channel-section');
-    channelSection.classList.remove('hidden');
-    channelSection.classList.add('visible');
+    if (channelSection) {
+        channelSection.style.display = 'flex';
+        setTimeout(() => channelSection.classList.add('visible'), 50);
+    }
 }
 
 function hideChannelSection() {
     const channelSection = document.querySelector('.channel-section');
-    channelSection.classList.remove('visible');
-    channelSection.classList.add('hidden');
+    if (channelSection) {
+        channelSection.classList.remove('visible');
+        setTimeout(() => channelSection.style.display = 'none', 500);
+    }
 }
 
 // Enhanced User List Updates
@@ -1256,8 +1314,6 @@ function updateUserList(users) {
             const userItem = createUserItem(user);
             usersGrid.appendChild(userItem);
         });
-        // Call updateUserCount after updating the list
-        updateUserCount(users.length);
     }
 }
 
@@ -1277,14 +1333,6 @@ function createUserItem(user) {
     `;
 
     return userItem;
-}
-
-// Function to update user count display
-function updateUserCount(count) {
-    const userCountElement = document.getElementById('userCount');
-    if (userCountElement) {
-        userCountElement.textContent = `(${count})`;
-    }
 }
 
 // Initialize UI
