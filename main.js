@@ -537,10 +537,10 @@ async function createPeerConnection(userId, isInitiator) {
                 peerConnection.close();
                 delete peerConnections[userId];
                 return null;
-            }
         }
+    }
 
-        return peerConnection;
+    return peerConnection;
     } catch (error) {
         console.error('Error creating peer connection:', error);
         return null;
@@ -688,7 +688,7 @@ function initializeSocket() {
             const isInitiator = false; // When receiving an offer, this client acts as answerer
 
             // If a peer connection for this sender doesn't exist, create one as the answerer
-            if (!peerConnection) {
+        if (!peerConnection) {
                 console.log(`No existing peer connection for ${data.senderId}, creating a new one as answerer`);
                 peerConnection = await createPeerConnection(data.senderId, isInitiator);
             } else {
@@ -706,7 +706,7 @@ function initializeSocket() {
                     } else {
                         console.log(`Losing glare resolution, ignoring offer from ${data.senderId}.`);
                         // This client loses, ignore the incoming offer and wait for the other side's answer to our offer
-                        return; 
+            return;
                     }
                 }
                  // If state is stable, it's likely the initial offer, proceed.
