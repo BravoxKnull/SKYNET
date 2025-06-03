@@ -61,6 +61,9 @@ io.on('connection', (socket) => {
         // Send current users list to the new user
         const usersList = Array.from(connectedUsers.values());
         socket.emit('usersList', usersList);
+
+        // Emit sound notification to all clients when a user joins
+        io.emit('userJoinedSound');
     });
 
     // Handle user leaving
@@ -72,6 +75,9 @@ io.on('connection', (socket) => {
             io.emit('userLeft', userData.id);
             connectedUsers.delete(socket.id);
             userIdToSocketId.delete(userData.id);
+
+            // Emit sound notification to all clients when a user leaves
+            io.emit('userLeftSound');
         }
     });
 
@@ -137,6 +143,9 @@ io.on('connection', (socket) => {
             socket.broadcast.emit('userLeft', user.id);
             connectedUsers.delete(socket.id);
             userIdToSocketId.delete(user.id);
+
+            // Emit sound notification to all clients when a user leaves
+            io.emit('userLeftSound');
         }
     });
 });
