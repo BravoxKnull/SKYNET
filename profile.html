@@ -354,22 +354,13 @@
                 // Update local storage with new avatar URL
                 storedUser.avatar_url = publicUrl;
                 localStorage.setItem('user', JSON.stringify(storedUser));
-
-                // Broadcast avatar update to other pages
-                if (window.BroadcastChannel) {
-                    console.log('Broadcasting avatar update:', {
-                        type: 'avatarUpdate',
-                        avatarUrl: publicUrl,
-                        userId: storedUser.id
-                    });
-                    
-                    const channel = new BroadcastChannel('profile_updates');
-                    channel.postMessage({
-                        type: 'avatarUpdate',
-                        avatarUrl: publicUrl,
-                        userId: storedUser.id
-                    });
-                }
+                
+                // Trigger a custom event in localStorage
+                localStorage.setItem('avatarUpdate', JSON.stringify({
+                    avatarUrl: publicUrl,
+                    userId: storedUser.id,
+                    timestamp: Date.now()
+                }));
 
                 showMessage('Avatar updated successfully!', 'success')
             } catch (error) {
