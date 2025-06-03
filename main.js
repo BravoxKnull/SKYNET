@@ -59,6 +59,16 @@ function initializeDOMElements() {
     if (currentUser && currentUser.displayName) {
         displayNameInput.value = currentUser.displayName;
     }
+
+    // Add mousemove listener for cursor background effect
+    document.addEventListener('mousemove', (e) => {
+        const cursorBackground = document.getElementById('cursor-background');
+        if (cursorBackground) {
+            const x = `${e.clientX}px`;
+            const y = `${e.clientY}px`;
+            cursorBackground.style.background = `radial-gradient(circle at ${x} ${y}, rgba(163, 112, 247, 0.15) 0%, rgba(26, 27, 38, 0) 50%)`;
+        }
+    });
 }
 
 // Initialize event listeners
@@ -1340,3 +1350,21 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAudioControls();
     showWelcomeSection();
 });
+
+// Function to get saved cursor style from localStorage
+function getSavedCursorStyle() {
+    return localStorage.getItem('cursorStyle') || 'cursor-default-custom'; // Default to custom default
+}
+
+// Function to apply cursor style to the body
+function applyCursorStyle(styleClass) {
+    document.body.className = ''; // Remove existing cursor classes
+    document.body.classList.add(styleClass);
+}
+
+// Apply saved cursor style on page load
+applyCursorStyle(getSavedCursorStyle());
+
+// Note: Logic to select and save cursor style needs to be implemented on the profile page.
+// The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
+// to localStorage with the key 'cursorStyle'.
