@@ -1319,12 +1319,60 @@ function initNotificationSystem() {
     }
 }
 
+// Setup audio controls
+function setupAudioControls() {
+    // Create audio elements for notifications
+    userJoinedSound = document.createElement('audio');
+    userJoinedSound.id = 'userJoinedSound';
+    userJoinedSound.src = 'sounds/user-joined.mp3';
+    userJoinedSound.preload = 'auto';
+    document.body.appendChild(userJoinedSound);
+
+    userLeftSound = document.createElement('audio');
+    userLeftSound.id = 'userLeftSound';
+    userLeftSound.src = 'sounds/user-left.mp3';
+    userLeftSound.preload = 'auto';
+    document.body.appendChild(userLeftSound);
+
+    // Initialize audio context
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    } catch (error) {
+        console.error('Error initializing audio context:', error);
+    }
+}
+
 // Initialize chat system when document is ready
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize user data first
+    if (!initializeUserData()) {
+        console.error('Failed to initialize user data');
+        return;
+    }
+
+    // Initialize DOM elements
+    initializeDOMElements();
+
+    // Initialize event listeners
+    initializeEventListeners();
+
+    // Setup audio controls
     setupAudioControls();
+
+    // Show welcome section
     showWelcomeSection();
+
+    // Initialize notification system
     initNotificationSystem();
+
+    // Initialize chat system
     initChatSystem();
+
+    // Initialize theme
+    initializeTheme();
 });
 
 // Initialize chat system
@@ -1396,4 +1444,34 @@ function initChatSystem() {
 
     // Listen for new messages
     socket.on('privateMessage', handlePrivateMessage);
+}
+
+// Show welcome section
+function showWelcomeSection() {
+    const welcomeSection = document.getElementById('welcomeSection');
+    const channelSection = document.getElementById('channelSection');
+    
+    if (welcomeSection && channelSection) {
+        welcomeSection.classList.remove('hidden');
+        channelSection.classList.remove('visible');
+        channelSection.classList.add('hidden');
+    }
+}
+
+// Handle private messages
+function handlePrivateMessage(data) {
+    if (!chatMessages) return;
+
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${data.senderId === currentUser.id ? 'sent' : 'received'}`;
+    messageElement.innerHTML = `
+        <div class="message-content">
+            <div class="message-sender">${data.senderName}</div>
+            <div class="message-text">${data.message}</div>
+            <div class="message-time">${new Date().toLocaleTimeString()}</div>
+        </div>
+    `;
+
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
