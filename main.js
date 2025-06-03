@@ -875,40 +875,15 @@ function createUserListItem(userData) {
 
 // Function to update users list
 async function updateUsersList(users) {
-    const usersList = document.getElementById('usersList');
-    if (!usersList) return;
-    
-    const uniqueUsers = new Map();
-    users.forEach(user => {
-        if (!uniqueUsers.has(user.id)) {
-            uniqueUsers.set(user.id, user);
-        }
-    });
-
-    usersList.innerHTML = '';
-
-    for (const userData of uniqueUsers.values()) {
-        try {
-            const userItem = createUserListItem(userData);
-    usersList.appendChild(userItem);
-
-            if (!userData.avatar_url) {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('avatar_url')
-                    .eq('id', userData.id)
-                    .single();
-
-                if (!error && data && data.avatar_url) {
-                    const img = userItem.querySelector('.user-avatar');
-                    if (img) {
-                        img.src = data.avatar_url;
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error processing user:', error);
-        }
+    const usersGrid = document.querySelector('.users-grid');
+    if (usersGrid) {
+        usersGrid.innerHTML = '';
+        users.forEach(user => {
+            const userItem = createUserItem(user);
+            usersGrid.appendChild(userItem);
+        });
+        // Call updateUserCount after updating the list
+        updateUserCount(users.length);
     }
 }
 
@@ -1281,6 +1256,8 @@ function updateUserList(users) {
             const userItem = createUserItem(user);
             usersGrid.appendChild(userItem);
         });
+        // Call updateUserCount after updating the list
+        updateUserCount(users.length);
     }
 }
 
@@ -1300,6 +1277,14 @@ function createUserItem(user) {
     `;
 
     return userItem;
+}
+
+// Function to update user count display
+function updateUserCount(count) {
+    const userCountElement = document.getElementById('userCount');
+    if (userCountElement) {
+        userCountElement.textContent = `(${count})`;
+    }
 }
 
 // Initialize UI
