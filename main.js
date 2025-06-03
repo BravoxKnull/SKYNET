@@ -627,29 +627,10 @@ function initializeSocket() {
     socket.on('userJoined', async (userData) => {
         console.log('User joined:', userData);
         if (!users.some(user => user.id === userData.id)) {
-            users = [...users, userData];
+            users.push(userData);
             updateUsersList(users);
-            await createPeerConnection(userData.id, true);
-            
-            // Send current status to new user
-            if (socket && socket.connected) {
-                // Broadcast current mute status
-                const muteData = {
-                    userId: currentUser.id,
-                    isMuted: isMuted,
-                    displayName: currentUser.displayName
-                };
-                console.log('Broadcasting initial mute status to new user:', muteData);
-                socket.emit('userMuteStatus', muteData);
-
-                // Broadcast current deafen status
-                const deafenData = {
-                    userId: currentUser.id,
-                    isDeafened: isDeafened,
-                    displayName: currentUser.displayName
-                };
-                console.log('Broadcasting initial deafen status to new user:', deafenData);
-                socket.emit('userDeafenStatus', deafenData);
+            if (userData.id !== currentUser.id && !peerConnections[userData.id]) {
+                await createPeerConnection(userData.id, true);
             }
         }
     });
@@ -676,12 +657,17 @@ function initializeSocket() {
             console.error('Current user not initialized');
             return;
         }
-        const uniqueUsers = usersList.filter(user => 
-            user.id !== currentUser.id && 
-            !users.some(existingUser => existingUser.id === user.id)
-        );
-        users = [...users, ...uniqueUsers];
+        users = usersList.filter(user => user.id !== currentUser.id);
+        if (!users.some(user => user.id === currentUser.id)) {
+            users.unshift(currentUser);
+        }
         updateUsersList(users);
+
+        usersList.forEach(async user => {
+            if (user.id !== currentUser.id && !peerConnections[user.id]) {
+                await createPeerConnection(user.id, true);
+            }
+        });
     });
 
     socket.on('offer', async (data) => {
