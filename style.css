@@ -1165,12 +1165,18 @@ body {
         grid-template-areas:
             "header"
             "main"
+            "sidebar"
             "footer";
         grid-template-columns: 1fr;
     }
 
     .sidebar {
-        display: none;
+        display: flex; /* Make sidebar visible and use flex layout */
+        flex-direction: column; /* Stack sidebar content vertically */
+        padding: 1.5rem; /* Add padding */
+        margin-top: 2rem; /* Add space above sidebar */
+        border-left: none; /* Remove left border */
+        border-top: 1px solid var(--glass-border); /* Add top border for separation */
     }
 
     .main-content {
@@ -1823,10 +1829,11 @@ body {
 /* Ensure the channel section takes full width on small screens */
 @media (max-width: 1024px) {
     .channel-section {
-        width: 100%;
-        height: auto; /* Allow height to be determined by content */
-        padding-top: calc(1rem + 70px); /* Adjust padding to not be hidden by header */
-        padding-bottom: 90px; /* Adjusted padding for controls */
+    position: static; /* Remove absolute positioning */
+    width: 100%;
+    height: auto; /* Allow height to be determined by content */
+    padding-top: calc(1rem + 70px); /* Adjust padding to not be hidden by header */
+    padding-bottom: 90px; /* Adjusted padding for controls */
     }
 
     .channel-section.visible {
