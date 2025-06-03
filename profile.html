@@ -351,6 +351,10 @@
                 avatarPreview.style.opacity = '1'
                 avatarPreview.style.transition = 'opacity 0.3s ease'
 
+                // Update local storage with new avatar URL
+                storedUser.avatar_url = publicUrl;
+                localStorage.setItem('user', JSON.stringify(storedUser));
+
                 // Broadcast avatar update to other pages
                 if (window.BroadcastChannel) {
                     const channel = new BroadcastChannel('profile_updates');
@@ -569,7 +573,7 @@
                     showMessage('Display name updated successfully!', 'success');
 
                     // Broadcast the change to other pages if they're open
-                    if (window.broadcastChannel) {
+                    if (window.BroadcastChannel) {
                         const channel = new BroadcastChannel('profile_updates');
                         channel.postMessage({
                             type: 'displayNameUpdate',
@@ -584,7 +588,7 @@
         }
 
         // Add this to handle display name updates from other pages
-        if (window.broadcastChannel) {
+        if (window.BroadcastChannel) {
             const channel = new BroadcastChannel('profile_updates');
             channel.onmessage = (event) => {
                 if (event.data.type === 'displayNameUpdate') {
