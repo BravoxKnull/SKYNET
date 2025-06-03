@@ -354,33 +354,40 @@
                 // Update local storage with new avatar URL
                 storedUser.avatar_url = publicUrl;
                 localStorage.setItem('user', JSON.stringify(storedUser));
+                console.log('Updated local storage with new avatar URL:', publicUrl);
 
                 // Option 1: Using BroadcastChannel
                 if (window.BroadcastChannel) {
+                    console.log('Broadcasting avatar update via BroadcastChannel...');
                     const channel = new BroadcastChannel('avatar_updates');
-                    channel.postMessage({
+                    const message = {
                         type: 'avatarUpdate',
                         avatarUrl: publicUrl,
                         userId: storedUser.id
-                    });
+                    };
+                    console.log('BroadcastChannel message:', message);
+                    channel.postMessage(message);
+                } else {
+                    console.log('BroadcastChannel not supported');
                 }
 
                 // Option 2: Using localStorage event
-                localStorage.setItem('avatarUpdate', JSON.stringify({
+                const updateData = {
                     avatarUrl: publicUrl,
                     userId: storedUser.id,
                     timestamp: Date.now()
-                }));
+                };
+                console.log('Setting localStorage avatarUpdate:', updateData);
+                localStorage.setItem('avatarUpdate', JSON.stringify(updateData));
 
                 // Trigger a storage event manually
-                window.dispatchEvent(new StorageEvent('storage', {
+                console.log('Dispatching manual storage event...');
+                const storageEvent = new StorageEvent('storage', {
                     key: 'avatarUpdate',
-                    newValue: JSON.stringify({
-                        avatarUrl: publicUrl,
-                        userId: storedUser.id,
-                        timestamp: Date.now()
-                    })
-                }));
+                    newValue: JSON.stringify(updateData)
+                });
+                window.dispatchEvent(storageEvent);
+                console.log('Storage event dispatched');
 
                 showMessage('Avatar updated successfully!', 'success')
             } catch (error) {

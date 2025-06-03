@@ -271,25 +271,31 @@
 
         // Enhanced avatar update function
         function updateAvatar(avatarUrl) {
-            console.log('Updating avatar to:', avatarUrl);
+            console.log('updateAvatar called with URL:', avatarUrl);
             
             // Update navigation avatar
             const navAvatar = document.getElementById('navAvatar');
             if (navAvatar) {
+                console.log('Updating nav avatar');
                 navAvatar.src = avatarUrl;
+            } else {
+                console.log('navAvatar element not found');
             }
             
             // Update user avatar in the users list
             const userAvatars = document.querySelectorAll('.user-avatar');
+            console.log('Found user avatars:', userAvatars.length);
             userAvatars.forEach(avatar => {
                 if (avatar.dataset.userId === user?.id || 
                     avatar.closest('[data-user-id]')?.dataset.userId === user?.id) {
+                    console.log('Updating user list avatar');
                     avatar.src = avatarUrl;
                 }
             });
             
             // Update local storage
             if (user) {
+                console.log('Updating local storage with new avatar URL');
                 user.avatar_url = avatarUrl;
                 localStorage.setItem('user', JSON.stringify(user));
             }
@@ -298,6 +304,7 @@
         // Load user avatar
         async function loadUserAvatar() {
             try {
+                console.log('Loading user avatar...');
                 const { data, error } = await supabase
                     .from('users')
                     .select('avatar_url')
@@ -307,7 +314,10 @@
                 if (error) throw error
 
                 if (data && data.avatar_url) {
+                    console.log('Avatar URL from Supabase:', data.avatar_url);
                     updateAvatar(data.avatar_url);
+                } else {
+                    console.log('No avatar URL found in Supabase');
                 }
             } catch (error) {
                 console.error('Error loading avatar:', error)
@@ -319,22 +329,31 @@
 
         // Listen for BroadcastChannel messages
         if (window.BroadcastChannel) {
+            console.log('Setting up BroadcastChannel listener...');
             const channel = new BroadcastChannel('avatar_updates');
             channel.onmessage = (event) => {
+                console.log('Received BroadcastChannel message:', event.data);
                 if (event.data.type === 'avatarUpdate' && 
                     event.data.userId === user?.id) {
+                    console.log('Processing BroadcastChannel avatar update');
                     updateAvatar(event.data.avatarUrl);
                 }
             };
+        } else {
+            console.log('BroadcastChannel not supported');
         }
 
         // Listen for localStorage events
+        console.log('Setting up storage event listener...');
         window.addEventListener('storage', (event) => {
+            console.log('Storage event received:', event.key);
             if (event.key === 'avatarUpdate') {
                 try {
                     const updateData = JSON.parse(event.newValue);
+                    console.log('Parsed storage event data:', updateData);
                     if (updateData && updateData.avatarUrl && 
                         updateData.userId === user?.id) {
+                        console.log('Processing storage event avatar update');
                         updateAvatar(updateData.avatarUrl);
                     }
                 } catch (error) {
