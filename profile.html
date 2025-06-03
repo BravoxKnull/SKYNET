@@ -360,9 +360,18 @@
                     const channel = new BroadcastChannel('profile_updates');
                     channel.postMessage({
                         type: 'avatarUpdate',
-                        avatarUrl: publicUrl
+                        avatarUrl: publicUrl,
+                        userId: storedUser.id
                     });
                 }
+
+                // Update all avatar elements on the current page
+                const allAvatars = document.querySelectorAll('img[src*="avatar"]');
+                allAvatars.forEach(avatar => {
+                    if (avatar.id !== 'avatarPreview') {
+                        avatar.src = publicUrl;
+                    }
+                });
 
                 showMessage('Avatar updated successfully!', 'success')
             } catch (error) {

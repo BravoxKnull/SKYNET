@@ -296,9 +296,23 @@
             const channel = new BroadcastChannel('profile_updates');
             channel.onmessage = (event) => {
                 if (event.data.type === 'avatarUpdate') {
+                    // Update navigation avatar
                     const navAvatar = document.getElementById('navAvatar');
                     if (navAvatar) {
                         navAvatar.src = event.data.avatarUrl;
+                    }
+
+                    // Update user avatar in the users list if it exists
+                    const userAvatar = document.querySelector(`.user-avatar[data-user-id="${event.data.userId}"]`);
+                    if (userAvatar) {
+                        userAvatar.src = event.data.avatarUrl;
+                    }
+
+                    // Update local storage
+                    const storedUser = JSON.parse(localStorage.getItem('user'));
+                    if (storedUser && storedUser.id === event.data.userId) {
+                        storedUser.avatar_url = event.data.avatarUrl;
+                        localStorage.setItem('user', JSON.stringify(storedUser));
                     }
                 }
             };
