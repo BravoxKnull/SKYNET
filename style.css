@@ -131,8 +131,8 @@ body {
         "header header"
         "main sidebar"
         "footer footer";
-    grid-template-columns: 1fr 300px;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 1fr 250px; /* Adjusted sidebar width */
+    grid-template-rows: auto 1fr auto; /* Ensure main area takes available space, pushing footer down */
     min-height: 100vh;
     overflow: hidden; /* Prevent double scrollbars */
     background-color: transparent; /* Make app-container background transparent to show body pattern */
@@ -149,10 +149,10 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--glass-border);
-    position: fixed; /* Make header fixed */
+    position: sticky; /* Revert to sticky positioning */
     top: 0;
-    left: 0;
-    right: 0;
+    /* left: 0; */ /* Remove fixed positioning properties */
+    /* right: 0; */ /* Remove fixed positioning properties */
     z-index: 1000;
     box-shadow: var(--glass-shadow);
 }
@@ -935,10 +935,11 @@ body {
 
 /* Footer Styles */
 .footer {
+    grid-area: footer;
     background: rgba(26, 27, 38, 0.95); /* Match new background */
     border-top: 1px solid var(--glass-border); /* Use glass border */
     padding: 3rem 1.5rem 1.5rem; /* Adjusted padding */
-    margin-top: 0; /* Remove top margin as padding is handled by body */
+    /* margin-top: 0; */ /* Remove top margin as padding is handled by body */
 }
 
 .footer-content {
