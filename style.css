@@ -363,7 +363,6 @@ body {
     padding: 2rem;
     position: relative;
     overflow-y: auto;
-    height: calc(100vh - 140px); /* Account for header and footer */
 }
 
 /* Welcome Section */
@@ -818,7 +817,6 @@ body {
     padding: 2rem;
     border-left: 1px solid var(--glass-border); /* Use glass border */
     overflow-y: auto;
-    height: calc(100vh - 140px);
 }
 
 .join-section {
