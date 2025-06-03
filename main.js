@@ -29,24 +29,6 @@ let currentUser = null;
 let users = [];
 let socketInitialized = false;
 
-// Notification System
-let notifications = [];
-let notificationTimeout = null;
-
-// Chat System
-let chatSidebar = document.getElementById('chatSidebar');
-let chatList = document.getElementById('chatList');
-let chatWindow = document.getElementById('chatWindow');
-let chatMessages = document.getElementById('chatMessages');
-let chatInput = document.getElementById('chatInput');
-let closeChat = document.getElementById('closeChat');
-let activeChat = null;
-let chatHistory = {};
-
-// Chat Sidebar Functionality
-const joinSection = document.getElementById('joinSection');
-const channelNameInput = document.getElementById('channelName');
-
 // Initialize user data
 function initializeUserData() {
     try {
@@ -67,7 +49,6 @@ function initializeUserData() {
 
 // Initialize DOM elements
 function initializeDOMElements() {
-    // Get all required DOM elements
     displayNameInput = document.getElementById('displayName');
     joinBtn = document.getElementById('joinBtn');
     warningMessage = document.getElementById('warningMessage');
@@ -82,8 +63,8 @@ function initializeDOMElements() {
     userJoinedSound = document.getElementById('userJoinedSound');
     userLeftSound = document.getElementById('userLeftSound');
 
-    // Set initial display name if user data is available and input exists
-    if (currentUser && currentUser.displayName && displayNameInput) {
+    // Set initial display name if user data is available
+    if (currentUser && currentUser.displayName) {
         displayNameInput.value = currentUser.displayName;
     }
 
@@ -100,172 +81,177 @@ function initializeDOMElements() {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // Add null checks for all event listeners
-    if (joinBtn) {
-        joinBtn.addEventListener('click', async () => {
-            const name = displayNameInput ? displayNameInput.value.trim() : '';
-            if (!name) {
-                if (warningMessage) warningMessage.textContent = 'Please enter your display name';
-                return;
-            }
+    joinBtn.addEventListener('click', async () => {
+        const name = displayNameInput.value.trim();
+        if (!name) {
+            warningMessage.textContent = 'Please enter your display name';
+            return;
+        }
 
-            if (!currentUser) {
-                if (warningMessage) warningMessage.textContent = 'User data not found. Please log in again.';
-                return;
-            }
+        if (!currentUser) {
+            warningMessage.textContent = 'User data not found. Please log in again.';
+            return;
+        }
 
-            joinBtn.classList.add('loading');
-            joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
-            joinBtn.disabled = true;
+        joinBtn.classList.add('loading');
+        joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
+        joinBtn.disabled = true;
 
-            try {
-                const webRTCInitialized = await initializeWebRTC();
-                if (!webRTCInitialized) {
-                    if (warningMessage) warningMessage.textContent = 'Error accessing microphone';
-                    joinBtn.classList.remove('loading');
-                    joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-                    joinBtn.disabled = false;
-                    return;
-                }
-
-                displayName = name;
-                
-                if (!socket) {
-                    initializeSocket();
-                }
-
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('avatar_url')
-                    .eq('id', currentUser.id)
-                    .single();
-
-                if (error) {
-                    console.error('Error fetching user avatar:', error);
-                }
-
-                if (welcomeSection) welcomeSection.classList.add('hidden');
-                if (channelSection) {
-                    channelSection.classList.remove('hidden');
-                    channelSection.classList.add('visible');
-                }
-
-                socket.emit('joinChannel', {
-                    id: currentUser.id,
-                    displayName: displayName,
-                    avatar_url: data?.avatar_url || null
-                });
-
-                const userData = {
-                    id: currentUser.id,
-                    displayName: displayName,
-                    avatar_url: data?.avatar_url || null
-                };
-                users = [userData];
-                updateUsersList(users);
-
-                if (displayNameInput) displayNameInput.disabled = true;
-                if (warningMessage) warningMessage.textContent = '';
-                
-                joinBtn.classList.remove('loading');
-                joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
-                joinBtn.disabled = true;
-
-            } catch (error) {
-                console.error('Error joining channel:', error);
-                if (warningMessage) warningMessage.textContent = 'Failed to join channel. Please try again.';
+        try {
+            const webRTCInitialized = await initializeWebRTC();
+            if (!webRTCInitialized) {
+                warningMessage.textContent = 'Error accessing microphone';
                 joinBtn.classList.remove('loading');
                 joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
                 joinBtn.disabled = false;
+                return;
             }
-        });
-    }
 
-    if (muteBtn) {
-        muteBtn.addEventListener('click', () => {
-            isMuted = !isMuted;
-            if (localStream) {
-                localStream.getAudioTracks().forEach(track => {
-                    track.enabled = !isMuted;
-                });
+            displayName = name;
+            
+            if (!socket) {
+                initializeSocket();
             }
-            muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
-            muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
 
-            if (socket && socket.connected) {
-                const muteData = {
-                    userId: currentUser.id,
-                    isMuted: isMuted,
-                    displayName: currentUser.displayName
-                };
-                socket.emit('userMuteStatus', muteData);
+            const { data, error } = await supabase
+                .from('users')
+                .select('avatar_url')
+                .eq('id', currentUser.id)
+                .single();
+
+            if (error) {
+                console.error('Error fetching user avatar:', error);
             }
-            updateUserMuteStatus(currentUser.id, isMuted);
-        });
-    }
 
-    if (deafenBtn) {
-        deafenBtn.addEventListener('click', () => {
-            isDeafened = !isDeafened;
-            document.querySelectorAll('audio').forEach(audio => {
-                audio.muted = isDeafened;
+            welcomeSection.classList.add('hidden');
+            channelSection.classList.remove('hidden');
+            channelSection.classList.add('visible');
+
+            socket.emit('joinChannel', {
+                id: currentUser.id,
+                displayName: displayName,
+                avatar_url: data?.avatar_url || null
             });
-            deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-            deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
 
-            if (socket && socket.connected) {
-                const deafenData = {
-                    userId: currentUser.id,
-                    isDeafened: isDeafened,
-                    displayName: currentUser.displayName
-                };
+            const userData = {
+                id: currentUser.id,
+                displayName: displayName,
+                avatar_url: data?.avatar_url || null
+            };
+            users = [userData];
+            updateUsersList(users);
+
+            displayNameInput.disabled = true;
+            warningMessage.textContent = '';
+            
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
+            joinBtn.disabled = true;
+
+        } catch (error) {
+            console.error('Error joining channel:', error);
+            warningMessage.textContent = 'Failed to join channel. Please try again.';
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+            joinBtn.disabled = false;
+        }
+    });
+
+    muteBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        if (localStream) {
+            localStream.getAudioTracks().forEach(track => {
+                track.enabled = !isMuted;
+            });
+        }
+        muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+        muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
+
+        // Broadcast mute status to all users
+        if (socket && socket.connected) {
+            const muteData = {
+                userId: currentUser.id,
+                isMuted: isMuted,
+                displayName: currentUser.displayName
+            };
+            console.log('Broadcasting mute status to server:', muteData);
+            try {
+                socket.emit('userMuteStatus', muteData);
+            } catch (error) {
+                console.error('Error emitting mute status:', error);
+            }
+        } else {
+            console.warn('Socket not connected, cannot broadcast mute status');
+        }
+
+        // Update local UI
+        updateUserMuteStatus(currentUser.id, isMuted);
+    });
+
+    deafenBtn.addEventListener('click', () => {
+        isDeafened = !isDeafened;
+        document.querySelectorAll('audio').forEach(audio => {
+            audio.muted = isDeafened;
+        });
+        deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+        deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
+
+        // Broadcast deafen status to all users
+        if (socket && socket.connected) {
+            const deafenData = {
+                userId: currentUser.id,
+                isDeafened: isDeafened,
+                displayName: currentUser.displayName
+            };
+            console.log('Broadcasting deafen status to server:', deafenData);
+            try {
                 socket.emit('userDeafenStatus', deafenData);
+            } catch (error) {
+                console.error('Error emitting deafen status:', error);
             }
-            updateUserDeafenStatus(currentUser.id, isDeafened);
-        });
-    }
+        } else {
+            console.warn('Socket not connected, cannot broadcast deafen status');
+        }
 
-    if (leaveBtn) {
-        leaveBtn.addEventListener('click', () => {
-            if (channelSection) {
-                channelSection.classList.remove('visible');
-                channelSection.classList.add('hidden');
+        // Update local UI
+        updateUserDeafenStatus(currentUser.id, isDeafened);
+    });
+
+    leaveBtn.addEventListener('click', () => {
+        channelSection.classList.remove('visible');
+        channelSection.classList.add('hidden');
+
+        setTimeout(() => {
+            displayNameInput.disabled = false;
+            joinBtn.disabled = false;
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+            usersList.innerHTML = '';
+            warningMessage.textContent = '';
+
+            welcomeSection.classList.remove('hidden');
+
+            Object.keys(peerConnections).forEach(userId => {
+                closePeerConnection(userId);
+            });
+            peerConnections = {};
+
+            if (socket) {
+                socket.disconnect();
+                socket = null;
             }
 
-            setTimeout(() => {
-                if (displayNameInput) displayNameInput.disabled = false;
-                if (joinBtn) {
-                    joinBtn.disabled = false;
-                    joinBtn.classList.remove('loading');
-                    joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-                }
-                if (usersList) usersList.innerHTML = '';
-                if (warningMessage) warningMessage.textContent = '';
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
 
-                if (welcomeSection) welcomeSection.classList.remove('hidden');
-
-                Object.keys(peerConnections).forEach(userId => {
-                    closePeerConnection(userId);
-                });
-                peerConnections = {};
-
-                if (socket) {
-                    socket.disconnect();
-                    socket = null;
-                }
-
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                    localStream = null;
-                }
-
-                if (audioContext) {
-                    audioContext.close();
-                    audioContext = null;
-                }
-            }, 500);
-        });
-    }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+        }, 500);
+    });
 }
 
 // Initialize WebRTC with simplified constraints
@@ -912,29 +898,6 @@ function initializeSocket() {
             userLeftSound.play().catch(error => console.error('Error playing userLeftSound:', error));
         }
     });
-
-    // Add socket event listeners for friend requests
-    socket.on('friendRequest', (data) => {
-        // Add to notification list
-        addNotification({
-            type: 'friend_request',
-            requestId: data.requestId,
-            senderId: data.senderId,
-            senderName: data.senderName,
-            avatar: data.avatar,
-            message: `${data.senderName} sent you a friend request`
-        });
-
-        // Show push notification
-        showPushNotification({
-            type: 'friend_request',
-            requestId: data.requestId,
-            senderId: data.senderId,
-            senderName: data.senderName,
-            avatar: data.avatar,
-            message: `${data.senderName} sent you a friend request`
-        });
-    });
 }
 
 // Function to create user list item
@@ -970,147 +933,9 @@ function createUserListItem(userData) {
                 </div>
             </div>
         </div>
-        <div class="user-menu">
-            <button class="menu-button" title="More options">
-                <i class="fas fa-ellipsis-v"></i>
-            </button>
-            <div class="menu-dropdown">
-                <button class="menu-item" data-action="message">
-                    <i class="fas fa-comment"></i>
-                    Message
-                </button>
-                <button class="menu-item" data-action="add-friend">
-                    <i class="fas fa-user-plus"></i>
-                    Add Friend
-                </button>
-            </div>
-        </div>
     `;
-
-    // Add event listeners for the menu
-    const menuButton = userItem.querySelector('.menu-button');
-    const menuDropdown = userItem.querySelector('.menu-dropdown');
-    const menuItems = userItem.querySelectorAll('.menu-item');
-
-    menuButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        menuDropdown.classList.toggle('show');
-    });
-
-    menuItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const action = item.getAttribute('data-action');
-            if (action === 'add-friend') {
-                sendFriendRequest(userData.id, userData.displayName);
-            } else if (action === 'message') {
-                openChat(userData.id, userData.displayName);
-            }
-            menuDropdown.classList.remove('show');
-        });
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!userItem.contains(e.target)) {
-            menuDropdown.classList.remove('show');
-        }
-    });
 
     return userItem;
-}
-
-// Function to send friend request
-function sendFriendRequest(receiverId, receiverName) {
-    if (!currentUser) return;
-    
-    // Check if we're not sending a request to ourselves
-    if (receiverId === currentUser.id) {
-        showError('You cannot send a friend request to yourself');
-        return;
-    }
-
-    // Emit socket event to send friend request
-    socket.emit('sendFriendRequest', {
-        senderId: currentUser.id,
-        receiverId: receiverId
-    });
-
-    // Show success message
-    showError(`Friend request sent to ${receiverName}`, 3000);
-}
-
-// Function to open chat with a user
-function openChat(userId, userName) {
-    if (!chatSidebar || !chatWindow || !chatMessages) return;
-
-    // Set active chat
-    activeChat = { id: userId, name: userName };
-
-    // Update chat window header
-    const chatUserName = chatWindow.querySelector('.chat-user-name');
-    if (chatUserName) chatUserName.textContent = userName;
-
-    // Show chat window and sidebar
-    chatSidebar.classList.add('active');
-    chatWindow.classList.remove('hidden');
-
-    // Clear previous messages
-    chatMessages.innerHTML = '';
-
-    // Load chat history if available
-    if (chatHistory[userId]) {
-        chatHistory[userId].forEach(message => {
-            const messageElement = document.createElement('div');
-            messageElement.className = `message ${message.senderId === currentUser.id ? 'sent' : 'received'}`;
-            messageElement.innerHTML = `
-                <div class="message-content">
-                    <div class="message-sender">${message.senderName}</div>
-                    <div class="message-text">${message.text}</div>
-                    <div class="message-time">${message.time}</div>
-                </div>
-            `;
-            chatMessages.appendChild(messageElement);
-        });
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-}
-
-// Function to send a message
-function sendMessage(text) {
-    if (!activeChat || !socket) return;
-
-    const message = {
-        senderId: currentUser.id,
-        senderName: currentUser.displayName,
-        text: text,
-        time: new Date().toLocaleTimeString()
-    };
-
-    // Add message to chat history
-    if (!chatHistory[activeChat.id]) {
-        chatHistory[activeChat.id] = [];
-    }
-    chatHistory[activeChat.id].push(message);
-
-    // Emit message to server
-    socket.emit('privateMessage', {
-        targetUserId: activeChat.id,
-        message: text
-    });
-
-    // Add message to chat window
-    const messageElement = document.createElement('div');
-    messageElement.className = 'message sent';
-    messageElement.innerHTML = `
-        <div class="message-content">
-            <div class="message-sender">${message.senderName}</div>
-            <div class="message-text">${message.text}</div>
-            <div class="message-time">${message.time}</div>
-        </div>
-    `;
-    chatMessages.appendChild(messageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // Function to update users list
@@ -1321,287 +1146,235 @@ function createThemeSwitch() {
     }
 }
 
-// Initialize notification system
-function initNotificationSystem() {
-    // Create notification container if it doesn't exist
-    let notificationContainer = document.getElementById('notificationContainer');
-    if (!notificationContainer) {
-        notificationContainer = document.createElement('div');
-        notificationContainer.id = 'notificationContainer';
-        document.body.appendChild(notificationContainer);
-    }
-
-    // Function to add a notification
-    window.addNotification = function(notification) {
-        notifications.push(notification);
-        showNotification(notification);
-    };
-
-    // Function to show a notification
-    function showNotification(notification) {
-        const notificationElement = document.createElement('div');
-        notificationElement.className = 'notification';
-        notificationElement.innerHTML = `
-            <div class="notification-content">
-                <img src="${notification.avatar || 'default-avatar.png'}" alt="Avatar" class="notification-avatar">
-                <div class="notification-message">${notification.message}</div>
-            </div>
-            <div class="notification-actions">
-                ${notification.type === 'friend_request' ? `
-                    <button class="accept-btn">Accept</button>
-                    <button class="decline-btn">Decline</button>
-                ` : ''}
-            </div>
-        `;
-
-        notificationContainer.appendChild(notificationElement);
-
-        // Add event listeners for friend request buttons
-        if (notification.type === 'friend_request') {
-            const acceptBtn = notificationElement.querySelector('.accept-btn');
-            const declineBtn = notificationElement.querySelector('.decline-btn');
-
-            acceptBtn.addEventListener('click', () => {
-                socket.emit('acceptFriendRequest', {
-                    requestId: notification.requestId,
-                    senderId: notification.senderId
-                });
-                notificationElement.remove();
-            });
-
-            declineBtn.addEventListener('click', () => {
-                socket.emit('declineFriendRequest', {
-                    requestId: notification.requestId,
-                    senderId: notification.senderId
-                });
-                notificationElement.remove();
-            });
-        }
-
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            notificationElement.classList.add('fade-out');
-            setTimeout(() => notificationElement.remove(), 500);
-        }, 5000);
-    }
-}
-
-// Setup audio controls
-function setupAudioControls() {
-    // Create audio elements for notifications
-    userJoinedSound = document.createElement('audio');
-    userJoinedSound.id = 'userJoinedSound';
-    userJoinedSound.src = 'assets/sounds/user_joined.mp3';
-    userJoinedSound.preload = 'auto';
-    document.body.appendChild(userJoinedSound);
-
-    userLeftSound = document.createElement('audio');
-    userLeftSound.id = 'userLeftSound';
-    userLeftSound.src = 'assets/sounds/user_left.mp3';
-    userLeftSound.preload = 'auto';
-    document.body.appendChild(userLeftSound);
-
-    // Initialize audio context
-    try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-    } catch (error) {
-        console.error('Error initializing audio context:', error);
-    }
-}
-
-// Initialize chat system when document is ready
+// Initialize theme when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize user data first
-    if (!initializeUserData()) {
-        console.error('Failed to initialize user data');
-        return;
-    }
-
-    // Initialize DOM elements
-    initializeDOMElements();
-
-    // Initialize event listeners
-    initializeEventListeners();
-
-    // Setup audio controls
-    setupAudioControls();
-
-    // Show welcome section
-    showWelcomeSection();
-
-    // Initialize notification system
-    initNotificationSystem();
-
-    // Initialize chat system
-    initChatSystem();
-
-    // Initialize theme
     initializeTheme();
-});
-
-// Initialize chat system
-function initChatSystem() {
-    // Create chat sidebar if it doesn't exist
-    if (!document.getElementById('chatSidebar')) {
-        const chatSidebarHTML = `
-            <div id="chatSidebar" class="chat-sidebar">
-                <div class="chat-header">
-                    <h3>Chats</h3>
-                    <button id="closeChat" class="close-btn">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div id="chatList" class="chat-list">
-                    <!-- Chat list items will be added here -->
-                </div>
-                <div id="chatWindow" class="chat-window">
-                    <div class="chat-window-header">
-                        <div class="chat-user-info">
-                            <img src="" alt="" class="chat-user-avatar">
-                            <div class="chat-user-details">
-                                <h4 class="chat-user-name"></h4>
-                                <span class="chat-user-status">Online</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="chatMessages" class="chat-messages">
-                        <!-- Messages will be added here -->
-                    </div>
-                    <div class="chat-input-container">
-                        <button class="emoji-btn">
-                            <i class="fas fa-smile"></i>
-                        </button>
-                        <input type="text" id="chatInput" placeholder="Type a message...">
-                        <button class="attachment-btn">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
-                        <button class="voice-btn">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', chatSidebarHTML);
-    }
-
-    // Get references to chat elements
-    chatSidebar = document.getElementById('chatSidebar');
-    chatList = document.getElementById('chatList');
-    chatWindow = document.getElementById('chatWindow');
-    chatMessages = document.getElementById('chatMessages');
-    chatInput = document.getElementById('chatInput');
-    closeChat = document.getElementById('closeChat');
-
-    // Add click event for close button
-    if (closeChat) {
-        closeChat.addEventListener('click', () => {
-            if (chatSidebar) {
-                chatSidebar.classList.remove('active');
-            }
-        });
-    }
-
-    // Add click event for chat input
-    if (chatInput) {
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && chatInput.value.trim()) {
-                sendMessage(chatInput.value.trim());
-                chatInput.value = '';
-            }
-        });
-    }
-
-    // Listen for new messages
-    if (socket) {
-        socket.on('privateMessage', handlePrivateMessage);
-    }
-}
-
-// Show welcome section
-function showWelcomeSection() {
-    const welcomeSection = document.getElementById('welcomeSection');
-    const channelSection = document.getElementById('channelSection');
+    createThemeSwitch();
     
-    if (welcomeSection && channelSection) {
-    welcomeSection.classList.remove('hidden');
-        channelSection.classList.remove('visible');
-    channelSection.classList.add('hidden');
-    }
-}
-
-// Handle private messages
-function handlePrivateMessage(data) {
-    if (!chatMessages) return;
-
-    const messageElement = document.createElement('div');
-    messageElement.className = `message ${data.senderId === currentUser.id ? 'sent' : 'received'}`;
-    messageElement.innerHTML = `
-        <div class="message-content">
-            <div class="message-sender">${data.senderName}</div>
-            <div class="message-text">${data.message}</div>
-            <div class="message-time">${new Date().toLocaleTimeString()}</div>
-        </div>
-    `;
-
-    chatMessages.appendChild(messageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-// Show chat sidebar
-function showChatSidebar() {
-    chatSidebar.classList.add('active');
-    // Show join section by default
-    joinSection.style.display = 'flex';
-    chatList.style.display = 'none';
-    chatWindow.style.display = 'none';
-}
-
-// Hide chat sidebar
-function hideChatSidebar() {
-    chatSidebar.classList.remove('active');
-}
-
-// Close chat button click handler
-closeChat.addEventListener('click', hideChatSidebar);
-
-// Join channel button click handler
-joinBtn.addEventListener('click', () => {
-    const channelName = channelNameInput.value.trim();
-    const displayName = displayNameInput.value.trim();
-
-    if (!channelName || !displayName) {
-        warningMessage.textContent = 'Please enter both channel name and display name';
+    // Rest of your initialization code...
+    if (!initializeUserData()) {
         return;
     }
-
-    // Hide join section and show chat list
-    joinSection.style.display = 'none';
-    chatList.style.display = 'block';
-    
-    // Add channel to chat list
-    const channelItem = document.createElement('div');
-    channelItem.className = 'chat-item';
-    channelItem.innerHTML = `
-        <div class="chat-item-info">
-            <i class="fas fa-hashtag"></i>
-            <span>${channelName}</span>
-        </div>
-        <span class="chat-item-status">Active</span>
-    `;
-    chatList.appendChild(channelItem);
-
-    // Show chat window
-    chatWindow.style.display = 'flex';
-    chatWindow.classList.add('active');
+    initializeDOMElements();
+    initializeEventListeners();
 });
 
-// Add click handler for menu items
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.menu-item[data-action="message"]')) {
-        showChatSidebar();
+// Initialize particles.js
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof particlesJS !== 'undefined') {
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 80,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: '#00ff9d'
+                },
+                shape: {
+                    type: 'circle'
+                },
+                opacity: {
+                    value: 0.5,
+                    random: false
+                },
+                size: {
+                    value: 3,
+                    random: true
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#00ff9d',
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 140,
+                        line_linked: {
+                            opacity: 1
+                        }
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
+        });
     }
 });
+
+// Theme Toggle
+const themeToggle = document.getElementById('themeToggle');
+if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+}
+
+// Load saved theme
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// Enhanced User Status Updates
+function updateUserStatus(userId, status) {
+    const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+    if (userItem) {
+        const statusIndicator = userItem.querySelector('.avatar-status');
+        if (statusIndicator) {
+            statusIndicator.className = 'avatar-status';
+            statusIndicator.classList.add(`status-${status.toLowerCase()}`);
+        }
+    }
+}
+
+// Enhanced Audio Controls
+function setupAudioControls() {
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.addEventListener('play', () => {
+            const userItem = audio.closest('.user-item');
+            if (userItem) {
+                userItem.classList.add('speaking');
+            }
+        });
+
+        audio.addEventListener('pause', () => {
+            const userItem = audio.closest('.user-item');
+            if (userItem) {
+                userItem.classList.remove('speaking');
+            }
+        });
+    });
+}
+
+// Enhanced Error Handling with UI Feedback
+function showError(message, duration = 3000) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+        errorDiv.classList.add('fade-out');
+        setTimeout(() => errorDiv.remove(), 500);
+    }, duration);
+}
+
+// Enhanced Connection Status Updates
+function updateConnectionStatus(status) {
+    const statusIndicator = document.querySelector('.connection-status');
+    if (statusIndicator) {
+        statusIndicator.className = 'connection-status';
+        statusIndicator.classList.add(`status-${status.toLowerCase()}`);
+        statusIndicator.textContent = status;
+    }
+}
+
+// Enhanced Welcome Section Transitions
+function showWelcomeSection() {
+    const welcomeSection = document.querySelector('.welcome-section');
+    if (welcomeSection) {
+        welcomeSection.style.display = 'flex';
+        setTimeout(() => welcomeSection.classList.add('visible'), 50);
+    }
+}
+
+function hideWelcomeSection() {
+    const welcomeSection = document.querySelector('.welcome-section');
+    if (welcomeSection) {
+        welcomeSection.classList.remove('visible');
+        setTimeout(() => welcomeSection.style.display = 'none', 500);
+    }
+}
+
+// Enhanced Channel Section Transitions
+function showChannelSection() {
+    const channelSection = document.querySelector('.channel-section');
+    if (channelSection) {
+        channelSection.style.display = 'flex';
+        setTimeout(() => channelSection.classList.add('visible'), 50);
+    }
+}
+
+function hideChannelSection() {
+    const channelSection = document.querySelector('.channel-section');
+    if (channelSection) {
+        channelSection.classList.remove('visible');
+        setTimeout(() => channelSection.style.display = 'none', 500);
+    }
+}
+
+// Enhanced User List Updates
+function updateUserList(users) {
+    const usersGrid = document.querySelector('.users-grid');
+    if (usersGrid) {
+        usersGrid.innerHTML = '';
+        users.forEach(user => {
+            const userItem = createUserItem(user);
+            usersGrid.appendChild(userItem);
+        });
+    }
+}
+
+function createUserItem(user) {
+    const userItem = document.createElement('div');
+    userItem.className = 'user-item';
+    userItem.setAttribute('data-user-id', user.id);
+
+    userItem.innerHTML = `
+        <div class="avatar-wrapper">
+            <img src="${user.avatar || 'default-avatar.png'}" alt="${user.name}" class="user-avatar">
+            <div class="avatar-status status-${user.status.toLowerCase()}"></div>
+        </div>
+        <span class="user-name">${user.name}</span>
+        <span class="user-status">${user.status}</span>
+        <audio id="audio-${user.id}" autoplay></audio>
+    `;
+
+    return userItem;
+}
+
+// Initialize UI
+document.addEventListener('DOMContentLoaded', () => {
+    setupAudioControls();
+    showWelcomeSection();
+});
+
+// Function to get saved cursor style from localStorage
+// Note: Logic to select and save cursor style needs to be implemented on the profile page.
+// The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
+// to localStorage with the key 'cursorStyle'.

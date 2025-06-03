@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTM3MGY3IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+">
     
     <!-- WebRTC and Socket.IO Scripts -->
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
@@ -69,24 +68,6 @@
                     </div>
                     <span id="userDisplayName"></span>
                 </div>
-                
-                <!-- Add Notification Icon -->
-                <div class="notification-container">
-                    <button class="notification-icon" id="notificationIcon" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notificationBadge">0</span>
-                    </button>
-                    <div class="notification-dropdown" id="notificationDropdown">
-                        <div class="notification-header">
-                            <h3>Notifications</h3>
-                            <button class="clear-all" id="clearNotifications">Clear All</button>
-                        </div>
-                        <div class="notification-list" id="notificationList">
-                            <!-- Notifications will be added here dynamically -->
-                        </div>
-                    </div>
-                </div>
-
                 <button class="hamburger-menu" id="hamburgerMenu">
                     <span></span>
                     <span></span>
@@ -164,41 +145,6 @@
                 
                 <div class="users-grid" id="usersList">
                     <!-- Users will be added here dynamically -->
-                    <div class="user-item">
-                        <div class="user-avatar-container">
-                            <img src="assets/images/default-avatar.svg" alt="User Avatar" class="user-avatar">
-                            <div class="user-status-indicator"></div>
-                        </div>
-                        <div class="user-details">
-                            <span class="user-name">User Name</span>
-                            <span class="user-status">Online</span>
-                            <div class="user-device-status">
-                                <div class="device-status mic-status" title="Microphone Status">
-                                    <i class="fas fa-microphone"></i>
-                                    <span class="status-text">Active</span>
-                                </div>
-                                <div class="device-status speaker-status" title="Speaker Status">
-                                    <i class="fas fa-volume-up"></i>
-                                    <span class="status-text">Active</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="user-menu">
-                            <button class="menu-button" title="More options">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <div class="menu-dropdown">
-                                <button class="menu-item" data-action="message">
-                                    <i class="fas fa-comment"></i>
-                                    Message
-                                </button>
-                                <button class="menu-item" data-action="add-friend">
-                                    <i class="fas fa-user-plus"></i>
-                                    Add Friend
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="channel-controls">
@@ -218,87 +164,23 @@
             </section>
         </main>
 
-        <!-- Chat Sidebar -->
-        <div id="chatSidebar" class="chat-sidebar">
-            <div class="chat-header">
-                <div class="chat-header-info">
-                    <h3>SKYNET Chat</h3>
-                    <span class="online-count">0 online</span>
-                </div>
-                <button class="close-chat" id="closeChat">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            <!-- Channel Join Section -->
-            <div class="join-section" id="joinSection">
-                <div class="input-group">
-                    <label for="channelName">Channel Name</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="channelName" class="input-field" placeholder="Enter channel name">
-                        <i class="fas fa-hashtag input-icon"></i>
-                    </div>
-                </div>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="join-section">
                 <div class="input-group">
                     <label for="displayName">Display Name</label>
                     <div class="input-wrapper">
-                        <input type="text" id="displayName" class="input-field" placeholder="Enter your display name">
+                        <input type="text" id="displayName" class="input-field" placeholder="Enter your display name" value="" readonly>
                         <i class="fas fa-user input-icon"></i>
                     </div>
                 </div>
                 <button id="joinBtn" class="join-btn">
                     <i class="fas fa-sign-in-alt"></i>
-                    Join Channel
+                    <span>Join DUNE PC</span>
                 </button>
-                <div class="warning-message" id="warningMessage"></div>
+                <div id="warningMessage" class="warning-message"></div>
             </div>
-
-            <div class="chat-list" id="chatList">
-                <!-- Chat items will be added here dynamically -->
-            </div>
-
-            <div class="chat-window" id="chatWindow">
-                <div class="chat-window-header">
-                    <div class="chat-user-info">
-                        <img src="" alt="" class="chat-user-avatar" id="chatUserAvatar">
-                        <div class="chat-user-details">
-                            <span class="chat-user-name" id="chatUserName"></span>
-                            <span class="chat-user-status" id="chatUserStatus">Online</span>
-                        </div>
-                    </div>
-                    <div class="chat-actions">
-                        <button class="chat-action-btn" title="Voice Call">
-                            <i class="fas fa-phone"></i>
-                        </button>
-                        <button class="chat-action-btn" title="Video Call">
-                            <i class="fas fa-video"></i>
-                        </button>
-                        <button class="chat-action-btn" title="More Options">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="chat-messages" id="chatMessages">
-                    <!-- Messages will be added here dynamically -->
-                </div>
-
-                <div class="chat-input-container">
-                    <button class="chat-input-btn" title="Add Attachment">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <div class="chat-input-wrapper">
-                        <input type="text" id="chatInput" class="chat-input" placeholder="Type a message...">
-                        <button class="emoji-btn" title="Add Emoji">
-                            <i class="far fa-smile"></i>
-                        </button>
-                    </div>
-                    <button class="chat-input-btn" title="Send Voice Message">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
+        </aside>
 
         <!-- Footer -->
         <footer class="footer">
@@ -445,8 +327,5 @@
     <!-- Audio elements for notifications -->
     <audio id="userJoinedSound" src="assets/sounds/user_joined.mp3" preload="auto"></audio>
     <audio id="userLeftSound" src="assets/sounds/user_left.mp3" preload="auto"></audio>
-
-    <!-- Add Notification Container for Push Notifications -->
-    <div id="pushNotificationContainer" class="push-notification-container"></div>
 </body>
 </html> 
