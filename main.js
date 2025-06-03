@@ -9,6 +9,10 @@ let muteBtn;
 let deafenBtn;
 let leaveBtn;
 
+// Audio elements for notifications
+let userJoinedSound;
+let userLeftSound;
+
 // State
 let localStream = null;
 let peerConnections = {};
@@ -54,6 +58,10 @@ function initializeDOMElements() {
     muteBtn = document.getElementById('muteBtn');
     deafenBtn = document.getElementById('deafenBtn');
     leaveBtn = document.getElementById('leaveBtn');
+
+    // Get references to audio elements
+    userJoinedSound = document.getElementById('userJoinedSound');
+    userLeftSound = document.getElementById('userLeftSound');
 
     // Set initial display name if user data is available
     if (currentUser && currentUser.displayName) {
@@ -873,6 +881,21 @@ function initializeSocket() {
             requestAnimationFrame(() => {
                 updateUserDeafenStatus(data.userId, data.isDeafened);
             });
+        }
+    });
+
+    // Listen for sound notification events (assuming server sends these)
+    socket.on('userJoinedSound', () => {
+        console.log('Received userJoinedSound event');
+        if (userJoinedSound) {
+            userJoinedSound.play().catch(error => console.error('Error playing userJoinedSound:', error));
+        }
+    });
+
+    socket.on('userLeftSound', () => {
+        console.log('Received userLeftSound event');
+        if (userLeftSound) {
+            userLeftSound.play().catch(error => console.error('Error playing userLeftSound:', error));
         }
     });
 }
