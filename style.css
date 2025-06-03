@@ -364,6 +364,10 @@ body {
     position: relative;
 }
 
+.welcome-section.hidden {
+    display: none !important; /* Explicitly hide when the channel section is visible */
+}
+
 .welcome-content {
     text-align: center;
     padding: 3rem; /* More padding */
@@ -466,7 +470,8 @@ body {
 .channel-section.visible {
     display: flex;
     animation: fadeIn 0.5s ease;
-    margin-top: 2rem; /* Space above the channel section */
+    margin-top: 0; /* Remove space above the channel section */
+    flex-grow: 1; /* Allow the channel section to grow and fill available space */
 }
 
 .channel-header {
@@ -1736,7 +1741,7 @@ body {
     color: var(--primary-color); /* Use primary color */
     text-shadow: 0 0 18px rgba(163, 112, 247, 0.5); /* Adjusted shadow */
     animation: none; /* Remove glitch animation */
-}
+    }
 
 .welcome-content .glitch-text {
     position: relative;
