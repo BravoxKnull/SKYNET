@@ -39,6 +39,32 @@ function initializeUserData() {
             return false;
         }
         currentUser = JSON.parse(userData);
+        
+        // Listen for avatar updates
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'user' || event.key === 'avatarUpdate') {
+                try {
+                    const updatedUser = JSON.parse(event.newValue);
+                    if (updatedUser && updatedUser.avatar_url) {
+                        console.log('Avatar update detected in main.js');
+                        // Update current user's avatar
+                        currentUser.avatar_url = updatedUser.avatar_url;
+                        // Update UI if user is in channel
+                        if (socket && socket.connected) {
+                            socket.emit('userAvatarUpdate', {
+                                userId: currentUser.id,
+                                avatar_url: updatedUser.avatar_url
+                            });
+                        }
+                        // Update user list
+                        updateUsersList(users);
+                    }
+                } catch (error) {
+                    console.error('Error processing avatar update:', error);
+                }
+            }
+        });
+
         return true;
     } catch (error) {
         console.error('Error parsing user data:', error);
@@ -898,25 +924,38 @@ function initializeSocket() {
             userLeftSound.play().catch(error => console.error('Error playing userLeftSound:', error));
         }
     });
+
+    // Add avatar update handler
+    socket.on('userAvatarUpdate', (data) => {
+        console.log('Received avatar update from server:', data);
+        const userIndex = users.findIndex(u => u.id === data.userId);
+        if (userIndex !== -1) {
+            users[userIndex].avatar_url = data.avatar_url;
+            updateUsersList(users);
+        }
+    });
 }
 
 // Function to create user list item
 function createUserListItem(userData) {
     const userItem = document.createElement('div');
     userItem.className = 'user-item';
-    userItem.setAttribute('data-user-id', userData.id);
-    userItem.setAttribute('data-username', userData.displayName);
+    userItem.dataset.userId = userData.id;
 
-    const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+';
-
-    const avatarUrl = userData.avatar_url || defaultAvatar;
+    const avatar = document.createElement('img');
+    avatar.className = 'user-avatar';
+    avatar.src = userData.avatar_url || 'assets/images/default-avatar.svg';
+    avatar.alt = `${userData.displayName}'s avatar`;
+    avatar.onerror = () => {
+        avatar.src = 'assets/images/default-avatar.svg';
+    };
 
     userItem.innerHTML = `
         <div class="user-avatar-container">
-            <img src="${avatarUrl}"
+            <img src="${avatar.src}"
                  alt="${userData.displayName}'s avatar"
                  class="user-avatar"
-                 onerror="this.onerror=null; this.src='${defaultAvatar}'">
+                 onerror="this.onerror=null; this.src='${avatar.src}'">
             <div class="user-status-indicator"></div>
         </div>
         <div class="user-details">

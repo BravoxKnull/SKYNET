@@ -362,6 +362,21 @@
             }
         });
 
+        // Also listen for the custom storage event
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'user') {
+                try {
+                    const updatedUser = JSON.parse(event.newValue);
+                    if (updatedUser && updatedUser.avatar_url) {
+                        console.log('User storage updated, updating avatar');
+                        updateAvatar(updatedUser.avatar_url);
+                    }
+                } catch (error) {
+                    console.error('Error processing user storage update:', error);
+                }
+            }
+        });
+
         // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('user')
