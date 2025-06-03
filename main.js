@@ -1352,19 +1352,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Function to get saved cursor style from localStorage
-function getSavedCursorStyle() {
-    return localStorage.getItem('cursorStyle') || 'cursor-default-custom'; // Default to custom default
-}
-
-// Function to apply cursor style to the body
-function applyCursorStyle(styleClass) {
-    document.body.className = ''; // Remove existing cursor classes
-    document.body.classList.add(styleClass);
-}
-
-// Apply saved cursor style on page load
-applyCursorStyle(getSavedCursorStyle());
-
 // Note: Logic to select and save cursor style needs to be implemented on the profile page.
 // The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
 // to localStorage with the key 'cursorStyle'.

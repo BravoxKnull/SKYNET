@@ -3,27 +3,27 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    cursor: default; /* Set default cursor */
+    /* cursor: default; Set default cursor */
 }
 
 /* Ensure proper cursor behavior for interactive elements */
 a, button, input[type="submit"], input[type="button"], 
 .control-btn, .join-btn, .nav-link, .social-icon {
-    cursor: pointer !important;
+    /* cursor: pointer !important; */
 }
 
 input[type="text"], input[type="email"], textarea {
-    cursor: text !important;
+    /* cursor: text !important; */
 }
 
 /* Disable custom cursor effects */
 * {
-    cursor: auto !important;
+    /* cursor: auto !important; */
 }
 
 /* Ensure proper cursor behavior for disabled elements */
 button:disabled, input:disabled {
-    cursor: not-allowed !important;
+    /* cursor: not-allowed !important; */
 }
 
 /* Theme Variables */
@@ -96,6 +96,8 @@ body {
     background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxIiBmaWxsPSIjM2QzZjU0Ii8+PC9zdmc+');
     background-repeat: repeat;
     background-size: 24px 24px;
+    padding-top: 60px; /* Add padding to the top of the body for fixed header */
+    padding-bottom: 80px; /* Add padding to the bottom of the body for fixed footer */
 }
 
 /* Particles.js Background */
@@ -142,13 +144,15 @@ body {
     grid-area: header;
     background: var(--glass-bg);
     backdrop-filter: blur(15px); /* Increased blur */
-    padding: 1rem 2rem;
+    padding: 0.8rem 1.5rem; /* Slightly reduced padding */
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--glass-border);
-    position: sticky;
+    position: fixed; /* Make header fixed */
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 1000;
     box-shadow: var(--glass-shadow);
 }
@@ -286,13 +290,13 @@ body {
     position: fixed;
     top: 0;
     right: -100%;
-    width: 280px;
+    width: 250px; /* Slightly smaller menu width */
     height: 100vh;
     background: rgba(26, 27, 38, 0.98); /* Match new background with less transparency */
     backdrop-filter: blur(15px); /* Increased blur */
     display: flex;
     flex-direction: column;
-    padding: 5rem 2rem 2rem;
+    padding: 4rem 1.5rem 1.5rem; /* Adjusted padding */
     transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother transition */
     border-left: 1px solid var(--glass-border); /* Use glass border */
     z-index: 1000;
@@ -360,7 +364,7 @@ body {
 /* Main Content Styles */
 .main-content {
     grid-area: main;
-    padding: 2rem;
+    padding: 1.5rem; /* Slightly reduced padding */
     position: relative;
     overflow-y: auto;
 }
@@ -383,7 +387,7 @@ body {
 
 .welcome-content {
     text-align: center;
-    padding: 3rem; /* More padding */
+    padding: 2rem; /* Slightly reduced padding */
     background: var(--glass-bg);
     backdrop-filter: blur(15px); /* Increased blur */
     border-radius: 20px; /* Maintain rounded corners */
@@ -406,8 +410,8 @@ body {
 
 .welcome-section h1 {
     font-family: 'Orbitron', sans-serif;
-    font-size: 3.5rem; /* Larger font size */
-    margin-bottom: 1.5rem; /* More space below title */
+    font-size: 3rem; /* Slightly smaller font size */
+    margin-bottom: 1rem; /* Slightly reduced margin */
     background: var(--gradient-primary); /* Use gradient */
     -webkit-background-clip: text;
     background-clip: text;
@@ -426,17 +430,17 @@ body {
 }
 
 .welcome-subtitle {
-    font-size: 1.4rem; /* Larger font size */
+    font-size: 1.2rem; /* Slightly smaller font size */
     color: var(--accent-color); /* Use accent color */
-    margin: 1.5rem 0; /* More space */
+    margin: 1rem 0; /* Slightly reduced margin */
     opacity: 0.9; /* Slightly more opaque */
 }
 
 .welcome-features {
     display: flex;
     justify-content: center;
-    gap: 3rem; /* More space between features */
-    margin-top: 3rem; /* More space above features */
+    gap: 2rem; /* Slightly reduced gap */
+    margin-top: 2rem; /* Slightly reduced margin */
 }
 
 .feature {
@@ -444,7 +448,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 0.8rem; /* More space */
-    padding: 1.5rem; /* More padding */
+    padding: 1rem; /* Slightly reduced padding */
     background: var(--card-bg); /* Use card background */
     border-radius: 15px; /* More rounded */
     border: 1px solid var(--border-color); /* Use border color */
@@ -459,12 +463,12 @@ body {
 }
 
 .feature i {
-    font-size: 2rem; /* Larger icons */
+    font-size: 1.8rem; /* Slightly smaller icons */
     color: var(--primary-color); /* Use primary color */
 }
 
 .feature span {
-    font-size: 1rem; /* Larger font size */
+    font-size: 0.9rem; /* Slightly smaller font size */
     color: var(--text-color);
     font-weight: 500;
 }
@@ -491,7 +495,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem; /* More padding */
+    padding: 0.8rem 1.5rem; /* Slightly reduced padding */
     background: rgba(26, 27, 38, 0.8); /* Match new background */
     border-bottom: 1px solid var(--glass-border); /* Use glass border */
 }
@@ -504,16 +508,16 @@ body {
 
 .channel-info h2 {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.5rem; /* Larger font size */
+    font-size: 1.3rem; /* Slightly smaller font size */
     font-weight: 600;
     color: var(--primary-color); /* Use primary color */
     margin: 0;
-    text-shadow: 0 0 12px rgba(163, 112, 247, 0.4); /* Shadow matching primary color */
+    text-shadow: 0 0 12px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
 }
 
 .channel-type {
     color: var(--accent-color); /* Use accent color */
-    font-size: 1rem; /* Larger font size */
+    font-size: 0.9rem; /* Slightly smaller font size */
 }
 
 .channel-status {
@@ -522,8 +526,8 @@ body {
 }
 
 .status-indicator {
-    width: 36px; /* Larger indicator */
-    height: 36px; /* Larger indicator */
+    width: 30px; /* Slightly smaller indicator */
+    height: 30px; /* Slightly smaller indicator */
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -546,12 +550,12 @@ body {
 /* Users Grid */
 .users-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Slightly larger min width */
-    gap: 1.5rem; /* More space */
-    padding: 1.5rem; /* More padding */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Slightly smaller min width */
+    gap: 1rem; /* Slightly reduced gap */
+    padding: 1rem; /* Slightly reduced padding */
     overflow-y: auto;
     flex: 1;
-    max-height: calc(100vh - 140px - 80px); /* Full height - header - channel header - controls - some margin */
+    /* max-height: calc(100vh - 140px - 80px); Full height - header - channel header - controls - some margin */
     margin-bottom: 80px;
 }
 
@@ -559,7 +563,7 @@ body {
     background: var(--card-bg); /* Use card background */
     backdrop-filter: blur(10px); /* Increased blur */
     border-radius: 15px; /* Maintain rounded corners */
-    padding: 1.5rem; /* More padding */
+    padding: 1rem; /* Slightly reduced padding */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -576,8 +580,8 @@ body {
 }
 
 .user-avatar-container {
-    width: 90px; /* Larger avatar */
-    height: 90px; /* Larger avatar */
+    width: 80px; /* Slightly smaller avatar */
+    height: 80px; /* Slightly smaller avatar */
     border-radius: 50%;
     overflow: hidden;
     border: 3px solid var(--primary-color); /* Use primary color */
@@ -603,8 +607,8 @@ body {
     position: absolute;
     bottom: 0;
     right: 0;
-    width: 14px; /* Larger indicator */
-    height: 14px; /* Larger indicator */
+    width: 12px; /* Slightly smaller indicator */
+    height: 12px; /* Slightly smaller indicator */
     border-radius: 50%;
     background-color: #4CAF50; /* Default green */
     border: 3px solid var(--background-color); /* Border matches new background */
@@ -653,10 +657,10 @@ body {
 }
 
 .user-status {
-    font-size: 0.9rem; /* Larger font size */
+    font-size: 0.8rem; /* Slightly smaller font size */
     color: var(--accent-color); /* Use accent color */
     transition: all 0.3s ease;
-    margin: 4px 0; /* More space */
+    margin: 2px 0; /* Slightly reduced margin */
 }
 
 .user-status:not(:empty) {
@@ -683,9 +687,9 @@ body {
 /* Ensure device status is always visible */
 .user-device-status {
     display: flex;
-    gap: 10px; /* More space */
-    margin-top: 8px; /* More space */
-    font-size: 0.9rem; /* Larger font size */
+    gap: 8px; /* Slightly reduced gap */
+    margin-top: 6px; /* Slightly reduced margin */
+    font-size: 0.8rem; /* Slightly smaller font size */
     width: 100%;
     justify-content: center;
 }
@@ -705,7 +709,7 @@ body {
 
 /* Ensure icons are visible */
 .device-status i {
-    font-size: 1rem; /* Larger icons */
+    font-size: 0.9rem; /* Slightly smaller icons */
     color: var(--primary-color); /* Use primary color */
     transition: all 0.3s ease;
 }
@@ -731,16 +735,16 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px; /* More space */
+    gap: 4px; /* Slightly reduced gap */
     width: 100%;
 }
 
 .user-name {
     font-weight: 600;
     color: var(--text-color);
-    margin-bottom: 4px; /* More space */
+    margin-bottom: 2px; /* Slightly reduced margin */
     text-shadow: 0 0 12px rgba(224, 224, 224, 0.3); /* Shadow matching text color */
-    font-size: 1.1rem; /* Larger font size */
+    font-size: 1rem; /* Slightly smaller font size */
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -756,8 +760,8 @@ body {
 .channel-controls {
     display: flex;
     justify-content: center;
-    gap: 1.5rem; /* More space */
-    padding: 1.5rem; /* More padding */
+    gap: 1rem; /* Slightly reduced gap */
+    padding: 1rem; /* Slightly reduced padding */
     background: var(--glass-bg); /* Use glass background */
     backdrop-filter: blur(15px); /* Increased blur */
     border-top: 1px solid var(--glass-border); /* Use glass border */
@@ -771,8 +775,8 @@ body {
 .control-btn {
     display: flex;
     align-items: center;
-    gap: 0.8rem; /* More space */
-    padding: 1rem 2rem; /* More padding */
+    gap: 0.6rem; /* Slightly reduced gap */
+    padding: 0.8rem 1.5rem; /* Slightly reduced padding */
     border-radius: 10px; /* Maintain rounded corners */
     border: 1px solid var(--glass-border); /* Use glass border */
     background: var(--glass-bg); /* Use glass background */
@@ -801,7 +805,7 @@ body {
 }
 
 .control-btn i {
-    font-size: 1.3rem; /* Larger icons */
+    font-size: 1.1rem; /* Slightly smaller icons */
     color: var(--primary-color); /* Use primary color */
     transition: all 0.3s ease;
 }
@@ -814,7 +818,7 @@ body {
 .sidebar {
     grid-area: sidebar;
     background: rgba(26, 27, 38, 0.8); /* Match new background */
-    padding: 2rem;
+    padding: 1.5rem; /* Slightly reduced padding */
     border-left: 1px solid var(--glass-border); /* Use glass border */
     overflow-y: auto;
 }
@@ -822,24 +826,24 @@ body {
 .join-section {
     display: flex;
     flex-direction: column;
-    gap: 2rem; /* More space */
+    gap: 1.5rem; /* Slightly reduced gap */
 }
 
 .input-group {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem; /* More space */
+    gap: 0.6rem; /* Slightly reduced gap */
 }
 
 .input-group label {
     color: var(--text-color); /* Use text color */
-    font-size: 1rem; /* Larger font size */
+    font-size: 0.9rem; /* Slightly smaller font size */
     font-weight: 500;
     margin-bottom: 0.2rem; /* Small margin */
 }
 
 .input-field {
-    padding: 1rem; /* More padding */
+    padding: 0.8rem; /* Slightly reduced padding */
     border: 1px solid var(--border-color); /* Use border color */
     border-radius: 8px; /* More rounded */
     background: var(--input-bg); /* Use input background */
@@ -857,18 +861,18 @@ body {
 
 .input-wrapper .input-icon {
     position: absolute;
-    right: 1rem; /* Adjust icon position */
+    right: 0.8rem; /* Adjusted icon position */
     color: var(--primary-color); /* Use primary color for icon */
     pointer-events: none;
-    font-size: 1.2rem; /* Larger icon */
+    font-size: 1.1rem; /* Slightly smaller icon */
 }
 
 .join-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.8rem; /* More space */
-    padding: 1.2rem; /* More padding */
+    gap: 0.6rem; /* Slightly reduced gap */
+    padding: 1rem; /* Slightly reduced padding */
     border: none;
     border-radius: 8px; /* More rounded */
     background: var(--gradient-primary); /* Use gradient */
@@ -924,7 +928,7 @@ body {
 
 .warning-message {
     color: var(--warning-color); /* Use warning color */
-    font-size: 1rem; /* Larger font size */
+    font-size: 0.9rem; /* Slightly smaller font size */
     text-align: center;
     min-height: 1.8rem; /* Adjust height */
 }
@@ -933,20 +937,20 @@ body {
 .footer {
     background: rgba(26, 27, 38, 0.95); /* Match new background */
     border-top: 1px solid var(--glass-border); /* Use glass border */
-    padding: 4rem 2rem 2rem;
-    margin-top: 4rem;
+    padding: 3rem 1.5rem 1.5rem; /* Adjusted padding */
+    margin-top: 0; /* Remove top margin as padding is handled by body */
 }
 
 .footer-content {
-    max-width: 1200px;
+    max-width: 1100px; /* Slightly smaller max width */
     margin: 0 auto;
 }
 
 .footer-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 3rem;
-    margin-bottom: 3rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Slightly smaller min width */
+    gap: 2rem; /* Slightly reduced gap */
+    margin-bottom: 2rem; /* Slightly reduced margin */
 }
 
 .footer-section {
@@ -1002,8 +1006,8 @@ body {
 .footer-section h4 {
     color: var(--primary-color); /* Use primary color */
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.3rem; /* Larger font size */
-    margin-bottom: 1.2rem; /* More space */
+    font-size: 1.2rem; /* Slightly smaller font size */
+    margin-bottom: 1rem; /* Slightly reduced margin */
     text-shadow: 0 0 10px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
 }
 
@@ -1014,7 +1018,7 @@ body {
 }
 
 .footer-links li {
-    margin-bottom: 1rem; /* More space */
+    margin-bottom: 0.8rem; /* Slightly reduced margin */
 }
 
 .footer-links a {
@@ -1022,7 +1026,7 @@ body {
     text-decoration: none;
     transition: all 0.3s ease;
     opacity: 0.9; /* Slightly more opaque */
-    font-size: 0.95rem; /* Slightly larger font size */
+    font-size: 0.9rem; /* Slightly smaller font size */
 }
 
 .footer-links a:hover {
@@ -1035,13 +1039,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 2rem;
+    padding-top: 1.5rem; /* Slightly reduced padding */
     border-top: 1px solid var(--glass-border); /* Use glass border */
 }
 
 .footer-copyright {
     color: var(--text-color);
-    font-size: 0.9rem;
+    font-size: 0.8rem; /* Slightly smaller font size */
     opacity: 0.8;
 }
 
@@ -1054,10 +1058,10 @@ body {
     background: rgba(36, 37, 54, 0.6); /* Use input background */
     border: 1px solid var(--border-color); /* Use border color */
     border-radius: 5px;
-    padding: 0.8rem 1rem; /* More padding */
+    padding: 0.7rem 1rem; /* Slightly reduced padding */
     color: var(--text-color);
-    font-size: 0.9rem;
-    width: 280px; /* Slightly wider */
+    font-size: 0.9rem; /* Slightly smaller font size */
+    width: 250px; /* Slightly narrower */
     transition: all 0.3s ease;
 }
 
@@ -1701,8 +1705,8 @@ body {
 
 /* Add style for the join button icon */
 .join-btn i {
-    margin-right: 0.8rem; /* More space between icon and text */
-    font-size: 1.3rem; /* Larger icon */
+    margin-right: 0.6rem; /* Slightly reduced margin */
+    font-size: 1.2rem; /* Slightly smaller icon */
 }
 
 /* Style for the logout button in the nav menu */
@@ -1734,8 +1738,8 @@ body {
 
 /* Update styles for welcome section elements */
 .welcome-section h1 {
-    font-size: 3.5rem; /* Larger font size */
-    margin-bottom: 1.5rem; /* More space below title */
+    font-size: 3rem; /* Slightly smaller font size */
+    margin-bottom: 1rem; /* Slightly reduced margin */
     background: var(--gradient-primary); /* Use gradient */
     -webkit-background-clip: text;
     background-clip: text;
@@ -1781,7 +1785,7 @@ body {
 /* Add styling for the channel name in the channel header */
 .channel-info h2 {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.5rem; /* Larger font size */
+    font-size: 1.3rem; /* Slightly smaller font size */
     color: var(--primary-color); /* Use primary color */
     margin: 0;
     text-shadow: 0 0 12px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
@@ -1966,39 +1970,22 @@ body {
     justify-content: flex-start; /* Align device status to the start */
 }
 
-/* Add custom cursor styles */
-body.cursor-pointer-custom {
-    cursor: url('assets/cursors/pointer.svg'), auto !important;
+/* Auto-resize based on number of users */
+.users-grid:has(.user-item:nth-child(4):last-child) { /* 4 items */
+    grid-template-columns: repeat(2, 1fr);
 }
 
-body.cursor-text-custom {
-    cursor: url('assets/cursors/text.svg'), text !important;
+.users-grid:has(.user-item:nth-child(5):last-child), /* 5 items */
+.users-grid:has(.user-item:nth-child(6):last-child) { /* 6 items */
+    grid-template-columns: repeat(3, 1fr);
 }
 
-body.cursor-default-custom {
-    cursor: url('assets/cursors/default.svg'), default !important;
+.users-grid:has(.user-item:nth-child(7):last-child), /* 7 items */
+.users-grid:has(.user-item:nth-child(8):last-child) { /* 8 items */
+     grid-template-columns: repeat(4, 1fr);
 }
 
-/* Ensure proper cursor behavior for interactive elements with custom cursors */
-body.cursor-default-custom a,
-body.cursor-default-custom button,
-body.cursor-default-custom input[type="submit"],
-body.cursor-default-custom input[type="button"],
-body.cursor-default-custom .control-btn,
-body.cursor-default-custom .join-btn,
-body.cursor-default-custom .nav-link,
-body.cursor-default-custom .social-icon {
-    cursor: url('assets/cursors/pointer.svg'), pointer !important;
-}
-
-body.cursor-default-custom input[type="text"],
-body.cursor-default-custom input[type="email"],
-body.cursor-default-custom textarea {
-    cursor: url('assets/cursors/text.svg'), text !important;
-}
-
-/* Ensure proper cursor behavior for disabled elements with custom cursors */
-body.cursor-default-custom button:disabled,
-body.cursor-default-custom input:disabled {
-    cursor: not-allowed !important;
+.users-grid:has(.user-item:nth-child(9):last-child), /* 9 items or more */
+.users-grid:has(.user-item:nth-child(10):last-child) { 
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Use auto-fill for many users */
 } 
