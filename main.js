@@ -1779,3 +1779,50 @@ function formatTime(ts) {
     const d = new Date(ts);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+// Defensive: Prevent page reload on chat send button click
+function patchChatSendButton() {
+    const chatInputForm = document.getElementById('chatInputForm');
+    const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send-btn') : null;
+    if (chatSendBtn) {
+        chatSendBtn.style.display = 'block';
+        chatSendBtn.style.visibility = 'visible';
+        chatSendBtn.style.minWidth = '44px';
+        chatSendBtn.style.zIndex = '10';
+        // Prevent default on click
+        chatSendBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            chatInputForm.requestSubmit();
+        };
+    }
+    // Add submit handler if not already present or if it was detached
+    if (chatInputForm && (!chatInputForm._patched || chatInputForm.onsubmit == null)) {
+        chatInputForm.onsubmit = async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const chatInput = document.getElementById('chatInput');
+            const msg = chatInput.value.trim();
+            if (!msg || !currentChatFriend) return false;
+            const user = getCurrentUser();
+            await supabase.from('user_messages').insert([
+                { sender_id: user.id, receiver_id: currentChatFriend.id, message: msg }
+            ]);
+            chatInput.value = '';
+            loadChatMessages(currentChatFriend.id);
+            return false;
+        };
+        chatInputForm._patched = true;
+    }
+    // Add Enter key handler for chat input
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput && !chatInput._patched) {
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatInputForm.requestSubmit();
+            }
+        });
+        chatInput._patched = true;
+    }
+}
