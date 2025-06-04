@@ -1692,27 +1692,54 @@ function renderChatMessages(messages, myId) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Send message
-if (chatInputForm) {
-    chatInputForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const msg = chatInput.value.trim();
-        if (!msg || !currentChatFriend) return;
-        const user = getCurrentUser();
-        await supabase.from('user_messages').insert([
-            { sender_id: user.id, receiver_id: currentChatFriend.id, message: msg }
-        ]);
-        chatInput.value = '';
-        loadChatMessages(currentChatFriend.id);
-    };
+// --- PATCH: Ensure chat send button is always visible and Enter sends message ---
+function patchChatSendButton() {
+    // Ensure chatInputForm and chat-send-btn exist and are visible
+    const chatInputForm = document.getElementById('chatInputForm');
+    const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send-btn') : null;
+    if (chatSendBtn) {
+        chatSendBtn.style.display = 'block';
+        chatSendBtn.style.visibility = 'visible';
+    }
+    // Add submit handler if not already present
+    if (chatInputForm && !chatInputForm._patched) {
+        chatInputForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const chatInput = document.getElementById('chatInput');
+            const msg = chatInput.value.trim();
+            if (!msg || !window.currentChatFriend) return;
+            const user = getCurrentUser();
+            await supabase.from('user_messages').insert([
+                { sender_id: user.id, receiver_id: window.currentChatFriend.id, message: msg }
+            ]);
+            chatInput.value = '';
+            loadChatMessages(window.currentChatFriend.id);
+        };
+        chatInputForm._patched = true;
+    }
+    // Add Enter key handler for chat input
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput && !chatInput._patched) {
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatInputForm.requestSubmit();
+            }
+        });
+        chatInput._patched = true;
+    }
 }
 
-// Poll for new messages every 3s if chat is open
-setInterval(() => {
-    if (currentChatFriend && chatWindow.style.display !== 'none') {
-        loadChatMessages(currentChatFriend.id);
-    }
-}, 3000);
+// Patch after DOMContentLoaded and after chat window is shown
+const origOpenChatWithFriend = window.openChatWithFriend;
+window.openChatWithFriend = async function(friend) {
+    await origOpenChatWithFriend(friend);
+    setTimeout(patchChatSendButton, 0);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    patchChatSendButton();
+});
 
 // Utility: Escape HTML
 function escapeHtml(text) {
