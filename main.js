@@ -1598,7 +1598,34 @@ document.head.appendChild(friendStyle);
 // Patch: Remove chat-section logic and DOM refs
 // Sidebar now only shows friends list
 
-// Render friends list in sidebar
+// --- PATCH: Ensure unread badge always appears and is styled correctly ---
+(function injectSidebarUnreadBadgeCSS() {
+    if (!document.getElementById('sidebar-unread-badge-style')) {
+        const style = document.createElement('style');
+        style.id = 'sidebar-unread-badge-style';
+        style.textContent = `
+        .sidebar-friend-unread {
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.78rem;
+            min-width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+            font-weight: bold;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+            position: relative;
+            top: 0;
+            right: 0;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+// PATCH renderFriendsSidebarList to always append badge
 async function renderFriendsSidebarList() {
     const user = getCurrentUser();
     if (!user) return;
@@ -1622,11 +1649,24 @@ async function renderFriendsSidebarList() {
         .from('users')
         .select('id, display_name, avatar_url')
         .in('id', friendIds);
+    // Sort: friends with unread messages first, then by name
+    friends.sort((a, b) => {
+        const aUnread = sidebarUnreadCounts[a.id] || 0;
+        const bUnread = sidebarUnreadCounts[b.id] || 0;
+        if (aUnread !== bUnread) return bUnread - aUnread;
+        return a.display_name.localeCompare(b.display_name);
+    });
     sidebarList.innerHTML = '';
     friends.forEach(friend => {
         const div = document.createElement('div');
         div.className = 'sidebar-friend';
         div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar"><span class="sidebar-friend-name">${friend.display_name}</span>`;
+        if (sidebarUnreadCounts[friend.id] && sidebarUnreadCounts[friend.id] > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'sidebar-friend-unread';
+            badge.textContent = sidebarUnreadCounts[friend.id];
+            div.appendChild(badge);
+        }
         div.onclick = () => openChatModal(friend);
         div.dataset.friendId = friend.id;
         sidebarList.appendChild(div);
@@ -1704,19 +1744,45 @@ async function loadChatModalMessages(friendId) {
     renderChatModalMessages(data || [], user.id);
 }
 
+// --- PATCH: Animate new chat messages ---
+(function injectChatMessageAnimationCSS() {
+    if (!document.getElementById('chat-message-animate-style')) {
+        const style = document.createElement('style');
+        style.id = 'chat-message-animate-style';
+        style.textContent = `
+        .chat-message-animate {
+            animation: chatMessageFadeIn 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes chatMessageFadeIn {
+            0% { opacity: 0; transform: translateY(24px) scale(0.98); }
+            60% { opacity: 1; transform: translateY(-4px) scale(1.01); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+// PATCH renderChatModalMessages to animate only the newest message
+let lastMessageCount = 0;
 function renderChatModalMessages(messages, myId) {
     const chatModalMessages = document.getElementById('chatModalMessages');
     chatModalMessages.innerHTML = '';
     if (!messages.length) {
         chatModalMessages.innerHTML = '<div class="chat-modal-messages-empty">No messages yet. Say hello!</div>';
+        lastMessageCount = 0;
         return;
     }
-    messages.forEach(msg => {
+    messages.forEach((msg, idx) => {
         const div = document.createElement('div');
         div.className = 'chat-message' + (msg.sender_id === myId ? ' me' : '');
         div.innerHTML = `<div class=\"msg-bubble\">${escapeHtml(msg.message)}</div><div class=\"msg-meta\">${formatTime(msg.created_at)}</div>`;
+        // Animate only the newest message
+        if (idx === messages.length - 1 && messages.length > lastMessageCount) {
+            div.classList.add('chat-message-animate');
+        }
         chatModalMessages.appendChild(div);
     });
+    lastMessageCount = messages.length;
     chatModalMessages.scrollTop = chatModalMessages.scrollHeight;
 }
 
