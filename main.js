@@ -1426,19 +1426,52 @@ function getCurrentUser() {
     return JSON.parse(localStorage.getItem('user'));
 }
 
+// --- SAFE EVENT LISTENER ASSIGNMENTS ---
+function safeAddEventListener(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(event, handler);
+    } else {
+        console.warn('Element not found for event listener:', id);
+    }
+}
+function safeSetOnClick(id, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.onclick = handler;
+    } else {
+        console.warn('Element not found for onclick:', id);
+    }
+}
+// Use safeAddEventListener and safeSetOnClick for all event listeners
+safeSetOnClick('soundboardBtn', openSoundboardModal);
+safeSetOnClick('closeSoundboardModal', closeSoundboardModal);
+safeAddEventListener('soundboardModalOverlay', 'click', function(e) {
+    if (e.target === this) closeSoundboardModal();
+});
+safeAddEventListener('soundboardToggle', 'change', function(e) {
+    soundboardEnabled = e.target.checked;
+});
+safeSetOnClick('screenshareBtn', function() {
+    alert('Screenshare coming soon!');
+});
+
 // Helper: Get friendship status between current user and another user
 async function getFriendshipStatus(currentUserId, otherUserId) {
     if (!currentUserId || !otherUserId) {
         console.error('getFriendshipStatus: Missing user IDs', currentUserId, otherUserId);
         return null;
     }
-    // Defensive: Ensure IDs are strings and not null/undefined
     if (typeof currentUserId !== 'string' || typeof otherUserId !== 'string') {
         console.error('getFriendshipStatus: IDs must be strings', currentUserId, otherUserId);
         return null;
     }
     try {
         console.log('Querying user_friends with friendId:', otherUserId, 'status: pending');
+        if (!otherUserId || typeof otherUserId !== 'string') {
+            console.error('Invalid friendId for user_friends query:', otherUserId);
+            return null;
+        }
         const { data, error } = await supabase
             .from('user_friends')
             .select('status')
@@ -1467,6 +1500,10 @@ async function sendFriendRequest(currentUserId, otherUserId, otherDisplayName) {
         return;
     }
     console.log('Sending friend request with friend_id:', otherUserId, 'status: pending');
+    if (!otherUserId || typeof otherUserId !== 'string') {
+        console.error('Invalid friendId for user_friends upsert:', otherUserId);
+        return;
+    }
     await supabase.from('user_friends').upsert([
         { user_id: currentUserId, friend_id: otherUserId, status: 'pending' }
     ]);
@@ -2338,14 +2375,17 @@ function closeSoundboardModal() {
     overlay.classList.remove('active');
     setTimeout(() => { overlay.style.display = 'none'; }, 320);
 }
-document.getElementById('soundboardBtn').onclick = openSoundboardModal;
-document.getElementById('closeSoundboardModal').onclick = closeSoundboardModal;
-document.getElementById('soundboardModalOverlay').onclick = function(e) {
+safeSetOnClick('soundboardBtn', openSoundboardModal);
+safeSetOnClick('closeSoundboardModal', closeSoundboardModal);
+safeAddEventListener('soundboardModalOverlay', 'click', function(e) {
     if (e.target === this) closeSoundboardModal();
-};
-document.getElementById('soundboardToggle').onchange = function(e) {
+});
+safeAddEventListener('soundboardToggle', 'change', function(e) {
     soundboardEnabled = e.target.checked;
-};
+});
+safeSetOnClick('screenshareBtn', function() {
+    alert('Screenshare coming soon!');
+});
 
 function playSoundboardSound(soundId) {
     if (!soundboardEnabled) return;
@@ -2371,42 +2411,3 @@ if (typeof socket !== 'undefined') {
         }
     });
 }
-// Screenshare button handler (no-op for now)
-document.getElementById('screenshareBtn').onclick = function() {
-    alert('Screenshare coming soon!');
-};
-// --- SOUNDBOARD CSS ---
-(function injectSoundboardCSS() {
-    if (!document.getElementById('soundboard-style')) {
-        const style = document.createElement('style');
-        style.id = 'soundboard-style';
-        style.textContent = `
-        .soundboard-modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(30,32,44,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(2.5px); opacity: 0; pointer-events: none;
-            transition: opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        .soundboard-modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .soundboard-modal {
-            background: #23243a; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-            min-width: 320px; max-width: 90vw; width: 400px; min-height: 220px; max-height: 80vh;
-            display: flex; flex-direction: column; position: relative; padding: 0 0 18px 0;
-            animation: soundboardModalIn 0.32s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        @keyframes soundboardModalIn {
-            0% { opacity: 0; transform: scale(0.92) translateY(32px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .close-soundboard-modal {
-            position: absolute; top: 10px; right: 16px; background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; z-index: 2; transition: color 0.18s; }
-        .close-soundboard-modal:hover { color: #a370f7; }
-        .soundboard-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 8px 24px; font-size: 1.1rem; color: #a370f7; font-weight: bold; border-bottom: 1px solid #444; }
-        .soundboard-toggle { display: flex; align-items: center; gap: 7px; font-size: 0.98rem; color: #fff; }
-        .soundboard-list { display: flex; flex-wrap: wrap; gap: 12px; padding: 18px 24px 0 24px; justify-content: flex-start; }
-        .soundboard-sound-btn { background: #a370f7; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: 1rem; cursor: pointer; transition: background 0.2s, transform 0.2s; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .soundboard-sound-btn:hover { background: #0db9d7; transform: scale(1.06); }
-        `;
-        document.head.appendChild(style);
-    }
-})();
