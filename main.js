@@ -1657,11 +1657,13 @@ async function renderFriendsSidebarList() {
         return a.display_name.localeCompare(b.display_name);
     });
     sidebarList.innerHTML = '';
+    // Debug log for unread counts
+    console.log('sidebarUnreadCounts:', sidebarUnreadCounts);
     friends.forEach(friend => {
         const div = document.createElement('div');
         div.className = 'sidebar-friend';
         div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar"><span class="sidebar-friend-name">${friend.display_name}</span>`;
-        if (sidebarUnreadCounts[friend.id] && sidebarUnreadCounts[friend.id] > 0) {
+        if (sidebarUnreadCounts[friend.id] > 0) {
             const badge = document.createElement('span');
             badge.className = 'sidebar-friend-unread';
             badge.textContent = sidebarUnreadCounts[friend.id];
@@ -2007,7 +2009,7 @@ async function markMessagesRead(friendId) {
         .eq('receiver_id', user.id)
         .eq('is_read', false);
     sidebarUnreadCounts[friendId] = 0;
-    renderFriendsSidebarList();
+    await updateSidebarUnreadCounts();
 }
 
 // Update openChatModal to mark messages as read
