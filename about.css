@@ -1,3 +1,66 @@
+/* Modern About Page Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap');
+:root {
+  --primary: #7f5af0;
+  --accent: #2cb67d;
+  --bg-dark: #16161a;
+  --surface: rgba(36,37,54,0.85);
+  --glass: rgba(36,37,54,0.7);
+  --border: rgba(127,90,240,0.18);
+  --shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
+  --text: #fffffe;
+  --text-light: #72757e;
+  --gradient: linear-gradient(90deg, #7f5af0 0%, #2cb67d 100%);
+  --transition: 0.3s cubic-bezier(.4,0,.2,1);
+}
+html, body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  transition: background var(--transition), color var(--transition);
+}
+.about-container {
+  max-width: 900px;
+  margin: 4rem auto 0 auto;
+  background: var(--glass);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 2.5rem 2rem 2rem 2rem;
+  animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.about-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.2rem;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+.about-section {
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(127,90,240,0.07);
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 1.2rem;
+  transition: background var(--transition), box-shadow var(--transition);
+  animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+}
+.about-section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.3rem;
+  color: var(--primary);
+  margin-bottom: 0.7rem;
+}
+
 /* CSS Variables */
 :root {
     --primary-color: #00ff9d;
