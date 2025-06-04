@@ -400,6 +400,23 @@
                 navMenu.classList.remove('active');
             }
         });
+
+        // Listen for live display name updates from profile page
+        if (window.BroadcastChannel) {
+            const channel = new BroadcastChannel('profile_updates');
+            channel.onmessage = (event) => {
+                if (event.data.type === 'displayNameUpdate') {
+                    document.getElementById('userDisplayName').textContent = event.data.displayName;
+                    document.getElementById('displayName').value = event.data.displayName;
+                    // Update localStorage
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    if (user) {
+                        user.displayName = event.data.displayName;
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+                }
+            };
+        }
     </script>
     <script src="main.js"></script>
 
