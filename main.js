@@ -1574,56 +1574,16 @@ friendStyle.textContent = `
 `;
 document.head.appendChild(friendStyle);
 
-// --- FRIENDS CHAT SIDEBAR ---
+// --- REMOVE CHAT SECTION FROM SIDEBAR, SHOW ONLY FRIENDS LIST ---
+// Patch: Remove chat-section logic and DOM refs
+// Sidebar now only shows friends list
 
-// Minimal CSS for chat section
-const chatStyle = document.createElement('style');
-chatStyle.textContent = `
-.chat-section { margin-top: 2rem; background: var(--glass-bg, #23243a); border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 0.5rem 0.5rem 0.5rem 0.5rem; display: flex; flex-direction: column; min-height: 300px; max-height: 500px; overflow: hidden; }
-.chat-friends-list { max-height: 120px; overflow-y: auto; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color, #444); }
-.chat-friend { display: flex; align-items: center; gap: 0.7rem; padding: 7px 10px; border-radius: 7px; cursor: pointer; transition: background 0.2s; }
-.chat-friend:hover, .chat-friend.active { background: var(--hover-bg, #333); }
-.chat-friend-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color, #a370f7); }
-.chat-friend-name { font-size: 1rem; color: var(--text-color, #fff); font-weight: 500; }
-.chat-window { flex: 1; display: flex; flex-direction: column; height: 260px; }
-.chat-header { font-weight: bold; color: var(--primary-color, #a370f7); padding: 6px 0; border-bottom: 1px solid var(--border-color, #444); margin-bottom: 2px; }
-.chat-messages { flex: 1; overflow-y: auto; padding: 6px 0; font-size: 0.97rem; }
-.chat-message { margin-bottom: 7px; display: flex; flex-direction: column; }
-.chat-message.me { align-items: flex-end; }
-.chat-message .msg-bubble { display: inline-block; padding: 7px 13px; border-radius: 14px; background: var(--primary-color, #a370f7); color: #fff; max-width: 80%; word-break: break-word; }
-.chat-message.me .msg-bubble { background: var(--accent-color, #0db9d7); }
-.chat-message .msg-meta { font-size: 0.75em; color: #aaa; margin-top: 1px; }
-.chat-input-form { display: flex; gap: 0.5rem; margin-top: 4px; }
-.chat-input { flex: 1; border-radius: 7px; border: 1px solid var(--border-color, #444); padding: 7px 10px; font-size: 1rem; background: var(--input-bg, #23243a); color: var(--text-color, #fff); }
-.chat-send-btn { background: var(--primary-color, #a370f7); color: #fff; border: none; border-radius: 7px; padding: 0 14px; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; }
-.chat-send-btn:hover { background: var(--accent-color, #0db9d7); }
-`;
-document.head.appendChild(chatStyle);
-
-// DOM refs
-let chatFriendsList, chatWindow, chatHeader, chatMessages, chatInputForm, chatInput;
-
-// On DOMContentLoaded, initialize chat refs
-const origDOMContentLoaded = document.onreadystatechange;
-document.onreadystatechange = function() {
-    if (origDOMContentLoaded) origDOMContentLoaded();
-    if (document.readyState === 'complete') {
-        chatFriendsList = document.getElementById('chatFriendsList');
-        chatWindow = document.getElementById('chatWindow');
-        chatHeader = document.getElementById('chatHeader');
-        chatMessages = document.getElementById('chatMessages');
-        chatInputForm = document.getElementById('chatInputForm');
-        chatInput = document.getElementById('chatInput');
-        if (chatFriendsList && chatWindow && chatHeader && chatMessages && chatInputForm && chatInput) {
-            loadFriendsForChat();
-        }
-    }
-};
-
-// Load friends (accepted only) for chat
-async function loadFriendsForChat() {
+// Render friends list in sidebar
+async function renderFriendsSidebarList() {
     const user = getCurrentUser();
     if (!user) return;
+    const sidebarList = document.getElementById('friendsSidebarList');
+    if (!sidebarList) return;
     // Get all accepted friends
     const { data, error } = await supabase
         .from('user_friends')
@@ -1631,45 +1591,85 @@ async function loadFriendsForChat() {
         .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
         .eq('status', 'accepted');
     if (error) return;
-    // Get friend IDs (not self)
     const friendIds = data
         .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
         .filter(id => id !== user.id);
     if (friendIds.length === 0) {
-        chatFriendsList.innerHTML = '<div style="color:#aaa;padding:10px;">No friends yet.</div>';
+        sidebarList.innerHTML = '<div style="color:#aaa;padding:10px;">No friends yet.</div>';
         return;
     }
-    // Fetch friend user info
     const { data: friends } = await supabase
         .from('users')
         .select('id, display_name, avatar_url')
         .in('id', friendIds);
-    // Render friend list
-    chatFriendsList.innerHTML = '';
+    sidebarList.innerHTML = '';
     friends.forEach(friend => {
         const div = document.createElement('div');
-        div.className = 'chat-friend';
-        div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="chat-friend-avatar"><span class="chat-friend-name">${friend.display_name}</span>`;
-        div.onclick = () => openChatWithFriend(friend);
+        div.className = 'sidebar-friend';
+        div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar"><span class="sidebar-friend-name">${friend.display_name}</span>`;
+        div.onclick = () => openChatModal(friend);
         div.dataset.friendId = friend.id;
-        chatFriendsList.appendChild(div);
+        sidebarList.appendChild(div);
     });
 }
 
-// Open chat window with a friend
-let currentChatFriend = null;
-async function openChatWithFriend(friend) {
-    currentChatFriend = friend;
-    chatHeader.textContent = friend.display_name;
-    chatWindow.style.display = 'flex';
-    loadChatMessages(friend.id);
+// --- CHAT MODAL LOGIC ---
+let chatModalCurrentFriend = null;
+
+function openChatModal(friend) {
+    chatModalCurrentFriend = friend;
+    document.getElementById('chatModalOverlay').style.display = 'flex';
+    renderChatModalFriends(friend.id);
+    renderChatModalHeader(friend);
+    loadChatModalMessages(friend.id);
 }
 
-// Load chat messages with a friend
-async function loadChatMessages(friendId) {
+function closeChatModal() {
+    document.getElementById('chatModalOverlay').style.display = 'none';
+    chatModalCurrentFriend = null;
+}
+
+// Render friends list in modal (for quick switching)
+async function renderChatModalFriends(selectedId) {
     const user = getCurrentUser();
     if (!user) return;
-    // Get last 50 messages between user and friend
+    const modalFriends = document.getElementById('chatModalFriends');
+    if (!modalFriends) return;
+    const { data, error } = await supabase
+        .from('user_friends')
+        .select('user_id, friend_id, status')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+    if (error) return;
+    const friendIds = data
+        .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
+        .filter(id => id !== user.id);
+    if (friendIds.length === 0) {
+        modalFriends.innerHTML = '<div style="color:#aaa;padding:10px;">No friends yet.</div>';
+        return;
+    }
+    const { data: friends } = await supabase
+        .from('users')
+        .select('id, display_name, avatar_url')
+        .in('id', friendIds);
+    modalFriends.innerHTML = '';
+    friends.forEach(friend => {
+        const div = document.createElement('div');
+        div.className = 'modal-friend' + (friend.id === selectedId ? ' selected' : '');
+        div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="modal-friend-avatar"><span class="modal-friend-name">${friend.display_name}</span>`;
+        div.onclick = () => openChatModal(friend);
+        div.dataset.friendId = friend.id;
+        modalFriends.appendChild(div);
+    });
+}
+
+function renderChatModalHeader(friend) {
+    document.getElementById('chatModalHeader').textContent = friend.display_name;
+}
+
+async function loadChatModalMessages(friendId) {
+    const user = getCurrentUser();
+    if (!user) return;
     const { data, error } = await supabase
         .from('user_messages')
         .select('*')
@@ -1677,172 +1677,99 @@ async function loadChatMessages(friendId) {
         .order('created_at', { ascending: true })
         .limit(50);
     if (error) return;
-    renderChatMessages(data || [], user.id);
+    renderChatModalMessages(data || [], user.id);
 }
 
-// --- Inject smooth animation CSS for chat messages ---
-(function injectChatMessageAnimationCSS() {
-    if (!document.getElementById('chat-message-animate-style')) {
-        const style = document.createElement('style');
-        style.id = 'chat-message-animate-style';
-        style.textContent = `
-        .chat-message-animate {
-            animation: chatMessageFadeIn 0.45s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        @keyframes chatMessageFadeIn {
-            0% { opacity: 0; transform: translateY(24px) scale(0.98); }
-            60% { opacity: 1; transform: translateY(-4px) scale(1.01); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        `;
-        document.head.appendChild(style);
-    }
-})();
-
-// --- PATCH renderChatMessages to animate new messages ---
-let lastMessageCount = 0;
-function renderChatMessages(messages, myId) {
-    const prevCount = lastMessageCount;
-    lastMessageCount = messages.length;
-    chatMessages.innerHTML = '';
-    messages.forEach((msg, idx) => {
+function renderChatModalMessages(messages, myId) {
+    const chatModalMessages = document.getElementById('chatModalMessages');
+    chatModalMessages.innerHTML = '';
+    messages.forEach(msg => {
         const div = document.createElement('div');
         div.className = 'chat-message' + (msg.sender_id === myId ? ' me' : '');
         div.innerHTML = `<div class="msg-bubble">${escapeHtml(msg.message)}</div><div class="msg-meta">${formatTime(msg.created_at)}</div>`;
-        // Animate only the newest message
-        if (idx === messages.length - 1 && messages.length > prevCount) {
-            div.classList.add('chat-message-animate');
-        }
-        chatMessages.appendChild(div);
+        chatModalMessages.appendChild(div);
     });
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    chatModalMessages.scrollTop = chatModalMessages.scrollHeight;
 }
 
-// --- LIVE CHAT UPDATES WITH SUPABASE REALTIME (ROBUST, NO FILTER) ---
-let chatMessageChannel = null;
+// Send message in modal
+function patchChatModalSend() {
+    const chatModalInputForm = document.getElementById('chatModalInputForm');
+    if (!chatModalInputForm) return;
+    chatModalInputForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chatModalInput');
+        const msg = input.value.trim();
+        if (!msg || !chatModalCurrentFriend) return;
+        const user = getCurrentUser();
+        await supabase.from('user_messages').insert([
+            { sender_id: user.id, receiver_id: chatModalCurrentFriend.id, message: msg }
+        ]);
+        input.value = '';
+        loadChatModalMessages(chatModalCurrentFriend.id);
+    };
+    // Enter key sends message
+    document.getElementById('chatModalInput').onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatModalInputForm.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+    };
+}
 
-async function subscribeToChatMessages(friendId) {
-    // Unsubscribe from previous channel if any
-    if (chatMessageChannel) {
-        await supabase.removeChannel(chatMessageChannel);
-        chatMessageChannel = null;
+// Modal close logic
+function setupChatModalClose() {
+    document.getElementById('closeChatModal').onclick = closeChatModal;
+    document.getElementById('chatModalOverlay').onclick = function(e) {
+        if (e.target === this) closeChatModal();
+    };
+}
+
+// On DOMContentLoaded, initialize sidebar friends and modal logic
+const origDOMContentLoaded2 = document.onreadystatechange;
+document.onreadystatechange = function() {
+    if (origDOMContentLoaded2) origDOMContentLoaded2();
+    if (document.readyState === 'complete') {
+        renderFriendsSidebarList();
+        patchChatModalSend();
+        setupChatModalClose();
     }
-    const user = getCurrentUser();
-    if (!user || !friendId) return;
-    chatMessageChannel = supabase.channel('chat-messages-global')
-        .on(
-            'postgres_changes',
-            {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'user_messages',
-            },
-            payload => {
-                console.log('Realtime payload received:', payload);
-                // Only update if the message is for the current chat
-                if (
-                    (payload.new.sender_id === user.id && payload.new.receiver_id === friendId) ||
-                    (payload.new.sender_id === friendId && payload.new.receiver_id === user.id)
-                ) {
-                    console.log('Live update: new message for current chat.');
-                    loadChatMessages(friendId);
-                }
-            }
-        );
-    await chatMessageChannel.subscribe();
-    console.log('Subscribed to Realtime for user_messages.');
-}
-
-// Patch openChatWithFriend to subscribe to realtime updates
-const origOpenChatWithFriendLive = window.openChatWithFriend;
-window.openChatWithFriend = async function(friend) {
-    await origOpenChatWithFriendLive(friend);
-    subscribeToChatMessages(friend.id);
-    setTimeout(patchChatSendButton, 0);
 };
 
-// On page unload, clean up subscription
-window.addEventListener('beforeunload', async () => {
-    if (chatMessageChannel) {
-        await supabase.removeChannel(chatMessageChannel);
-    }
-});
-
-// Utility: Escape HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-// Utility: Format time
-function formatTime(ts) {
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-// --- PATCH: Prevent chat form reload on send ---
-function patchChatSendButton() {
-    const chatInputForm = document.getElementById('chatInputForm');
-    const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send-btn') : null;
-    if (chatSendBtn) {
-        chatSendBtn.style.display = 'block';
-        chatSendBtn.style.visibility = 'visible';
-        chatSendBtn.style.minWidth = '44px';
-        chatSendBtn.style.zIndex = '2';
-    }
-    // Add submit handler if not already present
-    if (chatInputForm && !chatInputForm._patched) {
-        chatInputForm.onsubmit = async (e) => {
-            e.preventDefault(); // Prevent page reload
-            const input = chatInputForm.querySelector('.chat-input');
-            const msg = input.value.trim();
-            if (!msg || !currentChatFriend) return;
-            const user = getCurrentUser();
-            await supabase.from('user_messages').insert([
-                { sender_id: user.id, receiver_id: currentChatFriend.id, message: msg }
-            ]);
-            input.value = '';
-        };
-        chatInputForm._patched = true;
-    }
-    // Enter key sends message
-    if (chatInputForm && chatInputForm.querySelector('.chat-input')) {
-        chatInputForm.querySelector('.chat-input').onkeydown = (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                chatInputForm.dispatchEvent(new Event('submit', { cancelable: true }));
-            }
-        };
-    }
-}
-
-// --- PATCH: Update chat bubble style and remove scroll indicator ---
-(function updateChatBubbleCSS() {
-    let style = document.getElementById('chat-bubble-style');
-    if (!style) {
-        style = document.createElement('style');
-        style.id = 'chat-bubble-style';
+// --- CSS for modal and friends list ---
+(function injectChatModalCSS() {
+    if (!document.getElementById('chat-modal-style')) {
+        const style = document.createElement('style');
+        style.id = 'chat-modal-style';
         style.textContent = `
-        .chat-messages::-webkit-scrollbar {
-            display: none !important;
+        .chat-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(30,32,44,0.85); z-index: 9999; display: flex; align-items: center; justify-content: center;
         }
-        .chat-messages {
-            -ms-overflow-style: none !important;
-            scrollbar-width: none !important;
-        }
-        .chat-message .msg-bubble {
-            max-width: 70vw;
-            max-width: 320px;
-            word-break: break-word;
-            white-space: pre-line;
-            font-size: 0.97rem;
-            line-height: 1.4;
-        }
-        @media (max-width: 600px) {
-            .chat-message .msg-bubble {
-                max-width: 90vw;
-                font-size: 0.93rem;
-            }
+        .chat-modal { background: #23243a; border-radius: 18px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); min-width: 340px; max-width: 98vw; width: 540px; min-height: 420px; max-height: 90vh; display: flex; flex-direction: column; position: relative; }
+        .close-chat-modal { position: absolute; top: 12px; right: 18px; background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; z-index: 2; }
+        .chat-modal-content { display: flex; height: 100%; }
+        .chat-modal-friends { width: 110px; background: #1a1b26; border-radius: 14px 0 0 14px; padding: 10px 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .modal-friend { display: flex; align-items: center; gap: 0.5rem; padding: 7px 10px; border-radius: 7px; cursor: pointer; transition: background 0.2s; }
+        .modal-friend.selected, .modal-friend:hover { background: #2d2e4a; }
+        .modal-friend-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #a370f7; }
+        .modal-friend-name { font-size: 0.98rem; color: #fff; font-weight: 500; }
+        .chat-modal-main { flex: 1; display: flex; flex-direction: column; padding: 0 0 0 0.5rem; }
+        .chat-modal-header { font-weight: bold; color: #a370f7; padding: 12px 0 6px 0; font-size: 1.1rem; border-bottom: 1px solid #444; margin-bottom: 2px; }
+        .chat-modal-messages { flex: 1; overflow-y: auto; padding: 6px 0; font-size: 0.97rem; }
+        .chat-message { margin-bottom: 7px; display: flex; flex-direction: column; }
+        .chat-message.me { align-items: flex-end; }
+        .chat-message .msg-bubble { display: inline-block; padding: 7px 13px; border-radius: 14px; background: #a370f7; color: #fff; max-width: 80%; word-break: break-word; }
+        .chat-message.me .msg-bubble { background: #0db9d7; }
+        .chat-message .msg-meta { font-size: 0.75em; color: #aaa; margin-top: 1px; }
+        .chat-modal-input-form { display: flex; gap: 0.5rem; margin: 8px 0 0 0; }
+        .chat-modal-input { flex: 1; border-radius: 7px; border: 1px solid #444; padding: 7px 10px; font-size: 1rem; background: #23243a; color: #fff; }
+        .chat-modal-send-btn { background: #a370f7; color: #fff; border: none; border-radius: 7px; padding: 0 14px; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; }
+        .chat-modal-send-btn:hover { background: #0db9d7; }
+        @media (max-width: 700px) {
+            .chat-modal { width: 98vw; min-width: 0; }
+            .chat-modal-friends { width: 70px; }
+            .modal-friend-name { display: none; }
         }
         `;
         document.head.appendChild(style);

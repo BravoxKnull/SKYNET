@@ -181,21 +181,26 @@
                 </button>
                 <div id="warningMessage" class="warning-message"></div>
             </div>
-            <!-- Chat Section: Friends List and Chat Window -->
-            <div class="chat-section" id="chatSection">
-                <div class="chat-friends-list" id="chatFriendsList">
-                    <!-- Friends will be listed here -->
-                </div>
-                <div class="chat-window" id="chatWindow" style="display:none;">
-                    <div class="chat-header" id="chatHeader"></div>
-                    <div class="chat-messages" id="chatMessages"></div>
-                    <form class="chat-input-form" id="chatInputForm">
-                        <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." autocomplete="off" />
-                        <button type="submit" class="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
-                    </form>
+            <div id="friendsSidebarList" class="friends-sidebar-list"></div>
+        </aside>
+        
+        <!-- Chat Modal (hidden by default) -->
+        <div id="chatModalOverlay" class="chat-modal-overlay" style="display:none;">
+            <div id="chatModal" class="chat-modal">
+                <button id="closeChatModal" class="close-chat-modal">&times;</button>
+                <div class="chat-modal-content">
+                    <div class="chat-modal-friends" id="chatModalFriends"></div>
+                    <div class="chat-modal-main">
+                        <div class="chat-modal-header" id="chatModalHeader"></div>
+                        <div class="chat-modal-messages" id="chatModalMessages"></div>
+                        <form class="chat-modal-input-form" id="chatModalInputForm">
+                            <input type="text" class="chat-modal-input" id="chatModalInput" placeholder="Type a message..." autocomplete="off" />
+                            <button type="submit" class="chat-modal-send-btn"><i class="fas fa-paper-plane"></i></button>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </aside>
+        </div>
 
         <!-- Footer -->
         <footer class="footer">
