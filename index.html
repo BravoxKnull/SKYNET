@@ -34,6 +34,15 @@
     </script>
 </head>
 <body>
+    <!-- Auth Check Script -->
+    <script>
+        // Check if user is authenticated
+        const user = JSON.parse(localStorage.getItem('user'))
+        if (!user) {
+            window.location.href = 'auth.html'
+        }
+    </script>
+
     <!-- Particle.js Background -->
     <div id="particles-js"></div>
 
@@ -97,7 +106,7 @@
             <!-- Welcome Section -->
             <section class="welcome-section" id="welcomeSection">
                 <div class="welcome-content">
-                    <div class="animated-text">
+                <div class="animated-text">
                         <span class="glitch-text">Welcome to SKYNET</span>
                     </div>
                     <div class="welcome-subtitle">
@@ -116,13 +125,6 @@
                             <i class="fas fa-bolt"></i>
                             <span>Real-time Communication</span>
                         </div>
-                    </div>
-                    <div class="join-form">
-                        <input type="text" id="displayName" placeholder="Enter your display name" value="">
-                        <button id="joinBtn" class="join-btn">
-                            <i class="fas fa-sign-in-alt"></i> Join DUNE PC
-                        </button>
-                        <div id="warningMessage" class="warning-message"></div>
                     </div>
                 </div>
             </section>
@@ -143,39 +145,6 @@
                 
                 <div class="users-grid" id="usersList">
                     <!-- Users will be added here dynamically -->
-                    <template id="userTemplate">
-                        <div class="user-card" data-user-id="">
-                            <div class="user-info">
-                                <div class="avatar-wrapper">
-                                    <img class="user-avatar" src="assets/images/default-avatar.svg" alt="User Avatar">
-                                    <div class="avatar-status"></div>
-                                </div>
-                                <div class="user-details">
-                                    <span class="user-name"></span>
-                                    <span class="user-status"></span>
-                                </div>
-                            </div>
-                            <div class="user-actions">
-                                <button class="action-btn friend-menu-btn">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <div class="friend-menu">
-                                    <button class="friend-action add-friend">
-                                        <i class="fas fa-user-plus"></i>
-                                        <span>Add Friend</span>
-                                    </button>
-                                    <button class="friend-action remove-friend hidden">
-                                        <i class="fas fa-user-minus"></i>
-                                        <span>Remove Friend</span>
-                                    </button>
-                                    <button class="friend-action block-user">
-                                        <i class="fas fa-ban"></i>
-                                        <span>Block User</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
                 </div>
 
                 <div class="channel-controls">
@@ -195,75 +164,23 @@
             </section>
         </main>
 
-        <!-- Text Chat Sidebar -->
-        <aside class="chat-sidebar" id="chatSidebar">
-            <div class="chat-header" id="chatHeader">
-                <h3>Text Chat</h3>
-                <div class="chat-controls">
-                    <button id="chatToggle"><i class="fas fa-comments"></i></button>
-                </div>
-            </div>
-            <div class="chat-container">
-                <div class="channel-list">
-                    <div class="channel active">
-                        <i class="fas fa-hashtag"></i>
-                        <span>DUNE PC</span>
-                    </div>
-                    <div class="channel">
-                        <i class="fas fa-lock"></i>
-                        <span>Direct Messages</span>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="join-section">
+                <div class="input-group">
+                    <label for="displayName">Display Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="displayName" class="input-field" placeholder="Enter your display name" value="" readonly>
+                        <i class="fas fa-user input-icon"></i>
                     </div>
                 </div>
-                <div class="message-area" id="messageArea">
-                    <div class="messages" id="chatMessages">
-                        <!-- Messages will appear here -->
-                    </div>
-                    <div class="message-input">
-                        <textarea placeholder="Type your message..." id="messageInput"></textarea>
-                        <button id="sendMessageBtn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
+                <button id="joinBtn" class="join-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Join DUNE PC</span>
+                </button>
+                <div id="warningMessage" class="warning-message"></div>
             </div>
         </aside>
-
-        <!-- Friend Menu -->
-        <div class="friend-menu" id="friendMenu">
-            <button id="friendRequestBtn" class="friend-action">
-                <i class="fas fa-user-plus"></i>
-                <span>Add Friend</span>
-            </button>
-            <button id="friendListBtn" class="friend-action">
-                <i class="fas fa-users"></i>
-                <span>Friends List</span>
-            </button>
-            <button id="friendBlockBtn" class="friend-action">
-                <i class="fas fa-ban"></i>
-                <span>Blocked Users</span>
-            </button>
-        </div>
-
-        <!-- Friend Notification -->
-        <div class="friend-notification" id="friendNotification">
-            <div class="notification-header">
-                <span>Friend Requests</span>
-                <span id="friendNotificationCount" class="notification-count">0</span>
-            </div>
-            <div id="friendNotificationList" class="notification-list">
-                <!-- Friend requests will appear here -->
-            </div>
-        </div>
-
-        <!-- Friend List -->
-        <div class="friend-list" id="friendList">
-            <!-- Friends will appear here -->
-        </div>
-
-        <!-- Blocked List -->
-        <div class="blocked-list" id="blockedList">
-            <!-- Blocked users will appear here -->
-        </div>
 
         <!-- Footer -->
         <footer class="footer">
@@ -326,7 +243,7 @@
 
                 <div class="footer-bottom">
                     <div class="footer-copyright">
-                        <p>&copy; 2024 SKYNET. All rights reserved.</p>
+                <p>&copy; 2024 SKYNET. All rights reserved.</p>
                     </div>
                     <div class="footer-newsletter">
                         <form class="newsletter-form">
@@ -348,82 +265,141 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
-        // Initialize user and check authentication
-        const user = JSON.parse(localStorage.getItem('user'))
-        if (!user) {
-            window.location.href = 'auth.html'
-        } else {
-            // Set the authenticated user's display name and avatar
-            const userDisplayName = document.getElementById('userDisplayName')
-            const displayNameInput = document.getElementById('displayName')
-            if (userDisplayName) {
-                userDisplayName.textContent = user.displayName
-            }
-            if (displayNameInput) {
-                displayNameInput.value = user.displayName
-            }
+        // Set the authenticated user's display name and avatar
+        document.getElementById('userDisplayName').textContent = user.displayName
+        document.getElementById('displayName').value = user.displayName
 
-            // Load user avatar
-            async function loadUserAvatar() {
+        // Add this near the top of your script
+        console.log('Initializing avatar update listeners...');
+
+        // Function to handle avatar updates
+        function handleAvatarUpdate(avatarUrl, userId) {
+            console.log('Processing avatar update for user:', userId, 'URL:', avatarUrl);
+            
+            // Update nav avatar
+            const navAvatar = document.getElementById('navAvatar');
+            if (navAvatar && userId === user?.id) {
+                console.log('Updating nav avatar');
+                // Create a new URL with timestamp to bust cache
+                navAvatar.src = `${avatarUrl}?${Date.now()}`;
+            }
+            
+            // Update user list avatars
+            document.querySelectorAll('.user-avatar').forEach(avatar => {
+                const avatarUserId = avatar.closest('[data-user-id]')?.dataset.userId;
+                if (avatarUserId === userId) {
+                    console.log('Updating user list avatar for:', userId);
+                    // Create a new URL with timestamp to bust cache
+                    avatar.src = `${avatarUrl}?${Date.now()}`;
+                }
+            });
+        }
+
+        // Method 1: Custom Event listener (for same-window updates)
+        window.addEventListener('avatarUpdate', (event) => {
+            console.log('Received custom event update:', event.detail);
+            if (event.detail && event.detail.avatarUrl && event.detail.userId) {
+                handleAvatarUpdate(event.detail.avatarUrl, event.detail.userId);
+            }
+        });
+
+        // Method 2: BroadcastChannel listener (for cross-tab communication)
+        if (window.BroadcastChannel) {
+            const channel = new BroadcastChannel('avatar_updates');
+            channel.onmessage = (event) => {
+                if (event.data.type === 'avatarUpdate') {
+                    console.log('Received BroadcastChannel update:', event.data);
+                    handleAvatarUpdate(event.data.avatarUrl, event.data.userId);
+                }
+            };
+        }
+
+        // Method 3: localStorage event listener (fallback for cross-tab)
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'avatarUpdate') {
                 try {
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('avatar_url')
-                        .eq('id', user.id)
-                        .single()
-
-                    if (error) throw error
-
-                    if (data && data.avatar_url) {
-                        const navAvatar = document.getElementById('navAvatar')
-                        if (navAvatar) {
-                            navAvatar.src = `${data.avatar_url}?${Date.now()}`
-                        }
+                    const updateData = JSON.parse(event.newValue);
+                    console.log('Received localStorage update:', updateData);
+                    if (updateData && updateData.avatarUrl && updateData.userId) {
+                        handleAvatarUpdate(updateData.avatarUrl, updateData.userId);
                     }
                 } catch (error) {
-                    console.error('Error loading avatar:', error)
+                    console.error('Error processing avatar update:', error);
                 }
             }
+        });
 
-            // Load avatar when page loads
-            loadUserAvatar()
+        // Also listen for page visibility changes in case we missed updates
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                console.log('Page became visible, checking for avatar updates');
+                loadUserAvatar(); // Re-fetch the avatar when page becomes visible
+            }
+        });
 
-            // Handle logout
-            const logoutButton = document.getElementById('logoutBtn')
-            if (logoutButton) {
-                logoutButton.addEventListener('click', () => {
-                    localStorage.removeItem('user')
-                    window.location.href = 'auth.html'
-                })
+        // Periodic avatar check (every 30 seconds)
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                loadUserAvatar();
+            }
+        }, 30000);
+
+        // Load user avatar
+        async function loadUserAvatar() {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('avatar_url')
+                    .eq('id', user.id)
+                    .single()
+
+                if (error) throw error
+
+                if (data && data.avatar_url) {
+                    const navAvatar = document.getElementById('navAvatar');
+                    if (navAvatar) {
+                        // Add cache busting to the avatar URL
+                        navAvatar.src = `${data.avatar_url}?${Date.now()}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading avatar:', error)
             }
         }
+
+        // Load avatar when page loads
+        loadUserAvatar()
+
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('user')
+            window.location.href = 'auth.html'
+        })
 
         // Add hamburger menu functionality
-        const hamburgerMenu = document.getElementById('hamburgerMenu')
-        const navMenu = document.getElementById('navMenu')
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const navMenu = document.getElementById('navMenu');
 
-        if (hamburgerMenu && navMenu) {
-            hamburgerMenu.addEventListener('click', () => {
-                hamburgerMenu.classList.toggle('active')
-                navMenu.classList.toggle('active')
-            })
+        hamburgerMenu.addEventListener('click', () => {
+            hamburgerMenu.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
 
-            // Close menu when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!hamburgerMenu.contains(e.target) && !navMenu.contains(e.target)) {
-                    hamburgerMenu.classList.remove('active')
-                    navMenu.classList.remove('active')
-                }
-            })
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!hamburgerMenu.contains(e.target) && !navMenu.contains(e.target)) {
+                hamburgerMenu.classList.remove('active');
+                navMenu.classList.remove('active');
+            }
+        });
 
-            // Close menu when window is resized
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768) {
-                    hamburgerMenu.classList.remove('active')
-                    navMenu.classList.remove('active')
-                }
-            })
-        }
+        // Close menu when window is resized
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                hamburgerMenu.classList.remove('active');
+                navMenu.classList.remove('active');
+            }
+        });
     </script>
     <script src="main.js"></script>
 

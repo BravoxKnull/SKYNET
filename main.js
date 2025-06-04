@@ -8,7 +8,6 @@ let usersList;
 let muteBtn;
 let deafenBtn;
 let leaveBtn;
-let socket = null;
 
 // Audio elements for notifications
 let userJoinedSound;
@@ -20,6 +19,7 @@ let peerConnections = {};
 let isMuted = false;
 let isDeafened = false;
 let displayName = '';
+let socket = null;
 let audioContext = null;
 let analyser = null;
 let speakingThreshold = -50; // dB
@@ -47,9 +47,8 @@ function initializeUserData() {
     }
 }
 
-// Initialize DOM elements with null checks
+// Initialize DOM elements
 function initializeDOMElements() {
-    // Get all required DOM elements
     displayNameInput = document.getElementById('displayName');
     joinBtn = document.getElementById('joinBtn');
     warningMessage = document.getElementById('warningMessage');
@@ -59,75 +58,14 @@ function initializeDOMElements() {
     muteBtn = document.getElementById('muteBtn');
     deafenBtn = document.getElementById('deafenBtn');
     leaveBtn = document.getElementById('leaveBtn');
-    friendMenu = document.getElementById('friendMenu');
-    friendRequestBtn = document.getElementById('friendRequestBtn');
-    friendListBtn = document.getElementById('friendListBtn');
-    friendBlockBtn = document.getElementById('friendBlockBtn');
-    friendNotification = document.getElementById('friendNotification');
-    friendNotificationCount = document.getElementById('friendNotificationCount');
-    friendNotificationList = document.getElementById('friendNotificationList');
-    friendList = document.getElementById('friendList');
-    blockedList = document.getElementById('blockedList');
-    chatSidebar = document.getElementById('chatSidebar');
-    chatToggle = document.getElementById('chatToggle');
-    chatHeader = document.getElementById('chatHeader');
-    messageArea = document.getElementById('messageArea');
-    messageInput = document.getElementById('messageInput');
-    sendMessageBtn = document.getElementById('sendMessageBtn');
-    userAvatar = document.getElementById('userAvatar');
-    userMenu = document.getElementById('userMenu');
-    userMenuToggle = document.getElementById('userMenuToggle');
-    themeToggle = document.getElementById('themeToggle');
-    hamburgerMenu = document.getElementById('hamburgerMenu');
-    mobileMenu = document.getElementById('mobileMenu');
 
     // Get references to audio elements
     userJoinedSound = document.getElementById('userJoinedSound');
     userLeftSound = document.getElementById('userLeftSound');
 
     // Set initial display name if user data is available
-    if (currentUser && currentUser.displayName && displayNameInput) {
+    if (currentUser && currentUser.displayName) {
         displayNameInput.value = currentUser.displayName;
-    }
-
-    // Log any missing elements
-    const elements = {
-        displayNameInput,
-        joinBtn,
-        warningMessage,
-        welcomeSection,
-        channelSection,
-        usersList,
-        muteBtn,
-        deafenBtn,
-        leaveBtn,
-        friendMenu,
-        friendRequestBtn,
-        friendListBtn,
-        friendBlockBtn,
-        friendNotification,
-        friendNotificationCount,
-        friendNotificationList,
-        friendList,
-        blockedList,
-        chatSidebar,
-        chatToggle,
-        chatHeader,
-        messageArea,
-        messageInput,
-        sendMessageBtn,
-        userAvatar,
-        userMenu,
-        userMenuToggle,
-        themeToggle,
-        hamburgerMenu,
-        mobileMenu
-    };
-
-    for (const [name, element] of Object.entries(elements)) {
-        if (!element) {
-            console.warn(`Element ${name} not found in DOM`);
-        }
     }
 
     // Add mousemove listener for cursor background effect
@@ -143,30 +81,15 @@ function initializeDOMElements() {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // Check if join button exists
-    if (!joinBtn) {
-        console.error('Join button not found');
-        return;
-    }
-
     joinBtn.addEventListener('click', async () => {
-        if (!displayNameInput) {
-            console.error('Display name input not found');
-            return;
-        }
-
         const name = displayNameInput.value.trim();
         if (!name) {
-            if (warningMessage) {
-                warningMessage.textContent = 'Please enter your display name';
-            }
+            warningMessage.textContent = 'Please enter your display name';
             return;
         }
 
         if (!currentUser) {
-            if (warningMessage) {
-                warningMessage.textContent = 'User data not found. Please log in again.';
-            }
+            warningMessage.textContent = 'User data not found. Please log in again.';
             return;
         }
 
@@ -177,9 +100,7 @@ function initializeEventListeners() {
         try {
             const webRTCInitialized = await initializeWebRTC();
             if (!webRTCInitialized) {
-                if (warningMessage) {
-                    warningMessage.textContent = 'Error accessing microphone';
-                }
+                warningMessage.textContent = 'Error accessing microphone';
                 joinBtn.classList.remove('loading');
                 joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
                 joinBtn.disabled = false;
@@ -202,21 +123,15 @@ function initializeEventListeners() {
                 console.error('Error fetching user avatar:', error);
             }
 
-            if (welcomeSection) {
-                welcomeSection.classList.add('hidden');
-            }
-            if (channelSection) {
-                channelSection.classList.remove('hidden');
-                channelSection.classList.add('visible');
-            }
+            welcomeSection.classList.add('hidden');
+            channelSection.classList.remove('hidden');
+            channelSection.classList.add('visible');
 
-            if (socket) {
-                socket.emit('joinChannel', {
-                    id: currentUser.id,
-                    displayName: displayName,
-                    avatar_url: data?.avatar_url || null
-                });
-            }
+            socket.emit('joinChannel', {
+                id: currentUser.id,
+                displayName: displayName,
+                avatar_url: data?.avatar_url || null
+            });
 
             const userData = {
                 id: currentUser.id,
@@ -226,12 +141,8 @@ function initializeEventListeners() {
             users = [userData];
             updateUsersList(users);
 
-            if (displayNameInput) {
-                displayNameInput.disabled = true;
-            }
-            if (warningMessage) {
-                warningMessage.textContent = '';
-            }
+            displayNameInput.disabled = true;
+            warningMessage.textContent = '';
             
             joinBtn.classList.remove('loading');
             joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
@@ -239,143 +150,108 @@ function initializeEventListeners() {
 
         } catch (error) {
             console.error('Error joining channel:', error);
-            if (warningMessage) {
-                warningMessage.textContent = 'Failed to join channel. Please try again.';
-            }
+            warningMessage.textContent = 'Failed to join channel. Please try again.';
             joinBtn.classList.remove('loading');
             joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
             joinBtn.disabled = false;
         }
     });
 
-    // Add mute button event listener if it exists
-    if (muteBtn) {
-        muteBtn.addEventListener('click', () => {
-            isMuted = !isMuted;
-            if (localStream) {
-                localStream.getAudioTracks().forEach(track => {
-                    track.enabled = !isMuted;
-                });
-            }
-            const icon = muteBtn.querySelector('i');
-            const text = muteBtn.querySelector('span');
-            if (icon) {
-                icon.className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
-            }
-            if (text) {
-                text.textContent = isMuted ? 'Unmute' : 'Mute';
-            }
-
-            // Broadcast mute status to all users
-            if (socket && socket.connected) {
-                const muteData = {
-                    userId: currentUser.id,
-                    isMuted: isMuted,
-                    displayName: currentUser.displayName
-                };
-                console.log('Broadcasting mute status to server:', muteData);
-                try {
-                    socket.emit('userMuteStatus', muteData);
-                } catch (error) {
-                    console.error('Error emitting mute status:', error);
-                }
-            } else {
-                console.warn('Socket not connected, cannot broadcast mute status');
-            }
-
-            // Update local UI
-            updateUserMuteStatus(currentUser.id, isMuted);
-        });
-    }
-
-    // Add deafen button event listener if it exists
-    if (deafenBtn) {
-        deafenBtn.addEventListener('click', () => {
-            isDeafened = !isDeafened;
-            document.querySelectorAll('audio').forEach(audio => {
-                audio.muted = isDeafened;
+    muteBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        if (localStream) {
+            localStream.getAudioTracks().forEach(track => {
+                track.enabled = !isMuted;
             });
-            const icon = deafenBtn.querySelector('i');
-            const text = deafenBtn.querySelector('span');
-            if (icon) {
-                icon.className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-            }
-            if (text) {
-                text.textContent = isDeafened ? 'Undeafen' : 'Deafen';
-            }
+        }
+        muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+        muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
 
-            // Broadcast deafen status to all users
-            if (socket && socket.connected) {
-                const deafenData = {
-                    userId: currentUser.id,
-                    isDeafened: isDeafened,
-                    displayName: currentUser.displayName
-                };
-                console.log('Broadcasting deafen status to server:', deafenData);
-                try {
-                    socket.emit('userDeafenStatus', deafenData);
-                } catch (error) {
-                    console.error('Error emitting deafen status:', error);
-                }
-            } else {
-                console.warn('Socket not connected, cannot broadcast deafen status');
+        // Broadcast mute status to all users
+        if (socket && socket.connected) {
+            const muteData = {
+                userId: currentUser.id,
+                isMuted: isMuted,
+                displayName: currentUser.displayName
+            };
+            console.log('Broadcasting mute status to server:', muteData);
+            try {
+                socket.emit('userMuteStatus', muteData);
+            } catch (error) {
+                console.error('Error emitting mute status:', error);
             }
+        } else {
+            console.warn('Socket not connected, cannot broadcast mute status');
+        }
 
-            // Update local UI
-            updateUserDeafenStatus(currentUser.id, isDeafened);
+        // Update local UI
+        updateUserMuteStatus(currentUser.id, isMuted);
+    });
+
+    deafenBtn.addEventListener('click', () => {
+        isDeafened = !isDeafened;
+        document.querySelectorAll('audio').forEach(audio => {
+            audio.muted = isDeafened;
         });
-    }
+        deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+        deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
 
-    // Add leave button event listener if it exists
-    if (leaveBtn) {
-        leaveBtn.addEventListener('click', () => {
-            if (channelSection) {
-                channelSection.classList.remove('visible');
-                channelSection.classList.add('hidden');
+        // Broadcast deafen status to all users
+        if (socket && socket.connected) {
+            const deafenData = {
+                userId: currentUser.id,
+                isDeafened: isDeafened,
+                displayName: currentUser.displayName
+            };
+            console.log('Broadcasting deafen status to server:', deafenData);
+            try {
+                socket.emit('userDeafenStatus', deafenData);
+            } catch (error) {
+                console.error('Error emitting deafen status:', error);
+            }
+        } else {
+            console.warn('Socket not connected, cannot broadcast deafen status');
+        }
+
+        // Update local UI
+        updateUserDeafenStatus(currentUser.id, isDeafened);
+    });
+
+    leaveBtn.addEventListener('click', () => {
+        channelSection.classList.remove('visible');
+        channelSection.classList.add('hidden');
+
+        setTimeout(() => {
+            displayNameInput.disabled = false;
+            joinBtn.disabled = false;
+            joinBtn.classList.remove('loading');
+            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+            usersList.innerHTML = '';
+            warningMessage.textContent = '';
+
+            welcomeSection.classList.remove('hidden');
+
+            Object.keys(peerConnections).forEach(userId => {
+                closePeerConnection(userId);
+            });
+            peerConnections = {};
+
+            if (socket) {
+                socket.disconnect();
+                socket = null;
             }
 
-            setTimeout(() => {
-                if (displayNameInput) {
-                    displayNameInput.disabled = false;
-                }
-                if (joinBtn) {
-                    joinBtn.disabled = false;
-                    joinBtn.classList.remove('loading');
-                    joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-                }
-                if (usersList) {
-                    usersList.innerHTML = '';
-                }
-                if (warningMessage) {
-                    warningMessage.textContent = '';
-                }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
 
-                if (welcomeSection) {
-                    welcomeSection.classList.remove('hidden');
-                }
-
-                Object.keys(peerConnections).forEach(userId => {
-                    closePeerConnection(userId);
-                });
-                peerConnections = {};
-
-                if (socket) {
-                    socket.disconnect();
-                    socket = null;
-                }
-
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                    localStream = null;
-                }
-
-                if (audioContext) {
-                    audioContext.close();
-                    audioContext = null;
-                }
-            }, 500);
-        });
-    }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+        }, 500);
+    });
 }
 
 // Initialize WebRTC with simplified constraints
@@ -698,334 +574,330 @@ function closePeerConnection(userId) {
     }
 }
 
-// Initialize Socket.io with null checks
+// Initialize Socket.io
 function initializeSocket() {
-    if (!socket) {
-        socket = io('https://skynet-mdy7.onrender.com', {
-            path: '/socket.io/',
-            transports: ['websocket', 'polling'],
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            timeout: 10000,
-            forceNew: true,
-            withCredentials: true
-        });
+    socket = io('https://skynet-mdy7.onrender.com', {
+        path: '/socket.io/',
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000,
+        forceNew: true,
+        withCredentials: true
+    });
 
-        socket.on('connect', () => {
-            console.log('Connected to signaling server');
-            socketInitialized = true;
-            if (warningMessage) {
-                warningMessage.textContent = '';
-            }
-        });
+    socket.on('connect', () => {
+        console.log('Connected to signaling server');
+        socketInitialized = true;
+        warningMessage.textContent = '';
+    });
 
-        socket.on('connect_error', (error) => {
-            console.error('Connection error:', error);
-            warningMessage.textContent = 'Failed to connect to server. Please try again.';
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-            joinBtn.disabled = false;
-        });
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        warningMessage.textContent = 'Failed to connect to server. Please try again.';
+        joinBtn.classList.remove('loading');
+        joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+        joinBtn.disabled = false;
+    });
 
-        socket.on('disconnect', (reason) => {
-            console.log('Disconnected from server:', reason);
-            if (reason === 'io server disconnect') {
-                socket.connect();
-            }
-        });
+    socket.on('disconnect', (reason) => {
+        console.log('Disconnected from server:', reason);
+        if (reason === 'io server disconnect') {
+            socket.connect();
+        }
+    });
 
-        socket.on('reconnect_attempt', (attemptNumber) => {
-            console.log('Attempting to reconnect:', attemptNumber);
-            warningMessage.textContent = `Reconnecting to server... (Attempt ${attemptNumber})`;
-        });
+    socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log('Attempting to reconnect:', attemptNumber);
+        warningMessage.textContent = `Reconnecting to server... (Attempt ${attemptNumber})`;
+    });
 
-        socket.on('reconnect', () => {
-            console.log('Socket reconnected, broadcasting current status');
-            if (socket && socket.connected) {
-                // Broadcast current status after reconnection
-                const muteData = {
-                    userId: currentUser.id,
-                    isMuted: isMuted,
-                    displayName: currentUser.displayName
-                };
-                socket.emit('userMuteStatus', muteData);
+    socket.on('reconnect', () => {
+        console.log('Socket reconnected, broadcasting current status');
+        if (socket && socket.connected) {
+            // Broadcast current status after reconnection
+            const muteData = {
+                userId: currentUser.id,
+                isMuted: isMuted,
+                displayName: currentUser.displayName
+            };
+            socket.emit('userMuteStatus', muteData);
 
-                const deafenData = {
-                    userId: currentUser.id,
-                    isDeafened: isDeafened,
-                    displayName: currentUser.displayName
-                };
-                socket.emit('userDeafenStatus', deafenData);
-            }
-        });
+            const deafenData = {
+                userId: currentUser.id,
+                isDeafened: isDeafened,
+                displayName: currentUser.displayName
+            };
+            socket.emit('userDeafenStatus', deafenData);
+        }
+    });
 
-        socket.on('reconnect_error', (error) => {
-            console.error('Reconnection error:', error);
-            warningMessage.textContent = 'Failed to reconnect to server. Please refresh the page.';
-        });
+    socket.on('reconnect_error', (error) => {
+        console.error('Reconnection error:', error);
+        warningMessage.textContent = 'Failed to reconnect to server. Please refresh the page.';
+    });
 
-        socket.on('reconnect_failed', () => {
-            console.error('Failed to reconnect to server');
-            warningMessage.textContent = 'Failed to reconnect to server. Please refresh the page.';
-        });
+    socket.on('reconnect_failed', () => {
+        console.error('Failed to reconnect to server');
+        warningMessage.textContent = 'Failed to reconnect to server. Please refresh the page.';
+    });
 
-        socket.on('duplicateConnection', () => {
-            console.log('Duplicate connection detected');
-            Object.values(peerConnections).forEach(pc => pc.close());
-            peerConnections = {};
-            warningMessage.textContent = 'You are already connected in another tab/window';
-            socket.disconnect();
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-        });
+    socket.on('duplicateConnection', () => {
+        console.log('Duplicate connection detected');
+        Object.values(peerConnections).forEach(pc => pc.close());
+        peerConnections = {};
+        warningMessage.textContent = 'You are already connected in another tab/window';
+        socket.disconnect();
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    });
 
-        socket.on('userJoined', async (userData) => {
-            console.log('User joined:', userData);
-            if (!users.some(user => user.id === userData.id)) {
-                users.push(userData);
-                updateUsersList(users);
-                if (userData.id !== currentUser.id && !peerConnections[userData.id]) {
-                    await createPeerConnection(userData.id, true);
-                }
-            }
-        });
-
-        socket.on('userLeft', (userId) => {
-            console.log('User left:', userId);
-            users = users.filter(user => user.id !== userId);
+    socket.on('userJoined', async (userData) => {
+        console.log('User joined:', userData);
+        if (!users.some(user => user.id === userData.id)) {
+            users.push(userData);
             updateUsersList(users);
-            
-            if (peerConnections[userId]) {
-                peerConnections[userId].close();
-                delete peerConnections[userId];
+            if (userData.id !== currentUser.id && !peerConnections[userData.id]) {
+                await createPeerConnection(userData.id, true);
             }
-            
-            const audioElement = document.getElementById(`audio-${userId}`);
-            if (audioElement) {
-                audioElement.remove();
+        }
+    });
+
+    socket.on('userLeft', (userId) => {
+        console.log('User left:', userId);
+        users = users.filter(user => user.id !== userId);
+        updateUsersList(users);
+        
+        if (peerConnections[userId]) {
+            peerConnections[userId].close();
+            delete peerConnections[userId];
+        }
+        
+        const audioElement = document.getElementById(`audio-${userId}`);
+        if (audioElement) {
+            audioElement.remove();
+        }
+    });
+
+    socket.on('usersList', (usersList) => {
+        console.log('Received users list:', usersList);
+        if (!currentUser) {
+            console.error('Current user not initialized');
+            return;
+        }
+        users = usersList.filter(user => user.id !== currentUser.id);
+        if (!users.some(user => user.id === currentUser.id)) {
+            users.unshift(currentUser);
+        }
+        updateUsersList(users);
+
+        usersList.forEach(async user => {
+            if (user.id !== currentUser.id && !peerConnections[user.id]) {
+                await createPeerConnection(user.id, true);
             }
         });
+    });
 
-        socket.on('usersList', (usersList) => {
-            console.log('Received users list:', usersList);
-            if (!currentUser) {
-                console.error('Current user not initialized');
-                return;
-            }
-            users = usersList.filter(user => user.id !== currentUser.id);
-            if (!users.some(user => user.id === currentUser.id)) {
-                users.unshift(currentUser);
-            }
-            updateUsersList(users);
+    socket.on('offer', async (data) => {
+        console.log('Received offer:', data);
+        try {
+            let peerConnection = peerConnections[data.senderId];
+            const isInitiator = false; // When receiving an offer, this client acts as answerer
 
-            usersList.forEach(async user => {
-                if (user.id !== currentUser.id && !peerConnections[user.id]) {
-                    await createPeerConnection(user.id, true);
-                }
-            });
-        });
+            // If a peer connection for this sender doesn't exist, create one as the answerer
+        if (!peerConnection) {
+                console.log(`No existing peer connection for ${data.senderId}, creating a new one as answerer`);
+                peerConnection = await createPeerConnection(data.senderId, isInitiator);
+            } else {
+                console.log(`Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
 
-        socket.on('offer', async (data) => {
-            console.log('Received offer:', data);
-            try {
-                let peerConnection = peerConnections[data.senderId];
-                const isInitiator = false; // When receiving an offer, this client acts as answerer
-
-                // If a peer connection for this sender doesn't exist, create one as the answerer
-            if (!peerConnection) {
-                    console.log(`No existing peer connection for ${data.senderId}, creating a new one as answerer`);
-                    peerConnection = await createPeerConnection(data.senderId, isInitiator);
-                } else {
-                    console.log(`Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
-
-                    // Glare handling: If we receive an offer and we are already in 'have-local-offer' state,
-                    // it means both sides sent offers simultaneously. We need to decide who wins.
-                    // A common strategy is to compare user IDs. The client with the lexicographically smaller ID wins.
-                    if (peerConnection.signalingState === 'have-local-offer') {
-                        console.log(`Glare detected with user ${data.senderId}. Current state: have-local-offer. Resolving conflict...`);
-                        // Compare user IDs to resolve glare
-                        if (currentUser.id < data.senderId) {
-                            console.log(`Winning glare resolution, processing offer from ${data.senderId}`);
-                            // This client wins, proceed to set remote offer and send answer
-                        } else {
-                            console.log(`Losing glare resolution, ignoring offer from ${data.senderId}.`);
-                            // This client loses, ignore the incoming offer and wait for the other side's answer to our offer
-                return;
-                        }
+                // Glare handling: If we receive an offer and we are already in 'have-local-offer' state,
+                // it means both sides sent offers simultaneously. We need to decide who wins.
+                // A common strategy is to compare user IDs. The client with the lexicographically smaller ID wins.
+                if (peerConnection.signalingState === 'have-local-offer') {
+                    console.log(`Glare detected with user ${data.senderId}. Current state: have-local-offer. Resolving conflict...`);
+                    // Compare user IDs to resolve glare
+                    if (currentUser.id < data.senderId) {
+                        console.log(`Winning glare resolution, processing offer from ${data.senderId}`);
+                        // This client wins, proceed to set remote offer and send answer
+                    } else {
+                        console.log(`Losing glare resolution, ignoring offer from ${data.senderId}.`);
+                        // This client loses, ignore the incoming offer and wait for the other side's answer to our offer
+            return;
                     }
-                     // If state is stable, it's likely the initial offer, proceed.
-                     // If state is neither 'have-local-offer' nor 'stable' (and not invalid), log a warning.
-                     else if (peerConnection.signalingState !== 'stable') {
-                         console.warn(`Received offer for ${data.senderId} in state ${peerConnection.signalingState}. Proceeding with caution.`);
-                     }
-
-                     // If state is invalid for setting a remote offer, ignore.
-                     if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
-                          console.log(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}.`);
-                          return; // Ignore offer if state is invalid for setting a remote offer
-                     }
                 }
+                 // If state is stable, it's likely the initial offer, proceed.
+                 // If state is neither 'have-local-offer' nor 'stable' (and not invalid), log a warning.
+                 else if (peerConnection.signalingState !== 'stable') {
+                     console.warn(`Received offer for ${data.senderId} in state ${peerConnection.signalingState}. Proceeding with caution.`);
+                 }
 
-                if (peerConnection) {
-                    // Proceed to set remote description and create/send answer
+                 // If state is invalid for setting a remote offer, ignore.
+                 if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
+                      console.log(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}.`);
+                      return; // Ignore offer if state is invalid for setting a remote offer
+                 }
+            }
+
+            if (peerConnection) {
+                // Proceed to set remote description and create/send answer
+                try {
+                    console.log(`Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    
+                    // Create and send answer only after setting remote offer
+                    console.log(`Creating answer for ${data.senderId}`);
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    console.log('Sending answer:', answer);
+                    socket.emit('answer', {
+                        targetUserId: data.senderId,
+                        answer: answer
+                    });
+                } catch (error) {
+                    console.error('Error handling offer (setting remote description or creating answer):', error);
+                    // Close connection on error to prevent hanging states
+                    peerConnection.close(); 
+                    delete peerConnections[data.senderId];
+                }
+            } else {
+                 console.error('Failed to create or find peer connection for offer processing');
+            }
+        } catch (error) {
+            console.error('Error handling received offer event:', error);
+        }
+    });
+
+    socket.on('answer', async (data) => {
+        console.log('Received answer:', data);
+        try {
+            const peerConnection = peerConnections[data.senderId];
+            if (peerConnection) {
+                // Check signaling state before setting remote description
+                // An answer should typically be received when the state is 'have-local-offer'
+                if (peerConnection.signalingState === 'have-local-offer') {
                     try {
-                        console.log(`Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                        
-                        // Create and send answer only after setting remote offer
-                        console.log(`Creating answer for ${data.senderId}`);
-                        const answer = await peerConnection.createAnswer();
-                        await peerConnection.setLocalDescription(answer);
-                        console.log('Sending answer:', answer);
-                        socket.emit('answer', {
-                            targetUserId: data.senderId,
-                            answer: answer
-                        });
-                    } catch (error) {
-                        console.error('Error handling offer (setting remote description or creating answer):', error);
+                        console.log(`Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+
+                        // Process any queued ICE candidates
+                        if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
+                            console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
+            for (const candidate of peerConnection.queuedIceCandidates) {
+                                try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                                } catch (error) {
+                                    console.warn('Error adding queued ICE candidate:', error);
+                                }
+            }
+            peerConnection.queuedIceCandidates = [];
+        }
+    } catch (error) {
+                        console.error('Error setting remote description:', error);
                         // Close connection on error to prevent hanging states
-                        peerConnection.close(); 
+                        peerConnection.close();
                         delete peerConnections[data.senderId];
                     }
                 } else {
-                     console.error('Failed to create or find peer connection for offer processing');
+                    console.warn(`Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}. Ignoring answer.`);
+                    // If we receive an answer in a state like 'stable', it likely means the offer/answer 
+                    // exchange is already complete or in a confused state. Ignoring it is safer than 
+                    // attempting to set it, which causes the InvalidStateError.
                 }
-            } catch (error) {
-                console.error('Error handling received offer event:', error);
-            }
-        });
-
-        socket.on('answer', async (data) => {
-            console.log('Received answer:', data);
-            try {
-                const peerConnection = peerConnections[data.senderId];
-                if (peerConnection) {
-                    // Check signaling state before setting remote description
-                    // An answer should typically be received when the state is 'have-local-offer'
-                    if (peerConnection.signalingState === 'have-local-offer') {
-                        try {
-                            console.log(`Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-
-                            // Process any queued ICE candidates
-                            if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
-                                console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
-                for (const candidate of peerConnection.queuedIceCandidates) {
-                                    try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                                    } catch (error) {
-                                        console.warn('Error adding queued ICE candidate:', error);
-                                    }
-                }
-                peerConnection.queuedIceCandidates = [];
+            } else {
+                console.warn(`Received answer for unknown or closed peer connection with user ${data.senderId}.`);
             }
         } catch (error) {
-                            console.error('Error setting remote description:', error);
-                            // Close connection on error to prevent hanging states
-                            peerConnection.close();
-                            delete peerConnections[data.senderId];
-                        }
-                    } else {
-                        console.warn(`Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}. Ignoring answer.`);
-                        // If we receive an answer in a state like 'stable', it likely means the offer/answer 
-                        // exchange is already complete or in a confused state. Ignoring it is safer than 
-                        // attempting to set it, which causes the InvalidStateError.
-                    }
-                } else {
-                    console.warn(`Received answer for unknown or closed peer connection with user ${data.senderId}.`);
-                }
-            } catch (error) {
-                console.error('Error handling received answer event:', error);
-            }
-        });
+            console.error('Error handling received answer event:', error);
+        }
+    });
 
-        socket.on('ice-candidate', async (data) => {
-            console.log('Received ICE candidate:', data);
-            try {
-                const peerConnection = peerConnections[data.senderId];
-                if (peerConnection) {
-            if (peerConnection.remoteDescription) {
-                        try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                        } catch (error) {
-                            console.warn('Error adding ICE candidate:', error);
-                        }
-            } else {
-                        // Queue the ICE candidate if remote description is not set yet
-                if (!peerConnection.queuedIceCandidates) {
-                    peerConnection.queuedIceCandidates = [];
-                }
-                        const isDuplicate = peerConnection.queuedIceCandidates.some(
-                            existing => existing.candidate === data.candidate.candidate
-                        );
-                        if (!isDuplicate) {
-                peerConnection.queuedIceCandidates.push(data.candidate);
-                        }
+    socket.on('ice-candidate', async (data) => {
+        console.log('Received ICE candidate:', data);
+        try {
+            const peerConnection = peerConnections[data.senderId];
+            if (peerConnection) {
+        if (peerConnection.remoteDescription) {
+                    try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    } catch (error) {
+                        console.warn('Error adding ICE candidate:', error);
+                    }
+        } else {
+                    // Queue the ICE candidate if remote description is not set yet
+            if (!peerConnection.queuedIceCandidates) {
+                peerConnection.queuedIceCandidates = [];
+            }
+                    const isDuplicate = peerConnection.queuedIceCandidates.some(
+                        existing => existing.candidate === data.candidate.candidate
+                    );
+                    if (!isDuplicate) {
+            peerConnection.queuedIceCandidates.push(data.candidate);
                     }
                 }
-            } catch (error) {
-                console.error('Error handling ICE candidate:', error);
-            }
-        });
-
-        socket.on('userSpeaking', (data) => {
-            const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
-            if (userItem) {
-                const indicator = userItem.querySelector('.user-status-indicator');
-                const status = userItem.querySelector('.user-status');
-                indicator.className = 'user-status-indicator speaking';
-                status.textContent = 'Speaking...';
-            }
-        });
-
-        socket.on('userStoppedSpeaking', (data) => {
-            const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
-            if (userItem) {
-                const indicator = userItem.querySelector('.user-status-indicator');
-                const status = userItem.querySelector('.user-status');
-                indicator.className = 'user-status-indicator';
-                status.textContent = 'Online';
-            }
-        });
-
-        // Update the mute status event handler
-        socket.on('userMuteStatus', (data) => {
-            console.log('Received mute status update from server:', data);
-            if (data.userId) {
-                // Force a UI update
-                requestAnimationFrame(() => {
-                    updateUserMuteStatus(data.userId, data.isMuted);
-                });
-            }
-        });
-
-        // Update the deafen status event handler
-        socket.on('userDeafenStatus', (data) => {
-            console.log('Received deafen status update from server:', data);
-            if (data.userId) {
-                // Force a UI update
-                requestAnimationFrame(() => {
-                    updateUserDeafenStatus(data.userId, data.isDeafened);
-                });
-            }
-        });
-
-        // Listen for sound notification events (assuming server sends these)
-        socket.on('userJoinedSound', () => {
-            console.log('Received userJoinedSound event');
-            if (userJoinedSound) {
-                userJoinedSound.play().catch(error => console.error('Error playing userJoinedSound:', error));
-            }
-        });
-
-        socket.on('userLeftSound', () => {
-            console.log('Received userLeftSound event');
-            if (userLeftSound) {
-                userLeftSound.play().catch(error => console.error('Error playing userLeftSound:', error));
-            }
-        });
+        }
+    } catch (error) {
+        console.error('Error handling ICE candidate:', error);
     }
+    });
+
+    socket.on('userSpeaking', (data) => {
+        const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
+        if (userItem) {
+            const indicator = userItem.querySelector('.user-status-indicator');
+            const status = userItem.querySelector('.user-status');
+            indicator.className = 'user-status-indicator speaking';
+            status.textContent = 'Speaking...';
+        }
+    });
+
+    socket.on('userStoppedSpeaking', (data) => {
+        const userItem = document.querySelector(`[data-user-id="${data.userId}"]`);
+        if (userItem) {
+            const indicator = userItem.querySelector('.user-status-indicator');
+            const status = userItem.querySelector('.user-status');
+            indicator.className = 'user-status-indicator';
+            status.textContent = 'Online';
+        }
+    });
+
+    // Update the mute status event handler
+    socket.on('userMuteStatus', (data) => {
+        console.log('Received mute status update from server:', data);
+        if (data.userId) {
+            // Force a UI update
+            requestAnimationFrame(() => {
+                updateUserMuteStatus(data.userId, data.isMuted);
+            });
+        }
+    });
+
+    // Update the deafen status event handler
+    socket.on('userDeafenStatus', (data) => {
+        console.log('Received deafen status update from server:', data);
+        if (data.userId) {
+            // Force a UI update
+            requestAnimationFrame(() => {
+                updateUserDeafenStatus(data.userId, data.isDeafened);
+            });
+        }
+    });
+
+    // Listen for sound notification events (assuming server sends these)
+    socket.on('userJoinedSound', () => {
+        console.log('Received userJoinedSound event');
+        if (userJoinedSound) {
+            userJoinedSound.play().catch(error => console.error('Error playing userJoinedSound:', error));
+        }
+    });
+
+    socket.on('userLeftSound', () => {
+        console.log('Received userLeftSound event');
+        if (userLeftSound) {
+            userLeftSound.play().catch(error => console.error('Error playing userLeftSound:', error));
+        }
+    });
 }
 
 // Function to create user list item
@@ -1274,45 +1146,89 @@ function createThemeSwitch() {
     }
 }
 
-// Initialize the application
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // First check if user is authenticated
-        if (!initializeUserData()) {
-            console.error('Failed to initialize user data');
-            return;
-        }
+// Initialize theme when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    initializeTheme();
+    createThemeSwitch();
+    
+    // Rest of your initialization code...
+    if (!initializeUserData()) {
+        return;
+    }
+    initializeDOMElements();
+    initializeEventListeners();
+});
 
-        // Initialize DOM elements
-        initializeDOMElements();
-        
-        // Initialize socket connection first
-        initializeSocket();
-        
-        // Wait for socket to be ready
-        await new Promise((resolve) => {
-            if (socket && socket.connected) {
-                resolve();
-            } else {
-                socket.on('connect', resolve);
-            }
+// Initialize particles.js
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof particlesJS !== 'undefined') {
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 80,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: '#00ff9d'
+                },
+                shape: {
+                    type: 'circle'
+                },
+                opacity: {
+                    value: 0.5,
+                    random: false
+                },
+                size: {
+                    value: 3,
+                    random: true
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#00ff9d',
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 140,
+                        line_linked: {
+                            opacity: 1
+                        }
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
         });
-        
-        // Then initialize event listeners
-        initializeEventListeners();
-        
-        // Initialize friend system after socket is ready
-        initializeFriendSystem();
-        
-        // Initialize WebRTC last
-        await initializeWebRTC();
-        
-        console.log('Application initialized successfully');
-    } catch (error) {
-        console.error('Error initializing application:', error);
-        if (warningMessage) {
-            warningMessage.textContent = 'Error initializing application. Please refresh the page.';
-        }
     }
 });
 
@@ -1462,257 +1378,3 @@ document.addEventListener('DOMContentLoaded', () => {
 // Note: Logic to select and save cursor style needs to be implemented on the profile page.
 // The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
 // to localStorage with the key 'cursorStyle'.
-
-// Friend System
-function initializeFriendSystem() {
-    if (!socket || !socket.connected) {
-        console.warn('Socket not initialized or not connected, friend system may not work properly');
-        return;
-    }
-
-    // Initialize friend menu if it exists
-    if (friendMenu) {
-        friendMenu.style.display = 'none';
-    }
-
-    // Initialize friend notification if it exists
-    if (friendNotification) {
-        friendNotification.style.display = 'none';
-    }
-
-    // Initialize chat sidebar if it exists
-    if (chatSidebar) {
-        chatSidebar.style.display = 'none';
-    }
-
-    // Handle friend menu clicks
-    document.addEventListener('click', (e) => {
-        const friendMenuBtn = e.target.closest('.friend-menu-btn');
-        if (friendMenuBtn) {
-            const menu = friendMenuBtn.nextElementSibling;
-            if (menu) {
-                const allMenus = document.querySelectorAll('.friend-menu');
-                
-                // Close all other menus
-                allMenus.forEach(m => {
-                    if (m !== menu) m.classList.remove('active');
-                });
-                
-                menu.classList.toggle('active');
-                e.stopPropagation();
-            }
-        } else if (!e.target.closest('.friend-menu')) {
-            // Close all menus when clicking outside
-            document.querySelectorAll('.friend-menu').forEach(menu => {
-                menu.classList.remove('active');
-            });
-        }
-    });
-
-    // Handle friend actions
-    document.addEventListener('click', async (e) => {
-        const action = e.target.closest('.friend-action');
-        if (!action) return;
-
-        const userCard = action.closest('.user-card');
-        if (!userCard) return;
-
-        const targetUserId = userCard.dataset.userId;
-        if (!targetUserId || !currentUser) return;
-
-        if (action.classList.contains('add-friend')) {
-            await sendFriendRequest(targetUserId);
-        } else if (action.classList.contains('remove-friend')) {
-            await removeFriend(targetUserId);
-        } else if (action.classList.contains('block-user')) {
-            await blockUser(targetUserId);
-        }
-    });
-
-    // Set up socket event listeners for friend system
-    socket.on('friendRequest', async (data) => {
-        if (data.receiverId === currentUser.id) {
-            showFriendRequestNotification(data);
-        }
-    });
-
-    socket.on('friendRequestResponse', async (data) => {
-        if (data.userId === currentUser.id) {
-            const userCard = document.querySelector(`[data-user-id="${data.senderId}"]`);
-            if (userCard) {
-                const addFriendBtn = userCard.querySelector('.add-friend');
-                const removeFriendBtn = userCard.querySelector('.remove-friend');
-                if (data.status === 'accepted') {
-                    addFriendBtn.classList.add('hidden');
-                    removeFriendBtn.classList.remove('hidden');
-                }
-            }
-        }
-    });
-}
-
-// Send friend request
-async function sendFriendRequest(targetUserId) {
-    if (!currentUser) return;
-    
-    try {
-        const { data, error } = await supabase
-            .from('friend_requests')
-            .insert([
-                {
-                    sender_id: currentUser.id,
-                    receiver_id: targetUserId,
-                    status: 'pending'
-                }
-            ]);
-
-        if (error) throw error;
-
-        // Emit socket event for real-time notification
-        socket.emit('friendRequest', {
-            senderId: currentUser.id,
-            receiverId: targetUserId,
-            senderName: currentUser.displayName
-        });
-
-        showMessage('Friend request sent!', 'success');
-    } catch (error) {
-        console.error('Error sending friend request:', error);
-        showMessage('Failed to send friend request', 'error');
-    }
-}
-
-// Show friend request notification
-function showFriendRequestNotification(data) {
-    const notification = document.createElement('div');
-    notification.className = 'friend-notification';
-    notification.innerHTML = `
-        <div class="avatar-wrapper">
-            <img src="${data.senderAvatar || 'assets/images/default-avatar.svg'}" alt="User Avatar">
-        </div>
-        <div class="notification-content">
-            <strong>${data.senderName}</strong> sent you a friend request
-        </div>
-        <div class="notification-actions">
-            <button class="accept-btn" data-request-id="${data.requestId}">Accept</button>
-            <button class="reject-btn" data-request-id="${data.requestId}">Reject</button>
-        </div>
-    `;
-
-    document.body.appendChild(notification);
-
-    // Handle accept/reject
-    notification.querySelector('.accept-btn').addEventListener('click', async () => {
-        await handleFriendRequest(data.requestId, 'accepted');
-        notification.remove();
-    });
-
-    notification.querySelector('.reject-btn').addEventListener('click', async () => {
-        await handleFriendRequest(data.requestId, 'rejected');
-        notification.remove();
-    });
-
-    // Auto remove after 30 seconds
-    setTimeout(() => {
-        notification.remove();
-    }, 30000);
-}
-
-// Handle friend request response
-async function handleFriendRequest(requestId, status) {
-    if (!currentUser) return;
-    
-    try {
-        const { data, error } = await supabase
-            .from('friend_requests')
-            .update({ status })
-            .eq('id', requestId);
-
-        if (error) throw error;
-
-        // Emit socket event for real-time update
-        socket.emit('friendRequestResponse', {
-            requestId,
-            status,
-            userId: currentUser.id
-        });
-
-        if (status === 'accepted') {
-            showMessage('Friend request accepted!', 'success');
-        }
-    } catch (error) {
-        console.error('Error handling friend request:', error);
-        showMessage('Failed to process friend request', 'error');
-    }
-}
-
-// Remove friend
-async function removeFriend(targetUserId) {
-    if (!currentUser) return;
-    
-    try {
-        const { data, error } = await supabase
-            .from('friend_relationships')
-            .delete()
-            .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`)
-            .or(`user_id.eq.${targetUserId},friend_id.eq.${targetUserId}`);
-
-        if (error) throw error;
-
-        // Update UI
-        const userCard = document.querySelector(`[data-user-id="${targetUserId}"]`);
-        if (userCard) {
-            const addFriendBtn = userCard.querySelector('.add-friend');
-            const removeFriendBtn = userCard.querySelector('.remove-friend');
-            addFriendBtn.classList.remove('hidden');
-            removeFriendBtn.classList.add('hidden');
-        }
-
-        showMessage('Friend removed', 'success');
-    } catch (error) {
-        console.error('Error removing friend:', error);
-        showMessage('Failed to remove friend', 'error');
-    }
-}
-
-// Block user
-async function blockUser(targetUserId) {
-    if (!currentUser) return;
-    
-    try {
-        const { data, error } = await supabase
-            .from('blocked_users')
-            .insert([
-                {
-                    user_id: currentUser.id,
-                    blocked_user_id: targetUserId
-                }
-            ]);
-
-        if (error) throw error;
-
-        // Update UI
-        const userCard = document.querySelector(`[data-user-id="${targetUserId}"]`);
-        if (userCard) {
-            userCard.style.opacity = '0.5';
-        }
-
-        showMessage('User blocked', 'success');
-    } catch (error) {
-        console.error('Error blocking user:', error);
-        showMessage('Failed to block user', 'error');
-    }
-}
-
-// Helper function to show messages
-function showMessage(message, type = 'info') {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${type}`;
-    messageDiv.textContent = message;
-    document.body.appendChild(messageDiv);
-
-    setTimeout(() => {
-        messageDiv.classList.add('fade-out');
-        setTimeout(() => messageDiv.remove(), 500);
-    }, 3000);
-}
