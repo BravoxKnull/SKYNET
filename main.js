@@ -2003,13 +2003,17 @@ async function updateSidebarUnreadCounts() {
 async function markMessagesRead(friendId) {
     const user = getCurrentUser();
     if (!user) return;
+    console.log('Marking messages as read for friend:', friendId);
     await supabase.from('user_messages')
         .update({ is_read: true })
         .eq('sender_id', friendId)
         .eq('receiver_id', user.id)
         .eq('is_read', false);
-    sidebarUnreadCounts[friendId] = 0;
+    // Wait a short time to ensure DB update is reflected
+    await new Promise(res => setTimeout(res, 200));
+    console.log('Updating sidebar unread counts after marking as read...');
     await updateSidebarUnreadCounts();
+    console.log('Sidebar unread counts updated.');
 }
 
 // Update openChatModal to mark messages as read
