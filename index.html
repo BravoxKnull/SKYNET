@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/images/skynet_red_black.svg">
     
     <!-- WebRTC and Socket.IO Scripts -->
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
@@ -32,6 +33,65 @@
             };
         }
     </script>
+    <style>
+      /* Ensure fallback for background and text */
+      body, html {
+        background: #000 !important;
+        color: #fff !important;
+      }
+      .sidebar, .sidebar * {
+        background: #000 !important;
+        color: #fff !important;
+      }
+      .header, .header * {
+        background: #000 !important;
+        color: #ff0000 !important;
+      }
+      .join-btn, .control-btn, .friend-btn, .chat-send-btn {
+        background: #ff0000 !important;
+        color: #fff !important;
+        border: none !important;
+      }
+      .join-btn:hover, .control-btn:hover, .friend-btn:hover, .chat-send-btn:hover {
+        background: #b30000 !important;
+      }
+      .input-field, input {
+        background: #181818 !important;
+        color: #fff !important;
+        border: 1px solid #ff0000 !important;
+      }
+      .user-item, .user-details, .user-avatar-container, .chat-section, .chat-window, .chat-friends-list {
+        background: #111 !important;
+        color: #fff !important;
+      }
+      .user-status-indicator.speaking {
+        background: #ff0000 !important;
+      }
+      .user-status-indicator.muted, .user-status-indicator.deafened {
+        background: #b30000 !important;
+      }
+      a, .link, .theme-switch-label, .theme-icon {
+        color: #ff0000 !important;
+      }
+      .theme-switch, .theme-slider {
+        background: #111 !important;
+      }
+      .theme-preview, .preview-item {
+        background: #111 !important;
+        color: #fff !important;
+      }
+      .error-message, .warning-message, .success-message {
+        background: #ff0000 !important;
+        color: #fff !important;
+      }
+      .msg-bubble {
+        background: #ff0000 !important;
+        color: #fff !important;
+      }
+      .chat-message.me .msg-bubble {
+        background: #b30000 !important;
+      }
+    </style>
 </head>
 <body>
     <!-- Auth Check Script -->
