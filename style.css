@@ -28,103 +28,57 @@ button:disabled, input:disabled {
 
 /* Theme Variables */
 :root {
-    --primary-color: #ff0000;
-    --accent-color: #ff0000;
-    --glass-bg: #000000;
-    --input-bg: #181818;
-    --border-color: #222;
-    --hover-bg: #1a1a1a;
-    --text-color: #fff;
-    --card-bg: #111;
-    --sidebar-bg: #000;
-    --button-bg: #ff0000;
-    --button-hover-bg: #b30000;
-    --button-text: #fff;
-    --danger-color: #ff0000;
-    --success-color: #ff0000;
-    --warning-color: #ff0000;
+    /* Premium Dark Theme */
+    --primary-color: #a370f7; /* A rich, vibrant purple */
+    --secondary-color: #1a1b26; /* Deep, dark background */
+    --accent-color: #0db9d7; /* A bright cyan/blue for contrast */
+    --text-color: #e0e0e0; /* Soft white for readability */
+    --background-color: #1a1b26; /* Match secondary for main background */
+    --danger-color: #ff6b6b; /* A softer red */
+    --success-color: #7bc043; /* A natural green */
+    --warning-color: #feca57; /* A warm yellow */
+
+    /* Enhanced Glass & Depth */
+    --card-bg: rgba(36, 37, 54, 0.85); /* Slightly lighter than background for cards */
+    --border-color: rgba(163, 112, 247, 0.2); /* Border using primary color with transparency */
+    --hover-bg: rgba(163, 112, 247, 0.1); /* Hover using primary color with transparency */
+    --shadow-color: rgba(0, 0, 0, 0.4); /* Deeper shadow */
+    --input-bg: rgba(36, 37, 54, 0.6); /* Input using card background with more transparency */
+    --header-bg: rgba(26, 27, 38, 0.95); /* Header matches background with less transparency */
+
+    /* Refined Glass Morphism */
+    --glass-bg: rgba(36, 37, 54, 0.7); /* Glass background effect */
+    --glass-border: rgba(163, 112, 247, 0.3); /* Glass border using primary color */
+    --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5); /* More pronounced glass shadow */
+
+    /* Added Variables for gradients/overlays */
+    --gradient-primary: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    --gradient-secondary: linear-gradient(45deg, var(--accent-color), var(--primary-color));
 }
 
-body, html {
-    background: #000 !important;
-    color: #fff !important;
+/* Light Theme */
+[data-theme="light"] {
+    --primary-color: #00a3cc;
+    --secondary-color: #f0f2f5;
+    --accent-color: #00cc7e;
+    --text-color: #444444;
+    --background-color: #f0f2f5;
+    --danger-color: #e74c3c;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --border-color: rgba(0, 163, 204, 0.15);
+    --hover-bg: rgba(0, 163, 204, 0.08);
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --input-bg: rgba(255, 255, 255, 0.8);
+    --header-bg: rgba(240, 242, 245, 0.95);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 163, 204, 0.2);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+
+    --gradient-primary: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    --gradient-secondary: linear-gradient(45deg, var(--accent-color), var(--primary-color));
 }
-
-.sidebar, .sidebar * {
-    background: #000 !important;
-    color: #fff !important;
-}
-
-button, .control-btn, .join-btn, .friend-btn, .chat-send-btn {
-    background: #ff0000 !important;
-    color: #fff !important;
-    border: none !important;
-}
-button:hover, .control-btn:hover, .join-btn:hover, .friend-btn:hover, .chat-send-btn:hover {
-    background: #b30000 !important;
-}
-
-input, .input-field {
-    background: #181818 !important;
-    color: #fff !important;
-    border: 1px solid #ff0000 !important;
-}
-
-.user-item, .user-details, .user-avatar-container, .chat-section, .chat-window, .chat-friends-list {
-    background: #111 !important;
-    color: #fff !important;
-}
-
-.user-status-indicator.speaking {
-    background: #ff0000 !important;
-}
-
-.user-status-indicator.muted, .user-status-indicator.deafened {
-    background: #b30000 !important;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #ff0000 !important;
-}
-
-::-webkit-scrollbar-track {
-    background: #000 !important;
-}
-
-a, .link, .theme-switch-label, .theme-icon {
-    color: #ff0000 !important;
-}
-
-.theme-switch, .theme-slider {
-    background: #111 !important;
-}
-
-.theme-preview, .preview-item {
-    background: #111 !important;
-    color: #fff !important;
-}
-
-/* Remove any green, blue, or purple accent backgrounds */
-
-/* Override any other accent colors */
-
-/* Ensure error, warning, and success use red */
-.error-message, .warning-message, .success-message {
-    background: #ff0000 !important;
-    color: #fff !important;
-}
-
-/* Chat message bubbles */
-.msg-bubble {
-    background: #ff0000 !important;
-    color: #fff !important;
-}
-
-.chat-message.me .msg-bubble {
-    background: #b30000 !important;
-}
-
-/* Remove any other color rules that are not red, black, or white */
 
 /* Theme Transition */
 * {
