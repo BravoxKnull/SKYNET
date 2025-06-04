@@ -1731,17 +1731,54 @@ function patchChatSendButton() {
     }
 }
 
-// Patch after DOMContentLoaded, after chat window is shown, and on resize
-const origOpenChatWithFriend = window.openChatWithFriend;
+// --- LIVE CHAT UPDATES WITH SUPABASE REALTIME ---
+let chatMessageSubscription = null;
+
+async function subscribeToChatMessages(friendId) {
+    // Unsubscribe from previous subscription if any
+    if (chatMessageSubscription) {
+        await chatMessageSubscription.unsubscribe();
+        chatMessageSubscription = null;
+    }
+    const user = getCurrentUser();
+    if (!user || !friendId) return;
+    chatMessageSubscription = supabase
+        .channel('chat-messages-' + friendId)
+        .on(
+            'postgres_changes',
+            {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'user_messages',
+                filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id}))`
+            },
+            payload => {
+                // Only update if the message is for the current chat
+                if (
+                    (payload.new.sender_id === user.id && payload.new.receiver_id === friendId) ||
+                    (payload.new.sender_id === friendId && payload.new.receiver_id === user.id)
+                ) {
+                    loadChatMessages(friendId);
+                }
+            }
+        )
+        .subscribe();
+}
+
+// Patch openChatWithFriend to subscribe to realtime updates
+const origOpenChatWithFriendLive = window.openChatWithFriend;
 window.openChatWithFriend = async function(friend) {
-    await origOpenChatWithFriend(friend);
+    await origOpenChatWithFriendLive(friend);
+    subscribeToChatMessages(friend.id);
     setTimeout(patchChatSendButton, 0);
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    patchChatSendButton();
+// On page unload, clean up subscription
+window.addEventListener('beforeunload', async () => {
+    if (chatMessageSubscription) {
+        await chatMessageSubscription.unsubscribe();
+    }
 });
-window.addEventListener('resize', patchChatSendButton);
 
 // Utility: Escape HTML
 function escapeHtml(text) {
