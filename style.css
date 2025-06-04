@@ -1199,6 +1199,7 @@ body {
         margin-top: 2rem; /* Add space above sidebar */
         border-left: none; /* Remove left border */
         border-top: 1px solid var(--glass-border); /* Add top border for separation */
+        resize: horizontal;
     }
 
     .main-content {
