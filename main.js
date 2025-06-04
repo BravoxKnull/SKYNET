@@ -1731,7 +1731,7 @@ function patchChatSendButton() {
     }
 }
 
-// --- LIVE CHAT UPDATES WITH SUPABASE REALTIME (FIXED) ---
+// --- LIVE CHAT UPDATES WITH SUPABASE REALTIME (ROBUST, NO FILTER) ---
 let chatMessageChannel = null;
 
 async function subscribeToChatMessages(friendId) {
@@ -1742,26 +1742,28 @@ async function subscribeToChatMessages(friendId) {
     }
     const user = getCurrentUser();
     if (!user || !friendId) return;
-    chatMessageChannel = supabase.channel('chat-messages-' + friendId)
+    chatMessageChannel = supabase.channel('chat-messages-global')
         .on(
             'postgres_changes',
             {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'user_messages',
-                filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id}))`
             },
             payload => {
+                console.log('Realtime payload received:', payload);
                 // Only update if the message is for the current chat
                 if (
                     (payload.new.sender_id === user.id && payload.new.receiver_id === friendId) ||
                     (payload.new.sender_id === friendId && payload.new.receiver_id === user.id)
                 ) {
+                    console.log('Live update: new message for current chat.');
                     loadChatMessages(friendId);
                 }
             }
         );
     await chatMessageChannel.subscribe();
+    console.log('Subscribed to Realtime for user_messages.');
 }
 
 // Patch openChatWithFriend to subscribe to realtime updates
