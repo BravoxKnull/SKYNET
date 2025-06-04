@@ -1378,3 +1378,202 @@ document.addEventListener('DOMContentLoaded', () => {
 // Note: Logic to select and save cursor style needs to be implemented on the profile page.
 // The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
 // to localStorage with the key 'cursorStyle'.
+
+// Friend System
+function initializeFriendSystem() {
+    // Handle friend menu clicks
+    document.addEventListener('click', (e) => {
+        const friendMenuBtn = e.target.closest('.friend-menu-btn');
+        if (friendMenuBtn) {
+            const menu = friendMenuBtn.nextElementSibling;
+            const allMenus = document.querySelectorAll('.friend-menu');
+            
+            // Close all other menus
+            allMenus.forEach(m => {
+                if (m !== menu) m.classList.remove('active');
+            });
+            
+            menu.classList.toggle('active');
+            e.stopPropagation();
+        } else if (!e.target.closest('.friend-menu')) {
+            // Close all menus when clicking outside
+            document.querySelectorAll('.friend-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        }
+    });
+
+    // Handle friend actions
+    document.addEventListener('click', async (e) => {
+        const action = e.target.closest('.friend-action');
+        if (!action) return;
+
+        const userCard = action.closest('.user-card');
+        const targetUserId = userCard.dataset.userId;
+
+        if (action.classList.contains('add-friend')) {
+            await sendFriendRequest(targetUserId);
+        } else if (action.classList.contains('remove-friend')) {
+            await removeFriend(targetUserId);
+        } else if (action.classList.contains('block-user')) {
+            await blockUser(targetUserId);
+        }
+    });
+}
+
+// Send friend request
+async function sendFriendRequest(targetUserId) {
+    try {
+        const { data, error } = await supabase
+            .from('friend_requests')
+            .insert([
+                {
+                    sender_id: user.id,
+                    receiver_id: targetUserId,
+                    status: 'pending'
+                }
+            ]);
+
+        if (error) throw error;
+
+        // Emit socket event for real-time notification
+        socket.emit('friendRequest', {
+            senderId: user.id,
+            receiverId: targetUserId,
+            senderName: user.displayName
+        });
+
+        showMessage('Friend request sent!', 'success');
+    } catch (error) {
+        console.error('Error sending friend request:', error);
+        showMessage('Failed to send friend request', 'error');
+    }
+}
+
+// Handle incoming friend requests
+socket.on('friendRequest', async (data) => {
+    if (data.receiverId === user.id) {
+        showFriendRequestNotification(data);
+    }
+});
+
+// Show friend request notification
+function showFriendRequestNotification(data) {
+    const notification = document.createElement('div');
+    notification.className = 'friend-notification';
+    notification.innerHTML = `
+        <div class="avatar-wrapper">
+            <img src="${data.senderAvatar || 'assets/images/default-avatar.svg'}" alt="User Avatar">
+        </div>
+        <div class="notification-content">
+            <strong>${data.senderName}</strong> sent you a friend request
+        </div>
+        <div class="notification-actions">
+            <button class="accept-btn" data-request-id="${data.requestId}">Accept</button>
+            <button class="reject-btn" data-request-id="${data.requestId}">Reject</button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Handle accept/reject
+    notification.querySelector('.accept-btn').addEventListener('click', async () => {
+        await handleFriendRequest(data.requestId, 'accepted');
+        notification.remove();
+    });
+
+    notification.querySelector('.reject-btn').addEventListener('click', async () => {
+        await handleFriendRequest(data.requestId, 'rejected');
+        notification.remove();
+    });
+
+    // Auto remove after 30 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 30000);
+}
+
+// Handle friend request response
+async function handleFriendRequest(requestId, status) {
+    try {
+        const { data, error } = await supabase
+            .from('friend_requests')
+            .update({ status })
+            .eq('id', requestId);
+
+        if (error) throw error;
+
+        // Emit socket event for real-time update
+        socket.emit('friendRequestResponse', {
+            requestId,
+            status,
+            userId: user.id
+        });
+
+        if (status === 'accepted') {
+            showMessage('Friend request accepted!', 'success');
+        }
+    } catch (error) {
+        console.error('Error handling friend request:', error);
+        showMessage('Failed to process friend request', 'error');
+    }
+}
+
+// Remove friend
+async function removeFriend(targetUserId) {
+    try {
+        const { data, error } = await supabase
+            .from('friend_relationships')
+            .delete()
+            .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+            .or(`user_id.eq.${targetUserId},friend_id.eq.${targetUserId}`);
+
+        if (error) throw error;
+
+        // Update UI
+        const userCard = document.querySelector(`[data-user-id="${targetUserId}"]`);
+        if (userCard) {
+            const addFriendBtn = userCard.querySelector('.add-friend');
+            const removeFriendBtn = userCard.querySelector('.remove-friend');
+            addFriendBtn.classList.remove('hidden');
+            removeFriendBtn.classList.add('hidden');
+        }
+
+        showMessage('Friend removed', 'success');
+    } catch (error) {
+        console.error('Error removing friend:', error);
+        showMessage('Failed to remove friend', 'error');
+    }
+}
+
+// Block user
+async function blockUser(targetUserId) {
+    try {
+        const { data, error } = await supabase
+            .from('blocked_users')
+            .insert([
+                {
+                    user_id: user.id,
+                    blocked_user_id: targetUserId
+                }
+            ]);
+
+        if (error) throw error;
+
+        // Update UI
+        const userCard = document.querySelector(`[data-user-id="${targetUserId}"]`);
+        if (userCard) {
+            userCard.style.opacity = '0.5';
+        }
+
+        showMessage('User blocked', 'success');
+    } catch (error) {
+        console.error('Error blocking user:', error);
+        showMessage('Failed to block user', 'error');
+    }
+}
+
+// Initialize friend system when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    initializeFriendSystem();
+});

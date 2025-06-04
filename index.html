@@ -145,6 +145,39 @@
                 
                 <div class="users-grid" id="usersList">
                     <!-- Users will be added here dynamically -->
+                    <template id="userTemplate">
+                        <div class="user-card" data-user-id="">
+                            <div class="user-info">
+                                <div class="avatar-wrapper">
+                                    <img class="user-avatar" src="assets/images/default-avatar.svg" alt="User Avatar">
+                                    <div class="avatar-status"></div>
+                                </div>
+                                <div class="user-details">
+                                    <span class="user-name"></span>
+                                    <span class="user-status"></span>
+                                </div>
+                            </div>
+                            <div class="user-actions">
+                                <button class="action-btn friend-menu-btn">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <div class="friend-menu">
+                                    <button class="friend-action add-friend">
+                                        <i class="fas fa-user-plus"></i>
+                                        <span>Add Friend</span>
+                                    </button>
+                                    <button class="friend-action remove-friend hidden">
+                                        <i class="fas fa-user-minus"></i>
+                                        <span>Remove Friend</span>
+                                    </button>
+                                    <button class="friend-action block-user">
+                                        <i class="fas fa-ban"></i>
+                                        <span>Block User</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
 
                 <div class="channel-controls">
@@ -164,21 +197,36 @@
             </section>
         </main>
 
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="join-section">
-                <div class="input-group">
-                    <label for="displayName">Display Name</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="displayName" class="input-field" placeholder="Enter your display name" value="" readonly>
-                        <i class="fas fa-user input-icon"></i>
+        <!-- Text Chat Sidebar -->
+        <aside class="chat-sidebar">
+            <div class="chat-header">
+                <h3>Text Chat</h3>
+                <div class="chat-controls">
+                    <button id="toggleChat"><i class="fas fa-comments"></i></button>
+                </div>
+            </div>
+            <div class="chat-container">
+                <div class="channel-list">
+                    <div class="channel active">
+                        <i class="fas fa-hashtag"></i>
+                        <span>DUNE PC</span>
+                    </div>
+                    <div class="channel">
+                        <i class="fas fa-lock"></i>
+                        <span>Direct Messages</span>
                     </div>
                 </div>
-                <button id="joinBtn" class="join-btn">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>Join DUNE PC</span>
-                </button>
-                <div id="warningMessage" class="warning-message"></div>
+                <div class="message-area">
+                    <div class="messages" id="chatMessages">
+                        <!-- Messages will appear here -->
+                    </div>
+                    <div class="message-input">
+                        <textarea placeholder="Type your message..." id="messageInput"></textarea>
+                        <button id="sendMessage">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </aside>
 
