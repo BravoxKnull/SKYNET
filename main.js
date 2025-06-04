@@ -1981,15 +1981,18 @@ async function updateSidebarUnreadCounts() {
         .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
         .filter(id => id !== user.id);
     if (friendIds.length === 0) return;
-    // Get unread counts for each friend
+    // Get unread messages sent to the user (from any friend)
     const { data: unreadMsgs } = await supabase
         .from('user_messages')
         .select('sender_id, receiver_id, is_read')
         .eq('receiver_id', user.id)
         .eq('is_read', false);
     sidebarUnreadCounts = {};
+    friendIds.forEach(fid => { sidebarUnreadCounts[fid] = 0; });
     unreadMsgs?.forEach(msg => {
-        sidebarUnreadCounts[msg.sender_id] = (sidebarUnreadCounts[msg.sender_id] || 0) + 1;
+        if (friendIds.includes(msg.sender_id)) {
+            sidebarUnreadCounts[msg.sender_id] = (sidebarUnreadCounts[msg.sender_id] || 0) + 1;
+        }
     });
     renderFriendsSidebarList();
 }
