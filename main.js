@@ -2294,3 +2294,110 @@ function formatTime(ts) {
         document.head.appendChild(style);
     }
 })();
+
+// --- SOUNDBOARD FEATURE ---
+const soundboardSounds = [
+    { id: 'airhorn', label: 'Airhorn', file: 'assets/sounds/airhorn.mp3' },
+    { id: 'clap', label: 'Clap', file: 'assets/sounds/clap.mp3' },
+    { id: 'wow', label: 'Wow', file: 'assets/sounds/wow.mp3' },
+    { id: 'laugh', label: 'Laugh', file: 'assets/sounds/laugh.mp3' },
+    { id: 'boo', label: 'Boo', file: 'assets/sounds/boo.mp3' }
+];
+let soundboardEnabled = true;
+
+function renderSoundboardList() {
+    const list = document.getElementById('soundboardList');
+    list.innerHTML = '';
+    soundboardSounds.forEach(sound => {
+        const btn = document.createElement('button');
+        btn.className = 'soundboard-sound-btn';
+        btn.innerHTML = `<i class='fas fa-play'></i> ${sound.label}`;
+        btn.onclick = () => playSoundboardSound(sound.id);
+        list.appendChild(btn);
+    });
+}
+
+function openSoundboardModal() {
+    const overlay = document.getElementById('soundboardModalOverlay');
+    overlay.style.display = 'flex';
+    setTimeout(() => overlay.classList.add('active'), 10);
+    renderSoundboardList();
+    document.getElementById('soundboardToggle').checked = soundboardEnabled;
+}
+function closeSoundboardModal() {
+    const overlay = document.getElementById('soundboardModalOverlay');
+    overlay.classList.remove('active');
+    setTimeout(() => { overlay.style.display = 'none'; }, 320);
+}
+document.getElementById('soundboardBtn').onclick = openSoundboardModal;
+document.getElementById('closeSoundboardModal').onclick = closeSoundboardModal;
+document.getElementById('soundboardModalOverlay').onclick = function(e) {
+    if (e.target === this) closeSoundboardModal();
+};
+document.getElementById('soundboardToggle').onchange = function(e) {
+    soundboardEnabled = e.target.checked;
+};
+
+function playSoundboardSound(soundId) {
+    if (!soundboardEnabled) return;
+    // Play locally
+    const sound = soundboardSounds.find(s => s.id === soundId);
+    if (sound) {
+        const audio = new Audio(sound.file);
+        audio.play();
+    }
+    // Broadcast to channel
+    if (socket && socket.connected) {
+        socket.emit('soundboard', { soundId });
+    }
+}
+// Listen for soundboard events from others
+if (typeof socket !== 'undefined') {
+    socket.on('soundboard', ({ soundId }) => {
+        if (!soundboardEnabled) return;
+        const sound = soundboardSounds.find(s => s.id === soundId);
+        if (sound) {
+            const audio = new Audio(sound.file);
+            audio.play();
+        }
+    });
+}
+// Screenshare button handler (no-op for now)
+document.getElementById('screenshareBtn').onclick = function() {
+    alert('Screenshare coming soon!');
+};
+// --- SOUNDBOARD CSS ---
+(function injectSoundboardCSS() {
+    if (!document.getElementById('soundboard-style')) {
+        const style = document.createElement('style');
+        style.id = 'soundboard-style';
+        style.textContent = `
+        .soundboard-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(30,32,44,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(2.5px); opacity: 0; pointer-events: none;
+            transition: opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .soundboard-modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .soundboard-modal {
+            background: #23243a; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            min-width: 320px; max-width: 90vw; width: 400px; min-height: 220px; max-height: 80vh;
+            display: flex; flex-direction: column; position: relative; padding: 0 0 18px 0;
+            animation: soundboardModalIn 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes soundboardModalIn {
+            0% { opacity: 0; transform: scale(0.92) translateY(32px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .close-soundboard-modal {
+            position: absolute; top: 10px; right: 16px; background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; z-index: 2; transition: color 0.18s; }
+        .close-soundboard-modal:hover { color: #a370f7; }
+        .soundboard-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 8px 24px; font-size: 1.1rem; color: #a370f7; font-weight: bold; border-bottom: 1px solid #444; }
+        .soundboard-toggle { display: flex; align-items: center; gap: 7px; font-size: 0.98rem; color: #fff; }
+        .soundboard-list { display: flex; flex-wrap: wrap; gap: 12px; padding: 18px 24px 0 24px; justify-content: flex-start; }
+        .soundboard-sound-btn { background: #a370f7; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: 1rem; cursor: pointer; transition: background 0.2s, transform 0.2s; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .soundboard-sound-btn:hover { background: #0db9d7; transform: scale(1.06); }
+        `;
+        document.head.appendChild(style);
+    }
+})();

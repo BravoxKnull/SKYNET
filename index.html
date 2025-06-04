@@ -157,6 +157,14 @@
                         <i class="fas fa-volume-mute"></i>
                         <span>Deafen</span>
                     </button>
+                    <button id="screenshareBtn" class="control-btn">
+                        <i class="fas fa-desktop"></i>
+                        <span>Screen</span>
+                    </button>
+                    <button id="soundboardBtn" class="control-btn">
+                        <i class="fas fa-music"></i>
+                        <span>Soundboard</span>
+                    </button>
                     <button id="leaveBtn" class="control-btn danger">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Leave</span>
@@ -199,6 +207,21 @@
                         </form>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Soundboard Modal (hidden by default) -->
+        <div id="soundboardModalOverlay" class="soundboard-modal-overlay" style="display:none;">
+            <div id="soundboardModal" class="soundboard-modal">
+                <button id="closeSoundboardModal" class="close-soundboard-modal">&times;</button>
+                <div class="soundboard-header">
+                    <span>Soundboard</span>
+                    <label class="soundboard-toggle">
+                        <input type="checkbox" id="soundboardToggle" checked>
+                        <span>Enable</span>
+                    </label>
+                </div>
+                <div class="soundboard-list" id="soundboardList"></div>
             </div>
         </div>
 
