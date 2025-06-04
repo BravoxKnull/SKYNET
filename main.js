@@ -29,6 +29,9 @@ let currentUser = null;
 let users = [];
 let socketInitialized = false;
 
+// --- UNREAD MESSAGE BADGES AND SORTING FOR SIDEBAR FRIENDS ---
+let sidebarUnreadCounts = {};
+
 // Initialize user data
 function initializeUserData() {
     try {
@@ -1374,10 +1377,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showWelcomeSection();
 });
 
-// Function to get saved cursor style from localStorage
-// Note: Logic to select and save cursor style needs to be implemented on the profile page.
-// The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
-// to localStorage with the key 'cursorStyle'.
 // Friend system and notifications
 
 // --- FRIEND REQUEST SYSTEM ---
@@ -1765,7 +1764,7 @@ document.onreadystatechange = function() {
         .modal-friend-name { font-size: 1.05rem; color: #fff; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .chat-modal-main { flex: 1; display: flex; flex-direction: column; padding: 0 0 0 0.5rem; min-width: 0; }
         .chat-modal-header { font-weight: bold; color: #a370f7; padding: 18px 0 10px 0; font-size: 1.18rem; border-bottom: 1px solid #444; margin-bottom: 2px; display: flex; align-items: center; min-height: 40px; }
-        .chat-modal-messages { flex: 1; overflow-y: auto; padding: 12px 0 0 0; font-size: 0.97rem; }
+        .chat-modal-messages { flex: 1 1 auto; overflow-y: auto; padding: 12px 0 0 0; font-size: 0.97rem; }
         .chat-message { margin-bottom: 10px; display: flex; flex-direction: column; }
         .chat-message.me { align-items: flex-end; }
         .chat-message .msg-bubble { display: inline-block; padding: 8px 15px; border-radius: 14px; background: #a370f7; color: #fff; max-width: 80%; word-break: break-word; }
@@ -1846,6 +1845,132 @@ document.onreadystatechange = function() {
         .chat-modal-overlay.active .chat-modal {
             transform: scale(1) translateY(0);
             opacity: 1;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// Poll for unread messages and update sidebar
+async function updateSidebarUnreadCounts() {
+    const user = getCurrentUser();
+    if (!user) return;
+    // Get all accepted friends
+    const { data, error } = await supabase
+        .from('user_friends')
+        .select('user_id, friend_id, status')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+    if (error) return;
+    const friendIds = data
+        .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
+        .filter(id => id !== user.id);
+    if (friendIds.length === 0) return;
+    // Get unread counts for each friend
+    const { data: unreadMsgs } = await supabase
+        .from('user_messages')
+        .select('sender_id, receiver_id, is_read')
+        .eq('receiver_id', user.id)
+        .eq('is_read', false);
+    sidebarUnreadCounts = {};
+    unreadMsgs?.forEach(msg => {
+        sidebarUnreadCounts[msg.sender_id] = (sidebarUnreadCounts[msg.sender_id] || 0) + 1;
+    });
+    renderFriendsSidebarList();
+}
+
+// Patch: Mark messages as read when opening chat
+async function markMessagesRead(friendId) {
+    const user = getCurrentUser();
+    if (!user) return;
+    await supabase.from('user_messages')
+        .update({ is_read: true })
+        .eq('sender_id', friendId)
+        .eq('receiver_id', user.id)
+        .eq('is_read', false);
+    sidebarUnreadCounts[friendId] = 0;
+    renderFriendsSidebarList();
+}
+
+// Update openChatModal to mark messages as read
+const origOpenChatModal = openChatModal;
+openChatModal = function(friend) {
+    origOpenChatModal(friend);
+    markMessagesRead(friend.id);
+};
+
+// Update renderFriendsSidebarList to show unread badge and sort
+async function renderFriendsSidebarList() {
+    const user = getCurrentUser();
+    if (!user) return;
+    const sidebarList = document.getElementById('friendsSidebarList');
+    if (!sidebarList) return;
+    // Get all accepted friends
+    const { data, error } = await supabase
+        .from('user_friends')
+        .select('user_id, friend_id, status')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+    if (error) return;
+    const friendIds = data
+        .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
+        .filter(id => id !== user.id);
+    if (friendIds.length === 0) {
+        sidebarList.innerHTML = '<div style="color:#aaa;padding:10px;">No friends yet.</div>';
+        return;
+    }
+    const { data: friends } = await supabase
+        .from('users')
+        .select('id, display_name, avatar_url')
+        .in('id', friendIds);
+    // Sort: friends with unread messages first, then by name
+    friends.sort((a, b) => {
+        const aUnread = sidebarUnreadCounts[a.id] || 0;
+        const bUnread = sidebarUnreadCounts[b.id] || 0;
+        if (aUnread !== bUnread) return bUnread - aUnread;
+        return a.display_name.localeCompare(b.display_name);
+    });
+    sidebarList.innerHTML = '';
+    friends.forEach(friend => {
+        const div = document.createElement('div');
+        div.className = 'sidebar-friend';
+        div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar"><span class="sidebar-friend-name">${friend.display_name}</span>`;
+        if (sidebarUnreadCounts[friend.id]) {
+            const badge = document.createElement('span');
+            badge.className = 'sidebar-friend-unread';
+            badge.textContent = sidebarUnreadCounts[friend.id];
+            div.appendChild(badge);
+        }
+        div.onclick = () => openChatModal(friend);
+        div.dataset.friendId = friend.id;
+        sidebarList.appendChild(div);
+    });
+}
+
+// Poll for unread messages every 5 seconds
+setInterval(updateSidebarUnreadCounts, 5000);
+// Also update on load
+updateSidebarUnreadCounts();
+
+// --- CSS for unread badge ---
+(function injectSidebarUnreadBadgeCSS() {
+    if (!document.getElementById('sidebar-unread-badge-style')) {
+        const style = document.createElement('style');
+        style.id = 'sidebar-unread-badge-style';
+        style.textContent = `
+        .sidebar-friend-unread {
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.78rem;
+            min-width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+            font-weight: bold;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
         }
         `;
         document.head.appendChild(style);
