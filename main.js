@@ -1432,12 +1432,19 @@ async function getFriendshipStatus(currentUserId, otherUserId) {
         console.error('getFriendshipStatus: Missing user IDs', currentUserId, otherUserId);
         return null;
     }
+    // Defensive: Ensure IDs are strings and not null/undefined
+    if (typeof currentUserId !== 'string' || typeof otherUserId !== 'string') {
+        console.error('getFriendshipStatus: IDs must be strings', currentUserId, otherUserId);
+        return null;
+    }
     try {
+        console.log('Querying user_friends with friendId:', otherUserId, 'status: pending');
         const { data, error } = await supabase
             .from('user_friends')
             .select('status')
-            .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`)
-            .single();
+            .eq('friend_id', otherUserId)
+            .eq('status', 'pending')
+            .maybeSingle();
         if (error) {
             console.error('getFriendshipStatus error:', error);
             return null;
@@ -1455,12 +1462,14 @@ async function sendFriendRequest(currentUserId, otherUserId, otherDisplayName) {
         console.error('sendFriendRequest: Missing user IDs', currentUserId, otherUserId);
         return;
     }
+    if (typeof currentUserId !== 'string' || typeof otherUserId !== 'string') {
+        console.error('sendFriendRequest: IDs must be strings', currentUserId, otherUserId);
+        return;
+    }
     console.log('Sending friend request with friend_id:', otherUserId, 'status: pending');
-    // Insert friend request
     await supabase.from('user_friends').upsert([
         { user_id: currentUserId, friend_id: otherUserId, status: 'pending' }
     ]);
-    // Insert notification for the other user
     await supabase.from('user_notifications').insert([
         {
             user_id: otherUserId,
