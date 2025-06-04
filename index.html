@@ -117,6 +117,13 @@
                             <span>Real-time Communication</span>
                         </div>
                     </div>
+                    <div class="join-form">
+                        <input type="text" id="displayName" placeholder="Enter your display name" value="">
+                        <button id="joinBtn" class="join-btn">
+                            <i class="fas fa-sign-in-alt"></i> Join DUNE PC
+                        </button>
+                        <div id="warningMessage" class="warning-message"></div>
+                    </div>
                 </div>
             </section>
 
@@ -189,11 +196,11 @@
         </main>
 
         <!-- Text Chat Sidebar -->
-        <aside class="chat-sidebar">
-            <div class="chat-header">
+        <aside class="chat-sidebar" id="chatSidebar">
+            <div class="chat-header" id="chatHeader">
                 <h3>Text Chat</h3>
                 <div class="chat-controls">
-                    <button id="toggleChat"><i class="fas fa-comments"></i></button>
+                    <button id="chatToggle"><i class="fas fa-comments"></i></button>
                 </div>
             </div>
             <div class="chat-container">
@@ -207,19 +214,56 @@
                         <span>Direct Messages</span>
                     </div>
                 </div>
-                <div class="message-area">
+                <div class="message-area" id="messageArea">
                     <div class="messages" id="chatMessages">
                         <!-- Messages will appear here -->
                     </div>
                     <div class="message-input">
                         <textarea placeholder="Type your message..." id="messageInput"></textarea>
-                        <button id="sendMessage">
+                        <button id="sendMessageBtn">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
                 </div>
             </div>
         </aside>
+
+        <!-- Friend Menu -->
+        <div class="friend-menu" id="friendMenu">
+            <button id="friendRequestBtn" class="friend-action">
+                <i class="fas fa-user-plus"></i>
+                <span>Add Friend</span>
+            </button>
+            <button id="friendListBtn" class="friend-action">
+                <i class="fas fa-users"></i>
+                <span>Friends List</span>
+            </button>
+            <button id="friendBlockBtn" class="friend-action">
+                <i class="fas fa-ban"></i>
+                <span>Blocked Users</span>
+            </button>
+        </div>
+
+        <!-- Friend Notification -->
+        <div class="friend-notification" id="friendNotification">
+            <div class="notification-header">
+                <span>Friend Requests</span>
+                <span id="friendNotificationCount" class="notification-count">0</span>
+            </div>
+            <div id="friendNotificationList" class="notification-list">
+                <!-- Friend requests will appear here -->
+            </div>
+        </div>
+
+        <!-- Friend List -->
+        <div class="friend-list" id="friendList">
+            <!-- Friends will appear here -->
+        </div>
+
+        <!-- Blocked List -->
+        <div class="blocked-list" id="blockedList">
+            <!-- Blocked users will appear here -->
+        </div>
 
         <!-- Footer -->
         <footer class="footer">

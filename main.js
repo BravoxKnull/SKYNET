@@ -49,6 +49,7 @@ function initializeUserData() {
 
 // Initialize DOM elements with null checks
 function initializeDOMElements() {
+    // Get all required DOM elements
     displayNameInput = document.getElementById('displayName');
     joinBtn = document.getElementById('joinBtn');
     warningMessage = document.getElementById('warningMessage');
@@ -58,6 +59,27 @@ function initializeDOMElements() {
     muteBtn = document.getElementById('muteBtn');
     deafenBtn = document.getElementById('deafenBtn');
     leaveBtn = document.getElementById('leaveBtn');
+    friendMenu = document.getElementById('friendMenu');
+    friendRequestBtn = document.getElementById('friendRequestBtn');
+    friendListBtn = document.getElementById('friendListBtn');
+    friendBlockBtn = document.getElementById('friendBlockBtn');
+    friendNotification = document.getElementById('friendNotification');
+    friendNotificationCount = document.getElementById('friendNotificationCount');
+    friendNotificationList = document.getElementById('friendNotificationList');
+    friendList = document.getElementById('friendList');
+    blockedList = document.getElementById('blockedList');
+    chatSidebar = document.getElementById('chatSidebar');
+    chatToggle = document.getElementById('chatToggle');
+    chatHeader = document.getElementById('chatHeader');
+    messageArea = document.getElementById('messageArea');
+    messageInput = document.getElementById('messageInput');
+    sendMessageBtn = document.getElementById('sendMessageBtn');
+    userAvatar = document.getElementById('userAvatar');
+    userMenu = document.getElementById('userMenu');
+    userMenuToggle = document.getElementById('userMenuToggle');
+    themeToggle = document.getElementById('themeToggle');
+    hamburgerMenu = document.getElementById('hamburgerMenu');
+    mobileMenu = document.getElementById('mobileMenu');
 
     // Get references to audio elements
     userJoinedSound = document.getElementById('userJoinedSound');
@@ -66,6 +88,46 @@ function initializeDOMElements() {
     // Set initial display name if user data is available
     if (currentUser && currentUser.displayName && displayNameInput) {
         displayNameInput.value = currentUser.displayName;
+    }
+
+    // Log any missing elements
+    const elements = {
+        displayNameInput,
+        joinBtn,
+        warningMessage,
+        welcomeSection,
+        channelSection,
+        usersList,
+        muteBtn,
+        deafenBtn,
+        leaveBtn,
+        friendMenu,
+        friendRequestBtn,
+        friendListBtn,
+        friendBlockBtn,
+        friendNotification,
+        friendNotificationCount,
+        friendNotificationList,
+        friendList,
+        blockedList,
+        chatSidebar,
+        chatToggle,
+        chatHeader,
+        messageArea,
+        messageInput,
+        sendMessageBtn,
+        userAvatar,
+        userMenu,
+        userMenuToggle,
+        themeToggle,
+        hamburgerMenu,
+        mobileMenu
+    };
+
+    for (const [name, element] of Object.entries(elements)) {
+        if (!element) {
+            console.warn(`Element ${name} not found in DOM`);
+        }
     }
 
     // Add mousemove listener for cursor background effect
@@ -1215,20 +1277,35 @@ function createThemeSwitch() {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // First, initialize DOM elements
+        // First check if user is authenticated
+        if (!initializeUserData()) {
+            console.error('Failed to initialize user data');
+            return;
+        }
+
+        // Initialize DOM elements
         initializeDOMElements();
+        
+        // Initialize socket connection first
+        initializeSocket();
+        
+        // Wait for socket to be ready
+        await new Promise((resolve) => {
+            if (socket && socket.connected) {
+                resolve();
+            } else {
+                socket.on('connect', resolve);
+            }
+        });
         
         // Then initialize event listeners
         initializeEventListeners();
         
-        // Initialize friend system
+        // Initialize friend system after socket is ready
         initializeFriendSystem();
         
-        // Initialize WebRTC
+        // Initialize WebRTC last
         await initializeWebRTC();
-        
-        // Initialize socket connection
-        initializeSocket();
         
         console.log('Application initialized successfully');
     } catch (error) {
@@ -1388,9 +1465,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Friend System
 function initializeFriendSystem() {
-    if (!socket) {
-        console.warn('Socket not initialized, friend system may not work properly');
+    if (!socket || !socket.connected) {
+        console.warn('Socket not initialized or not connected, friend system may not work properly');
         return;
+    }
+
+    // Initialize friend menu if it exists
+    if (friendMenu) {
+        friendMenu.style.display = 'none';
+    }
+
+    // Initialize friend notification if it exists
+    if (friendNotification) {
+        friendNotification.style.display = 'none';
+    }
+
+    // Initialize chat sidebar if it exists
+    if (chatSidebar) {
+        chatSidebar.style.display = 'none';
     }
 
     // Handle friend menu clicks
