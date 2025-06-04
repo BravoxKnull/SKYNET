@@ -1815,3 +1815,36 @@ function patchChatSendButton() {
         };
     }
 }
+
+// --- PATCH: Update chat bubble style and remove scroll indicator ---
+(function updateChatBubbleCSS() {
+    let style = document.getElementById('chat-bubble-style');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'chat-bubble-style';
+        style.textContent = `
+        .chat-messages::-webkit-scrollbar {
+            display: none !important;
+        }
+        .chat-messages {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
+        .chat-message .msg-bubble {
+            max-width: 70vw;
+            max-width: 320px;
+            word-break: break-word;
+            white-space: pre-line;
+            font-size: 0.97rem;
+            line-height: 1.4;
+        }
+        @media (max-width: 600px) {
+            .chat-message .msg-bubble {
+                max-width: 90vw;
+                font-size: 0.93rem;
+            }
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
