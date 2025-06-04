@@ -1379,3 +1379,197 @@ document.addEventListener('DOMContentLoaded', () => {
 // The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
 // to localStorage with the key 'cursorStyle'.
 // Friend system and notifications
+
+// --- FRIEND REQUEST SYSTEM ---
+
+// Helper: Get current user from localStorage
+function getCurrentUser() {
+    return JSON.parse(localStorage.getItem('user'));
+}
+
+// Helper: Get friendship status between current user and another user
+async function getFriendshipStatus(currentUserId, otherUserId) {
+    const { data, error } = await supabase
+        .from('user_friends')
+        .select('status')
+        .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`)
+        .single();
+    if (error || !data) return null;
+    return data.status;
+}
+
+// Helper: Send friend request
+async function sendFriendRequest(currentUserId, otherUserId, otherDisplayName) {
+    // Insert friend request
+    await supabase.from('user_friends').upsert([
+        { user_id: currentUserId, friend_id: otherUserId, status: 'pending' }
+    ]);
+    // Insert notification for the other user
+    await supabase.from('user_notifications').insert([
+        {
+            user_id: otherUserId,
+            type: 'friend_request',
+            message: `${getCurrentUser().displayName} sent you a friend request!`,
+            is_read: false
+        }
+    ]);
+}
+
+// Helper: Accept friend request
+async function acceptFriendRequest(currentUserId, otherUserId) {
+    // Update both directions to accepted
+    await supabase.from('user_friends')
+        .update({ status: 'accepted' })
+        .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`);
+    // Optionally, mark notification as read
+    await supabase.from('user_notifications')
+        .update({ is_read: true })
+        .eq('user_id', currentUserId)
+        .eq('type', 'friend_request');
+}
+
+// Helper: Decline friend request
+async function declineFriendRequest(currentUserId, otherUserId) {
+    await supabase.from('user_friends')
+        .delete()
+        .or(`and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId}),and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId})`);
+    await supabase.from('user_notifications')
+        .update({ is_read: true })
+        .eq('user_id', currentUserId)
+        .eq('type', 'friend_request');
+}
+
+// Helper: Show push notification for friend requests
+function showFriendRequestNotification(fromUserId, fromDisplayName) {
+    // Create notification element
+    const notif = document.createElement('div');
+    notif.className = 'friend-request-toast';
+    notif.innerHTML = `
+        <span>${fromDisplayName} sent you a friend request!</span>
+        <button class="accept-btn">Accept</button>
+        <button class="decline-btn">Decline</button>
+    `;
+    document.body.appendChild(notif);
+    // Accept
+    notif.querySelector('.accept-btn').onclick = async () => {
+        await acceptFriendRequest(getCurrentUser().id, fromUserId);
+        notif.remove();
+        updateUsersList(users); // Refresh UI
+    };
+    // Decline
+    notif.querySelector('.decline-btn').onclick = async () => {
+        await declineFriendRequest(getCurrentUser().id, fromUserId);
+        notif.remove();
+        updateUsersList(users); // Refresh UI
+    };
+    setTimeout(() => notif.remove(), 10000);
+}
+
+// Poll for new friend request notifications
+setInterval(async () => {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    const { data, error } = await supabase
+        .from('user_notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('type', 'friend_request')
+        .eq('is_read', false);
+    if (data && data.length > 0) {
+        for (const notif of data) {
+            // Find who sent the request
+            const { data: friendRow } = await supabase
+                .from('user_friends')
+                .select('user_id')
+                .eq('friend_id', currentUser.id)
+                .eq('status', 'pending')
+                .single();
+            if (friendRow) {
+                // Get sender's display name
+                const { data: sender } = await supabase
+                    .from('users')
+                    .select('display_name')
+                    .eq('id', friendRow.user_id)
+                    .single();
+                showFriendRequestNotification(friendRow.user_id, sender?.display_name || 'Someone');
+            }
+        }
+    }
+}, 5000);
+
+// --- PATCH createUserListItem to add friend button ---
+const origCreateUserListItem = createUserListItem;
+createUserListItem = function(userData) {
+    const userItem = origCreateUserListItem(userData);
+    const currentUser = getCurrentUser();
+    if (!currentUser || userData.id === currentUser.id) return userItem;
+    // Add friend button
+    const friendBtn = document.createElement('button');
+    friendBtn.className = 'friend-btn';
+    // Check friendship status
+    getFriendshipStatus(currentUser.id, userData.id).then(status => {
+        if (status === 'accepted') {
+            friendBtn.textContent = 'You are friends';
+            friendBtn.disabled = true;
+        } else if (status === 'pending') {
+            friendBtn.textContent = 'Request Sent';
+            friendBtn.disabled = true;
+        } else {
+            friendBtn.textContent = 'Add Friend';
+            friendBtn.disabled = false;
+        }
+    });
+    friendBtn.onclick = async (e) => {
+        e.stopPropagation();
+        await sendFriendRequest(currentUser.id, userData.id, userData.displayName);
+        friendBtn.textContent = 'Request Sent';
+        friendBtn.disabled = true;
+    };
+    userItem.appendChild(friendBtn);
+    return userItem;
+};
+
+// --- Minimal CSS for friend button and notification ---
+const friendStyle = document.createElement('style');
+friendStyle.textContent = `
+.friend-btn {
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--primary-color, #a370f7);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+.friend-btn[disabled] {
+  background: #aaa;
+  cursor: not-allowed;
+}
+.friend-request-toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #222;
+  color: #fff;
+  padding: 18px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.friend-request-toast .accept-btn, .friend-request-toast .decline-btn {
+  margin-left: 10px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+.friend-request-toast .accept-btn { background: #2ecc71; color: #fff; }
+.friend-request-toast .decline-btn { background: #e74c3c; color: #fff; }
+`;
+document.head.appendChild(friendStyle);
