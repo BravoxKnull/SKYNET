@@ -1692,28 +1692,29 @@ function renderChatMessages(messages, myId) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// --- PATCH: Ensure chat send button is always visible and Enter sends message ---
+// --- PATCH: Robust chat send button and message sending for all sidebar sizes ---
 function patchChatSendButton() {
-    // Ensure chatInputForm and chat-send-btn exist and are visible
     const chatInputForm = document.getElementById('chatInputForm');
     const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send-btn') : null;
     if (chatSendBtn) {
         chatSendBtn.style.display = 'block';
         chatSendBtn.style.visibility = 'visible';
+        chatSendBtn.style.minWidth = '44px';
+        chatSendBtn.style.zIndex = '10';
     }
-    // Add submit handler if not already present
-    if (chatInputForm && !chatInputForm._patched) {
+    // Add submit handler if not already present or if it was detached
+    if (chatInputForm && (!chatInputForm._patched || chatInputForm.onsubmit == null)) {
         chatInputForm.onsubmit = async (e) => {
             e.preventDefault();
             const chatInput = document.getElementById('chatInput');
             const msg = chatInput.value.trim();
-            if (!msg || !window.currentChatFriend) return;
+            if (!msg || !currentChatFriend) return;
             const user = getCurrentUser();
             await supabase.from('user_messages').insert([
-                { sender_id: user.id, receiver_id: window.currentChatFriend.id, message: msg }
+                { sender_id: user.id, receiver_id: currentChatFriend.id, message: msg }
             ]);
             chatInput.value = '';
-            loadChatMessages(window.currentChatFriend.id);
+            loadChatMessages(currentChatFriend.id);
         };
         chatInputForm._patched = true;
     }
@@ -1730,7 +1731,7 @@ function patchChatSendButton() {
     }
 }
 
-// Patch after DOMContentLoaded and after chat window is shown
+// Patch after DOMContentLoaded, after chat window is shown, and on resize
 const origOpenChatWithFriend = window.openChatWithFriend;
 window.openChatWithFriend = async function(friend) {
     await origOpenChatWithFriend(friend);
@@ -1740,6 +1741,7 @@ window.openChatWithFriend = async function(friend) {
 document.addEventListener('DOMContentLoaded', () => {
     patchChatSendButton();
 });
+window.addEventListener('resize', patchChatSendButton);
 
 // Utility: Escape HTML
 function escapeHtml(text) {
