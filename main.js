@@ -2024,9 +2024,10 @@ async function markMessagesRead(friendId) {
 }
 
 // Update openChatModal to mark messages as read
-const origOpenChatModalLive = openChatModal;
-openChatModal = function(friend) {
-    origOpenChatModalLive(friend);
+const origOpenChatModalForRead = openChatModal;
+openChatModal = async function(friend) {
+    await markMessagesRead(friend.id); // Mark as read before rendering chat
+    origOpenChatModalForRead(friend);
     subscribeToChatMessages(friend.id);
 };
 
