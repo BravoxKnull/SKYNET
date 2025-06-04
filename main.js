@@ -81,15 +81,30 @@ function initializeDOMElements() {
 
 // Initialize event listeners
 function initializeEventListeners() {
+    // Check if join button exists
+    if (!joinBtn) {
+        console.error('Join button not found');
+        return;
+    }
+
     joinBtn.addEventListener('click', async () => {
+        if (!displayNameInput) {
+            console.error('Display name input not found');
+            return;
+        }
+
         const name = displayNameInput.value.trim();
         if (!name) {
-            warningMessage.textContent = 'Please enter your display name';
+            if (warningMessage) {
+                warningMessage.textContent = 'Please enter your display name';
+            }
             return;
         }
 
         if (!currentUser) {
-            warningMessage.textContent = 'User data not found. Please log in again.';
+            if (warningMessage) {
+                warningMessage.textContent = 'User data not found. Please log in again.';
+            }
             return;
         }
 
@@ -100,7 +115,9 @@ function initializeEventListeners() {
         try {
             const webRTCInitialized = await initializeWebRTC();
             if (!webRTCInitialized) {
-                warningMessage.textContent = 'Error accessing microphone';
+                if (warningMessage) {
+                    warningMessage.textContent = 'Error accessing microphone';
+                }
                 joinBtn.classList.remove('loading');
                 joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
                 joinBtn.disabled = false;
@@ -123,15 +140,21 @@ function initializeEventListeners() {
                 console.error('Error fetching user avatar:', error);
             }
 
-            welcomeSection.classList.add('hidden');
-            channelSection.classList.remove('hidden');
-            channelSection.classList.add('visible');
+            if (welcomeSection) {
+                welcomeSection.classList.add('hidden');
+            }
+            if (channelSection) {
+                channelSection.classList.remove('hidden');
+                channelSection.classList.add('visible');
+            }
 
-            socket.emit('joinChannel', {
-                id: currentUser.id,
-                displayName: displayName,
-                avatar_url: data?.avatar_url || null
-            });
+            if (socket) {
+                socket.emit('joinChannel', {
+                    id: currentUser.id,
+                    displayName: displayName,
+                    avatar_url: data?.avatar_url || null
+                });
+            }
 
             const userData = {
                 id: currentUser.id,
@@ -141,8 +164,12 @@ function initializeEventListeners() {
             users = [userData];
             updateUsersList(users);
 
-            displayNameInput.disabled = true;
-            warningMessage.textContent = '';
+            if (displayNameInput) {
+                displayNameInput.disabled = true;
+            }
+            if (warningMessage) {
+                warningMessage.textContent = '';
+            }
             
             joinBtn.classList.remove('loading');
             joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
@@ -150,108 +177,143 @@ function initializeEventListeners() {
 
         } catch (error) {
             console.error('Error joining channel:', error);
-            warningMessage.textContent = 'Failed to join channel. Please try again.';
+            if (warningMessage) {
+                warningMessage.textContent = 'Failed to join channel. Please try again.';
+            }
             joinBtn.classList.remove('loading');
             joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
             joinBtn.disabled = false;
         }
     });
 
-    muteBtn.addEventListener('click', () => {
-        isMuted = !isMuted;
-        if (localStream) {
-            localStream.getAudioTracks().forEach(track => {
-                track.enabled = !isMuted;
-            });
-        }
-        muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
-        muteBtn.querySelector('span').textContent = isMuted ? 'Unmute' : 'Mute';
-
-        // Broadcast mute status to all users
-        if (socket && socket.connected) {
-            const muteData = {
-                userId: currentUser.id,
-                isMuted: isMuted,
-                displayName: currentUser.displayName
-            };
-            console.log('Broadcasting mute status to server:', muteData);
-            try {
-                socket.emit('userMuteStatus', muteData);
-            } catch (error) {
-                console.error('Error emitting mute status:', error);
-            }
-        } else {
-            console.warn('Socket not connected, cannot broadcast mute status');
-        }
-
-        // Update local UI
-        updateUserMuteStatus(currentUser.id, isMuted);
-    });
-
-    deafenBtn.addEventListener('click', () => {
-        isDeafened = !isDeafened;
-        document.querySelectorAll('audio').forEach(audio => {
-            audio.muted = isDeafened;
-        });
-        deafenBtn.querySelector('i').className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-        deafenBtn.querySelector('span').textContent = isDeafened ? 'Undeafen' : 'Deafen';
-
-        // Broadcast deafen status to all users
-        if (socket && socket.connected) {
-            const deafenData = {
-                userId: currentUser.id,
-                isDeafened: isDeafened,
-                displayName: currentUser.displayName
-            };
-            console.log('Broadcasting deafen status to server:', deafenData);
-            try {
-                socket.emit('userDeafenStatus', deafenData);
-            } catch (error) {
-                console.error('Error emitting deafen status:', error);
-            }
-        } else {
-            console.warn('Socket not connected, cannot broadcast deafen status');
-        }
-
-        // Update local UI
-        updateUserDeafenStatus(currentUser.id, isDeafened);
-    });
-
-    leaveBtn.addEventListener('click', () => {
-        channelSection.classList.remove('visible');
-        channelSection.classList.add('hidden');
-
-        setTimeout(() => {
-            displayNameInput.disabled = false;
-            joinBtn.disabled = false;
-            joinBtn.classList.remove('loading');
-            joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
-            usersList.innerHTML = '';
-            warningMessage.textContent = '';
-
-            welcomeSection.classList.remove('hidden');
-
-            Object.keys(peerConnections).forEach(userId => {
-                closePeerConnection(userId);
-            });
-            peerConnections = {};
-
-            if (socket) {
-                socket.disconnect();
-                socket = null;
-            }
-
+    // Add mute button event listener if it exists
+    if (muteBtn) {
+        muteBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = !isMuted;
+                });
+            }
+            const icon = muteBtn.querySelector('i');
+            const text = muteBtn.querySelector('span');
+            if (icon) {
+                icon.className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+            }
+            if (text) {
+                text.textContent = isMuted ? 'Unmute' : 'Mute';
             }
 
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
+            // Broadcast mute status to all users
+            if (socket && socket.connected) {
+                const muteData = {
+                    userId: currentUser.id,
+                    isMuted: isMuted,
+                    displayName: currentUser.displayName
+                };
+                console.log('Broadcasting mute status to server:', muteData);
+                try {
+                    socket.emit('userMuteStatus', muteData);
+                } catch (error) {
+                    console.error('Error emitting mute status:', error);
+                }
+            } else {
+                console.warn('Socket not connected, cannot broadcast mute status');
             }
-        }, 500);
-    });
+
+            // Update local UI
+            updateUserMuteStatus(currentUser.id, isMuted);
+        });
+    }
+
+    // Add deafen button event listener if it exists
+    if (deafenBtn) {
+        deafenBtn.addEventListener('click', () => {
+            isDeafened = !isDeafened;
+            document.querySelectorAll('audio').forEach(audio => {
+                audio.muted = isDeafened;
+            });
+            const icon = deafenBtn.querySelector('i');
+            const text = deafenBtn.querySelector('span');
+            if (icon) {
+                icon.className = isDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+            }
+            if (text) {
+                text.textContent = isDeafened ? 'Undeafen' : 'Deafen';
+            }
+
+            // Broadcast deafen status to all users
+            if (socket && socket.connected) {
+                const deafenData = {
+                    userId: currentUser.id,
+                    isDeafened: isDeafened,
+                    displayName: currentUser.displayName
+                };
+                console.log('Broadcasting deafen status to server:', deafenData);
+                try {
+                    socket.emit('userDeafenStatus', deafenData);
+                } catch (error) {
+                    console.error('Error emitting deafen status:', error);
+                }
+            } else {
+                console.warn('Socket not connected, cannot broadcast deafen status');
+            }
+
+            // Update local UI
+            updateUserDeafenStatus(currentUser.id, isDeafened);
+        });
+    }
+
+    // Add leave button event listener if it exists
+    if (leaveBtn) {
+        leaveBtn.addEventListener('click', () => {
+            if (channelSection) {
+                channelSection.classList.remove('visible');
+                channelSection.classList.add('hidden');
+            }
+
+            setTimeout(() => {
+                if (displayNameInput) {
+                    displayNameInput.disabled = false;
+                }
+                if (joinBtn) {
+                    joinBtn.disabled = false;
+                    joinBtn.classList.remove('loading');
+                    joinBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join DUNE PC';
+                }
+                if (usersList) {
+                    usersList.innerHTML = '';
+                }
+                if (warningMessage) {
+                    warningMessage.textContent = '';
+                }
+
+                if (welcomeSection) {
+                    welcomeSection.classList.remove('hidden');
+                }
+
+                Object.keys(peerConnections).forEach(userId => {
+                    closePeerConnection(userId);
+                });
+                peerConnections = {};
+
+                if (socket) {
+                    socket.disconnect();
+                    socket = null;
+                }
+
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+
+                if (audioContext) {
+                    audioContext.close();
+                    audioContext = null;
+                }
+            }, 500);
+        });
+    }
 }
 
 // Initialize WebRTC with simplified constraints
@@ -1150,88 +1212,30 @@ function createThemeSwitch() {
     }
 }
 
-// Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    if (!initializeUserData()) {
-        console.error('Failed to initialize user data');
-        return;
-    }
-    
-    initializeDOMElements();
-    initializeEventListeners();
-    initializeFriendSystem();
-    initializeTheme();
-    createThemeSwitch();
-    
-    // Initialize particles.js if available
-    if (typeof particlesJS !== 'undefined') {
-        particlesJS('particles-js', {
-            particles: {
-                number: {
-                    value: 80,
-                    density: {
-                        enable: true,
-                        value_area: 800
-                    }
-                },
-                color: {
-                    value: '#00ff9d'
-                },
-                shape: {
-                    type: 'circle'
-                },
-                opacity: {
-                    value: 0.5,
-                    random: false
-                },
-                size: {
-                    value: 3,
-                    random: true
-                },
-                line_linked: {
-                    enable: true,
-                    distance: 150,
-                    color: '#00ff9d',
-                    opacity: 0.4,
-                    width: 1
-                },
-                move: {
-                    enable: true,
-                    speed: 2,
-                    direction: 'none',
-                    random: false,
-                    straight: false,
-                    out_mode: 'out',
-                    bounce: false
-                }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: {
-                    onhover: {
-                        enable: true,
-                        mode: 'grab'
-                    },
-                    onclick: {
-                        enable: true,
-                        mode: 'push'
-                    },
-                    resize: true
-                },
-                modes: {
-                    grab: {
-                        distance: 140,
-                        line_linked: {
-                            opacity: 1
-                        }
-                    },
-                    push: {
-                        particles_nb: 4
-                    }
-                }
-            },
-            retina_detect: true
-        });
+// Initialize the application
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // First, initialize DOM elements
+        initializeDOMElements();
+        
+        // Then initialize event listeners
+        initializeEventListeners();
+        
+        // Initialize friend system
+        initializeFriendSystem();
+        
+        // Initialize WebRTC
+        await initializeWebRTC();
+        
+        // Initialize socket connection
+        initializeSocket();
+        
+        console.log('Application initialized successfully');
+    } catch (error) {
+        console.error('Error initializing application:', error);
+        if (warningMessage) {
+            warningMessage.textContent = 'Error initializing application. Please refresh the page.';
+        }
     }
 });
 
