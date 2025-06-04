@@ -1779,35 +1779,3 @@ function formatTime(ts) {
     const d = new Date(ts);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
-
-// --- PATCH: Ensure chat send button works without reloading the page ---
-function patchChatSendButton() {
-    const chatInputForm = document.getElementById('chatInputForm');
-    const chatInput = document.getElementById('chatInput');
-    if (!chatInputForm || !chatInput) return;
-    if (chatInputForm._patched) return; // Prevent double-patching
-    chatInputForm._patched = true;
-    chatInputForm.onsubmit = async (e) => {
-        e.preventDefault(); // Prevent page reload
-        const msg = chatInput.value.trim();
-        if (!msg || !currentChatFriend) return;
-        const user = getCurrentUser();
-        if (!user) return;
-        // Send message to Supabase
-        await supabase.from('user_messages').insert([
-            {
-                sender_id: user.id,
-                receiver_id: currentChatFriend.id,
-                message: msg
-            }
-        ]);
-        chatInput.value = '';
-    };
-    // Also send on Enter (without Shift)
-    chatInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatInputForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-        }
-    });
-}
