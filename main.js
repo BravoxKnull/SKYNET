@@ -1594,23 +1594,59 @@ function handleFriendRequestUpdate(data) {
 // Load notifications
 async function loadNotifications() {
   try {
-    const { data, error } = await supabase
-      .from('friends')
+    const { data: notifications, error } = await supabase
+      .from('friend_requests')
       .select(`
         id,
         status,
         created_at,
-        updated_at,
-        user:user_id (id, displayName, avatar_url)
+        users!friend_requests_from_user_id_fkey (
+            id,
+            display_name,
+            avatar_url
+        )
       `)
-      .eq('friend_id', currentUser.id)
+      .eq('to_user_id', currentUser.id)
+      .eq('status', 'pending')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
     
-    notifications = data || [];
-    renderNotifications();
-    updateNotificationBadge();
+    const notificationList = document.getElementById('notificationList');
+    notificationList.innerHTML = '';
+
+    notifications.forEach(notification => {
+        const notificationElement = document.createElement('div');
+        notificationElement.className = 'notification-item';
+        notificationElement.innerHTML = `
+            <img src="${notification.users.avatar_url || 'assets/images/default-avatar.svg'}" alt="${notification.users.display_name}" class="notification-avatar">
+            <div class="notification-content">
+                <span class="notification-text">${notification.users.display_name} sent you a friend request</span>
+                <div class="notification-actions">
+                    <button class="accept-btn" data-request-id="${notification.id}" data-from="${notification.users.id}">Accept</button>
+                    <button class="reject-btn" data-request-id="${notification.id}" data-from="${notification.users.id}">Reject</button>
+                </div>
+            </div>
+        `;
+        notificationList.appendChild(notificationElement);
+    });
+
+    // Add click handlers for accept/reject buttons
+    document.querySelectorAll('.accept-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const requestId = btn.dataset.requestId;
+            const fromUserId = btn.dataset.from;
+            handleFriendRequestResponse(requestId, 'accepted', fromUserId, currentUser.id);
+        });
+    });
+
+    document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const requestId = btn.dataset.requestId;
+            const fromUserId = btn.dataset.from;
+            handleFriendRequestResponse(requestId, 'rejected', fromUserId, currentUser.id);
+        });
+    });
   } catch (error) {
     console.error('Error loading notifications:', error);
   }
@@ -1717,42 +1753,56 @@ function initializeChatSidebar() {
 
 // Load friends list
 async function loadFriends() {
-  try {
-    const { data, error } = await supabase
-      .from('friends')
-      .select(`
-        id,
-        status,
-        friend:friend_id (id, displayName, avatar_url),
-        user:user_id (id, displayName, avatar_url)
-      `)
-      .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`)
-      .eq('status', 'accepted');
-    
-    if (error) throw error;
-    
-    const friendsList = document.getElementById('friendsList');
-    friendsList.innerHTML = '';
-    
-    data.forEach(friendship => {
-      const friend = friendship.user.id === currentUser.id ? friendship.friend : friendship.user;
-      
-      const friendItem = document.createElement('div');
-      friendItem.className = 'friend-item';
-      friendItem.innerHTML = `
-        <img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" 
-             class="friend-avatar" 
-             onerror="this.src='assets/images/default-avatar.svg'">
-        <span>${friend.displayName}</span>
-      `;
-      
-      friendItem.addEventListener('click', () => openChat(friend.id));
-      
-      friendsList.appendChild(friendItem);
-    });
-  } catch (error) {
-    console.error('Error loading friends:', error);
-  }
+    try {
+        const { data: friends, error } = await supabase
+            .from('friends')
+            .select(`
+                id,
+                status,
+                created_at,
+                users!friends_user_id_fkey (
+                    id,
+                    display_name,
+                    avatar_url
+                ),
+                users!friends_friend_id_fkey (
+                    id,
+                    display_name,
+                    avatar_url
+                )
+            `)
+            .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const friendsList = document.getElementById('friendsList');
+        friendsList.innerHTML = '';
+
+        friends.forEach(friend => {
+            const friendUser = friend.user_id === currentUser.id ? friend.users_friend_id_fkey : friend.users_user_id_fkey;
+            const friendElement = document.createElement('div');
+            friendElement.className = 'friend-item';
+            friendElement.innerHTML = `
+                <img src="${friendUser.avatar_url || 'assets/images/default-avatar.svg'}" alt="${friendUser.display_name}" class="friend-avatar">
+                <span class="friend-name">${friendUser.display_name}</span>
+                <button class="message-btn" data-user-id="${friendUser.id}">
+                    <i class="fas fa-comment"></i>
+                </button>
+            `;
+            friendsList.appendChild(friendElement);
+        });
+
+        // Add click handlers for message buttons
+        document.querySelectorAll('.message-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const userId = btn.dataset.userId;
+                openChat(userId);
+            });
+        });
+    } catch (error) {
+        console.error('Error loading friends:', error);
+    }
 }
 
 // Open chat with a friend
