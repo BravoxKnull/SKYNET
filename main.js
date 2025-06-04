@@ -2140,3 +2140,45 @@ function formatTime(ts) {
         document.head.appendChild(style);
     }
 })();
+
+(function injectChatModalScrollCSS() {
+    if (!document.getElementById('chat-modal-scroll-style')) {
+        const style = document.createElement('style');
+        style.id = 'chat-modal-scroll-style';
+        style.textContent = `
+        .chat-modal {
+            max-height: 90vh;
+            min-height: 420px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-modal-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            max-height: 70vh;
+        }
+        .chat-modal-messages {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: 55vh;
+            overflow-y: auto;
+            padding: 12px 0 0 0;
+            font-size: 0.97rem;
+        }
+        .chat-modal-messages::-webkit-scrollbar {
+            width: 8px;
+            background: transparent;
+        }
+        .chat-modal-messages::-webkit-scrollbar-thumb {
+            background: #35355a;
+            border-radius: 6px;
+        }
+        .chat-modal-messages::-webkit-scrollbar-thumb:hover {
+            background: #a370f7;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
