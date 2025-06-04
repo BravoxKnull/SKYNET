@@ -257,7 +257,53 @@
             </div>
         </footer>
     </div>
-
+<!-- Notification dropdown -->
+<div class="notification-dropdown hidden" id="notificationDropdown">
+    <div class="notification-header">
+      <h3>Friend Requests</h3>
+      <button id="clearNotifications"><i class="fas fa-trash"></i></button>
+    </div>
+    <div class="notification-list" id="notificationList"></div>
+  </div>
+  
+  <!-- User menu template -->
+  <template id="userMenuTemplate">
+    <div class="user-menu">
+      <button class="menu-item send-message"><i class="fas fa-comment"></i> Message</button>
+      <button class="menu-item add-friend"><i class="fas fa-user-plus"></i> Add Friend</button>
+    </div>
+  </template>
+  
+  <!-- Chat sidebar template -->
+  <template id="chatSidebarTemplate">
+    <div class="chat-sidebar">
+      <div class="chat-header">
+        <h3>Friends</h3>
+        <button id="closeChat"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="friends-list" id="friendsList"></div>
+      <div class="chat-container hidden" id="chatContainer">
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+          <input type="text" id="messageInput" placeholder="Type a message...">
+          <button id="sendMessage"><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+  </template>
+  
+  <!-- Notification toast template -->
+  <template id="notificationToastTemplate">
+    <div class="notification-toast">
+      <div class="notification-content">
+        <span class="notification-text"></span>
+      </div>
+      <div class="notification-actions">
+        <button class="accept-btn">Accept</button>
+        <button class="reject-btn">Reject</button>
+      </div>
+    </div>
+  </template>
     <!-- Scripts -->
     <script>
         // Initialize Supabase client

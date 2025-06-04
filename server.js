@@ -149,6 +149,39 @@ io.on('connection', (socket) => {
         }
     });
 });
+// Friend request handling
+socket.on('friendRequest', (data) => {
+    const targetSocketId = userIdToSocketId.get(data.receiverId);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('friendRequest', {
+        senderId: data.senderId,
+        receiverId: data.receiverId
+      });
+    }
+  });
+  
+  socket.on('friendRequestUpdate', (data) => {
+    const targetSocketId = userIdToSocketId.get(data.receiverId);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('friendRequestUpdate', {
+        senderId: data.senderId,
+        receiverId: data.receiverId,
+        status: data.status
+      });
+    }
+  });
+  
+  // Message handling
+  socket.on('sendMessage', (data) => {
+    const targetSocketId = userIdToSocketId.get(data.receiverId);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('newMessage', {
+        senderId: data.senderId,
+        receiverId: data.receiverId,
+        content: data.content
+      });
+    }
+  });
 
 // Start server
 const PORT = process.env.PORT || 3000;
