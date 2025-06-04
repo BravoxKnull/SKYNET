@@ -1856,6 +1856,25 @@ document.onreadystatechange = function() {
     }
 })();
 
+(function injectChatModalAvatarSizeCSS() {
+    const styleId = 'chat-modal-avatar-size-style';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+        .modal-friend-avatar {
+            width: 28px !important;
+            height: 28px !important;
+        }
+        .modal-friend {
+            gap: 0.5rem;
+            padding: 6px 10px;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
 // Poll for unread messages and update sidebar
 async function updateSidebarUnreadCounts() {
     const user = getCurrentUser();
