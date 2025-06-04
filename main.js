@@ -2129,6 +2129,7 @@ function formatTime(ts) {
             flex-direction: column;
             padding: 0 0 0 0.5rem;
             min-width: 0;
+            border-radius: 14px
         }
         .chat-modal-header {
             font-weight: bold;
