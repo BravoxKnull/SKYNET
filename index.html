@@ -34,15 +34,6 @@
     </script>
 </head>
 <body>
-    <!-- Auth Check Script -->
-    <script>
-        // Check if user is authenticated
-        const user = JSON.parse(localStorage.getItem('user'))
-        if (!user) {
-            window.location.href = 'auth.html'
-        }
-    </script>
-
     <!-- Particle.js Background -->
     <div id="particles-js"></div>
 
@@ -313,141 +304,82 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw'
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
-        // Set the authenticated user's display name and avatar
-        document.getElementById('userDisplayName').textContent = user.displayName
-        document.getElementById('displayName').value = user.displayName
-
-        // Add this near the top of your script
-        console.log('Initializing avatar update listeners...');
-
-        // Function to handle avatar updates
-        function handleAvatarUpdate(avatarUrl, userId) {
-            console.log('Processing avatar update for user:', userId, 'URL:', avatarUrl);
-            
-            // Update nav avatar
-            const navAvatar = document.getElementById('navAvatar');
-            if (navAvatar && userId === user?.id) {
-                console.log('Updating nav avatar');
-                // Create a new URL with timestamp to bust cache
-                navAvatar.src = `${avatarUrl}?${Date.now()}`;
+        // Initialize user and check authentication
+        const user = JSON.parse(localStorage.getItem('user'))
+        if (!user) {
+            window.location.href = 'auth.html'
+        } else {
+            // Set the authenticated user's display name and avatar
+            const userDisplayName = document.getElementById('userDisplayName')
+            const displayNameInput = document.getElementById('displayName')
+            if (userDisplayName) {
+                userDisplayName.textContent = user.displayName
             }
-            
-            // Update user list avatars
-            document.querySelectorAll('.user-avatar').forEach(avatar => {
-                const avatarUserId = avatar.closest('[data-user-id]')?.dataset.userId;
-                if (avatarUserId === userId) {
-                    console.log('Updating user list avatar for:', userId);
-                    // Create a new URL with timestamp to bust cache
-                    avatar.src = `${avatarUrl}?${Date.now()}`;
-                }
-            });
-        }
-
-        // Method 1: Custom Event listener (for same-window updates)
-        window.addEventListener('avatarUpdate', (event) => {
-            console.log('Received custom event update:', event.detail);
-            if (event.detail && event.detail.avatarUrl && event.detail.userId) {
-                handleAvatarUpdate(event.detail.avatarUrl, event.detail.userId);
+            if (displayNameInput) {
+                displayNameInput.value = user.displayName
             }
-        });
 
-        // Method 2: BroadcastChannel listener (for cross-tab communication)
-        if (window.BroadcastChannel) {
-            const channel = new BroadcastChannel('avatar_updates');
-            channel.onmessage = (event) => {
-                if (event.data.type === 'avatarUpdate') {
-                    console.log('Received BroadcastChannel update:', event.data);
-                    handleAvatarUpdate(event.data.avatarUrl, event.data.userId);
-                }
-            };
-        }
-
-        // Method 3: localStorage event listener (fallback for cross-tab)
-        window.addEventListener('storage', (event) => {
-            if (event.key === 'avatarUpdate') {
+            // Load user avatar
+            async function loadUserAvatar() {
                 try {
-                    const updateData = JSON.parse(event.newValue);
-                    console.log('Received localStorage update:', updateData);
-                    if (updateData && updateData.avatarUrl && updateData.userId) {
-                        handleAvatarUpdate(updateData.avatarUrl, updateData.userId);
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('avatar_url')
+                        .eq('id', user.id)
+                        .single()
+
+                    if (error) throw error
+
+                    if (data && data.avatar_url) {
+                        const navAvatar = document.getElementById('navAvatar')
+                        if (navAvatar) {
+                            navAvatar.src = `${data.avatar_url}?${Date.now()}`
+                        }
                     }
                 } catch (error) {
-                    console.error('Error processing avatar update:', error);
+                    console.error('Error loading avatar:', error)
                 }
             }
-        });
 
-        // Also listen for page visibility changes in case we missed updates
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                console.log('Page became visible, checking for avatar updates');
-                loadUserAvatar(); // Re-fetch the avatar when page becomes visible
-            }
-        });
+            // Load avatar when page loads
+            loadUserAvatar()
 
-        // Periodic avatar check (every 30 seconds)
-        setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                loadUserAvatar();
-            }
-        }, 30000);
-
-        // Load user avatar
-        async function loadUserAvatar() {
-            try {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('avatar_url')
-                    .eq('id', user.id)
-                    .single()
-
-                if (error) throw error
-
-                if (data && data.avatar_url) {
-                    const navAvatar = document.getElementById('navAvatar');
-                    if (navAvatar) {
-                        // Add cache busting to the avatar URL
-                        navAvatar.src = `${data.avatar_url}?${Date.now()}`;
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading avatar:', error)
+            // Handle logout
+            const logoutButton = document.getElementById('logoutBtn')
+            if (logoutButton) {
+                logoutButton.addEventListener('click', () => {
+                    localStorage.removeItem('user')
+                    window.location.href = 'auth.html'
+                })
             }
         }
 
-        // Load avatar when page loads
-        loadUserAvatar()
-
-        // Handle logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.removeItem('user')
-            window.location.href = 'auth.html'
-        })
-
         // Add hamburger menu functionality
-        const hamburgerMenu = document.getElementById('hamburgerMenu');
-        const navMenu = document.getElementById('navMenu');
+        const hamburgerMenu = document.getElementById('hamburgerMenu')
+        const navMenu = document.getElementById('navMenu')
 
-        hamburgerMenu.addEventListener('click', () => {
-            hamburgerMenu.classList.toggle('active');
-            navMenu.classList.toggle('active');
-        });
+        if (hamburgerMenu && navMenu) {
+            hamburgerMenu.addEventListener('click', () => {
+                hamburgerMenu.classList.toggle('active')
+                navMenu.classList.toggle('active')
+            })
 
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!hamburgerMenu.contains(e.target) && !navMenu.contains(e.target)) {
-                hamburgerMenu.classList.remove('active');
-                navMenu.classList.remove('active');
-            }
-        });
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!hamburgerMenu.contains(e.target) && !navMenu.contains(e.target)) {
+                    hamburgerMenu.classList.remove('active')
+                    navMenu.classList.remove('active')
+                }
+            })
 
-        // Close menu when window is resized
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                hamburgerMenu.classList.remove('active');
-                navMenu.classList.remove('active');
-            }
-        });
+            // Close menu when window is resized
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    hamburgerMenu.classList.remove('active')
+                    navMenu.classList.remove('active')
+                }
+            })
+        }
     </script>
     <script src="main.js"></script>
 
