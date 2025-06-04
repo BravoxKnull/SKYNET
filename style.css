@@ -821,6 +821,7 @@ body {
     padding: 1.5rem; /* Slightly reduced padding */
     border-left: 1px solid var(--glass-border); /* Use glass border */
     overflow-y: auto;
+    resize: horizontal;
 }
 
 .join-section {
