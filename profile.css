@@ -288,7 +288,7 @@ input:checked + .slider:before {
     .account-actions {
         flex-direction: column;
     }
-}
+} 
 
 .header .logo {
     max-height: 40px;

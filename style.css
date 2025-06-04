@@ -1569,6 +1569,7 @@ body {
 .user-status-indicator.speaking {
     background-color: var(--accent-color) !important; /* Blue */
     box-shadow: 0 0 10px rgba(13, 185, 215, 0.6); /* Shadow matching accent color */
+    animation: pulse 1.5s infinite; /* Keep pulse animation */
 }
 
 /* Ensure speaking animation is only for speaking users */
@@ -1901,92 +1902,35 @@ body {
 /* Adjustments for user item layout on smaller screens */
 @media (max-width: 480px) {
     .user-item {
-        flex-direction: column; /* Stack content */
-        gap: 0.8rem; /* Adjusted gap */
-        padding: 1rem; /* Adjusted padding */
+        flex-direction: column;
+        gap: 0.8rem;
+        padding: 1rem;
     }
-
-     .user-avatar-container {
-        width: 70px; /* Adjusted size */
-        height: 70px; /* Adjusted size */
+    .user-avatar-container {
+        width: 70px;
+        height: 70px;
     }
-
     .user-details {
         align-items: center;
     }
-
     .user-device-status {
-        flex-direction: row; /* Keep in row */
+        flex-direction: row;
         justify-content: center;
-        gap: 8px; /* Adjusted gap */
+        gap: 8px;
     }
-
     .device-status {
-        padding: 3px 6px; /* Adjusted padding */
+        padding: 3px 6px;
     }
-
     .status-text {
-        display: none; /* Hide text to save space */
+        display: none;
     }
-
     .device-status i {
-        font-size: 1.1rem; /* Adjusted icon size */
+        font-size: 1.1rem;
     }
-
     .user-name {
-        font-size: 1rem; /* Adjusted font size */
+        font-size: 1rem;
     }
-
     .user-status {
-        font-size: 0.8rem; /* Adjusted font size */
+        font-size: 0.8rem;
     }
 }
-
-/* When there's only one user */
-.users-grid:has(.user-item:only-child) {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: visible;
-    }
-
-.users-grid:has(.user-item:only-child) .user-item {
-    max-width: 350px; /* Adjusted max width */
-    margin: 0 auto;
-    flex-direction: row; /* Layout in a row for single user */
-    gap: 1.5rem; /* Adjusted gap */
-    padding: 1.5rem; /* Adjusted padding */
-}
-
-.users-grid:has(.user-item:only-child) .user-avatar-container {
-    width: 100px; /* Larger avatar for single user */
-    height: 100px; /* Larger avatar for single user */
-}
-
-.users-grid:has(.user-item:only-child) .user-details {
-    align-items: flex-start; /* Align text to the start */
-}
-
-.users-grid:has(.user-item:only-child) .user-device-status {
-    justify-content: flex-start; /* Align device status to the start */
-}
-
-/* Auto-resize based on number of users */
-.users-grid:has(.user-item:nth-child(4):last-child) { /* 4 items */
-    grid-template-columns: repeat(2, 1fr);
-}
-
-.users-grid:has(.user-item:nth-child(5):last-child), /* 5 items */
-.users-grid:has(.user-item:nth-child(6):last-child) { /* 6 items */
-    grid-template-columns: repeat(3, 1fr);
-}
-
-.users-grid:has(.user-item:nth-child(7):last-child), /* 7 items */
-.users-grid:has(.user-item:nth-child(8):last-child) { /* 8 items */
-     grid-template-columns: repeat(4, 1fr);
-}
-
-.users-grid:has(.user-item:nth-child(9):last-child), /* 9 items or more */
-.users-grid:has(.user-item:nth-child(10):last-child) { 
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Use auto-fill for many users */
-} 
