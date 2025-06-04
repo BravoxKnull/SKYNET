@@ -1779,3 +1779,39 @@ function formatTime(ts) {
     const d = new Date(ts);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+// --- PATCH: Prevent chat form reload on send ---
+function patchChatSendButton() {
+    const chatInputForm = document.getElementById('chatInputForm');
+    const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send-btn') : null;
+    if (chatSendBtn) {
+        chatSendBtn.style.display = 'block';
+        chatSendBtn.style.visibility = 'visible';
+        chatSendBtn.style.minWidth = '44px';
+        chatSendBtn.style.zIndex = '2';
+    }
+    // Add submit handler if not already present
+    if (chatInputForm && !chatInputForm._patched) {
+        chatInputForm.onsubmit = async (e) => {
+            e.preventDefault(); // Prevent page reload
+            const input = chatInputForm.querySelector('.chat-input');
+            const msg = input.value.trim();
+            if (!msg || !currentChatFriend) return;
+            const user = getCurrentUser();
+            await supabase.from('user_messages').insert([
+                { sender_id: user.id, receiver_id: currentChatFriend.id, message: msg }
+            ]);
+            input.value = '';
+        };
+        chatInputForm._patched = true;
+    }
+    // Enter key sends message
+    if (chatInputForm && chatInputForm.querySelector('.chat-input')) {
+        chatInputForm.querySelector('.chat-input').onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatInputForm.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        };
+    }
+}
