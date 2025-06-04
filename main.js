@@ -53,6 +53,25 @@ subscribeSidebarUnreadRealtime();
 // Remove polling interval for unread counts (rely on realtime)
 if (window.sidebarUnreadInterval) clearInterval(window.sidebarUnreadInterval);
 
+// --- LIVE UPDATE FRIENDS LIST IN SIDEBAR ---
+let sidebarFriendsChannel = null;
+async function subscribeSidebarFriendsRealtime() {
+    if (sidebarFriendsChannel) {
+        await supabase.removeChannel(sidebarFriendsChannel);
+        sidebarFriendsChannel = null;
+    }
+    sidebarFriendsChannel = supabase.channel('sidebar-friends')
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'user_friends',
+        }, payload => {
+            renderFriendsSidebarList();
+        });
+    await sidebarFriendsChannel.subscribe();
+}
+subscribeSidebarFriendsRealtime();
+
 // Initialize user data
 function initializeUserData() {
     try {
@@ -1409,17 +1428,34 @@ function getCurrentUser() {
 
 // Helper: Get friendship status between current user and another user
 async function getFriendshipStatus(currentUserId, otherUserId) {
-    const { data, error } = await supabase
-        .from('user_friends')
-        .select('status')
-        .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`)
-        .single();
-    if (error || !data) return null;
-    return data.status;
+    if (!currentUserId || !otherUserId) {
+        console.error('getFriendshipStatus: Missing user IDs', currentUserId, otherUserId);
+        return null;
+    }
+    try {
+        const { data, error } = await supabase
+            .from('user_friends')
+            .select('status')
+            .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`)
+            .single();
+        if (error) {
+            console.error('getFriendshipStatus error:', error);
+            return null;
+        }
+        return data?.status || null;
+    } catch (err) {
+        console.error('getFriendshipStatus exception:', err);
+        return null;
+    }
 }
 
 // Helper: Send friend request
 async function sendFriendRequest(currentUserId, otherUserId, otherDisplayName) {
+    if (!currentUserId || !otherUserId) {
+        console.error('sendFriendRequest: Missing user IDs', currentUserId, otherUserId);
+        return;
+    }
+    console.log('Sending friend request with friend_id:', otherUserId, 'status: pending');
     // Insert friend request
     await supabase.from('user_friends').upsert([
         { user_id: currentUserId, friend_id: otherUserId, status: 'pending' }
