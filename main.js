@@ -1379,6 +1379,3 @@ document.addEventListener('DOMContentLoaded', () => {
 // The profile page script should save the chosen style string (e.g., 'cursor-pointer-custom')
 // to localStorage with the key 'cursorStyle'.
 // Friend system and notifications
-let notifications = [];
-let activeChat = null;
-

@@ -24,7 +24,7 @@ app.get('/health', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('New client connected:', socket.id);
 
     // Handle mute status changes
     socket.on('userMuteStatus', (data) => {
@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
             isDeafened: data.isDeafened,
             displayName: data.displayName
         });
-    });
+        });
 
     // Handle user joining
     socket.on('joinChannel', (userData) => {
@@ -68,7 +68,7 @@ io.on('connection', (socket) => {
 
     // Handle user leaving
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+        console.log('Client disconnected:', socket.id);
         const userData = connectedUsers.get(socket.id);
         if (userData) {
             // Broadcast to all clients
@@ -90,8 +90,8 @@ io.on('connection', (socket) => {
             console.log('Forwarding offer to:', targetSocketId);
             io.to(targetSocketId).emit('offer', {
                 senderId: connectedUsers.get(socket.id).id,
-                offer: data.offer
-            });
+            offer: data.offer
+        });
         } else {
             console.log('Target user not found:', data.targetUserId);
         }
@@ -105,8 +105,8 @@ io.on('connection', (socket) => {
             console.log('Forwarding answer to:', targetSocketId);
             io.to(targetSocketId).emit('answer', {
                 senderId: connectedUsers.get(socket.id).id,
-                answer: data.answer
-            });
+            answer: data.answer
+        });
         } else {
             console.log('Target user not found:', data.targetUserId);
         }
@@ -120,8 +120,8 @@ io.on('connection', (socket) => {
             console.log('Forwarding ICE candidate to:', targetSocketId);
             io.to(targetSocketId).emit('ice-candidate', {
                 senderId: connectedUsers.get(socket.id).id,
-                candidate: data.candidate
-            });
+            candidate: data.candidate
+        });
         } else {
             console.log('Target user not found:', data.targetUserId);
         }
@@ -146,90 +146,6 @@ io.on('connection', (socket) => {
 
             // Emit sound notification to all clients when a user leaves
             io.emit('userLeftSound');
-        }
-    });
-
-    // Handle friend requests
-    socket.on('friendRequest', async (data) => {
-        console.log('Friend request received:', data);
-        const { from, to } = data;
-        
-        // Store the friend request in Supabase
-        const { data: requestData, error } = await supabase
-            .from('friend_requests')
-            .insert([
-                { 
-                    from_user_id: from,
-                    to_user_id: to,
-                    status: 'pending'
-                }
-            ])
-            .select();
-        
-        if (error) {
-            console.error('Error storing friend request:', error);
-            socket.emit('friendRequestError', { message: 'Failed to send friend request' });
-            return;
-        }
-
-        // Notify the recipient
-        const recipientSocket = getUserSocket(to);
-        if (recipientSocket) {
-            recipientSocket.emit('friendRequest', {
-                from,
-                requestId: requestData[0].id
-            });
-        }
-    });
-
-    // Handle friend request responses
-    socket.on('friendRequestResponse', async (data) => {
-        console.log('Friend request response:', data);
-        const { requestId, response, from, to } = data;
-        
-        // Update the friend request status
-        const { error: updateError } = await supabase
-            .from('friend_requests')
-            .update({ status: response })
-            .eq('id', requestId);
-        
-        if (updateError) {
-            console.error('Error updating friend request:', updateError);
-            socket.emit('friendRequestError', { message: 'Failed to update friend request' });
-            return;
-        }
-
-        if (response === 'accepted') {
-            // Add the friendship to the friends table
-            const { error: friendError } = await supabase
-                .from('friends')
-                .insert([
-                    { user_id: from, friend_id: to },
-                    { user_id: to, friend_id: from }
-                ]);
-            
-            if (friendError) {
-                console.error('Error creating friendship:', friendError);
-                socket.emit('friendRequestError', { message: 'Failed to create friendship' });
-                return;
-            }
-
-            // Notify both users
-            const fromSocket = getUserSocket(from);
-            const toSocket = getUserSocket(to);
-            
-            if (fromSocket) {
-                fromSocket.emit('friendRequestAccepted', { friendId: to });
-            }
-            if (toSocket) {
-                toSocket.emit('friendRequestAccepted', { friendId: from });
-            }
-        } else {
-            // Notify the sender that the request was rejected
-            const fromSocket = getUserSocket(from);
-            if (fromSocket) {
-                fromSocket.emit('friendRequestRejected', { friendId: to });
-            }
         }
     });
 });
