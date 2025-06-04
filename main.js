@@ -1680,55 +1680,42 @@ async function loadChatMessages(friendId) {
     renderChatMessages(data || [], user.id);
 }
 
-// Render chat messages
+// --- Inject smooth animation CSS for chat messages ---
+(function injectChatMessageAnimationCSS() {
+    if (!document.getElementById('chat-message-animate-style')) {
+        const style = document.createElement('style');
+        style.id = 'chat-message-animate-style';
+        style.textContent = `
+        .chat-message-animate {
+            animation: chatMessageFadeIn 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes chatMessageFadeIn {
+            0% { opacity: 0; transform: translateY(24px) scale(0.98); }
+            60% { opacity: 1; transform: translateY(-4px) scale(1.01); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// --- PATCH renderChatMessages to animate new messages ---
+let lastMessageCount = 0;
 function renderChatMessages(messages, myId) {
+    const prevCount = lastMessageCount;
+    lastMessageCount = messages.length;
     chatMessages.innerHTML = '';
-    messages.forEach(msg => {
+    messages.forEach((msg, idx) => {
         const div = document.createElement('div');
         div.className = 'chat-message' + (msg.sender_id === myId ? ' me' : '');
         div.innerHTML = `<div class="msg-bubble">${escapeHtml(msg.message)}</div><div class="msg-meta">${formatTime(msg.created_at)}</div>`;
+        // Animate only the newest message
+        if (idx === messages.length - 1 && messages.length > prevCount) {
+            div.classList.add('chat-message-animate');
+        }
         chatMessages.appendChild(div);
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-// --- PATCH: Robust chat send button and message sending for all sidebar sizes ---
-function patchChatSendButton() {
-    const chatInputForm = document.getElementById('chatInputForm');
-    const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send-btn') : null;
-    if (chatSendBtn) {
-        chatSendBtn.style.display = 'block';
-        chatSendBtn.style.visibility = 'visible';
-        chatSendBtn.style.minWidth = '44px';
-        chatSendBtn.style.zIndex = '10';
-    }
-    // Add submit handler if not already present or if it was detached
-    if (chatInputForm && (!chatInputForm._patched || chatInputForm.onsubmit == null)) {
-        chatInputForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const chatInput = document.getElementById('chatInput');
-            const msg = chatInput.value.trim();
-            if (!msg || !currentChatFriend) return;
-            const user = getCurrentUser();
-            await supabase.from('user_messages').insert([
-                { sender_id: user.id, receiver_id: currentChatFriend.id, message: msg }
-            ]);
-            chatInput.value = '';
-            loadChatMessages(currentChatFriend.id);
-        };
-        chatInputForm._patched = true;
-    }
-    // Add Enter key handler for chat input
-    const chatInput = document.getElementById('chatInput');
-    if (chatInput && !chatInput._patched) {
-        chatInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                chatInputForm.requestSubmit();
-            }
-        });
-        chatInput._patched = true;
-    }
 }
 
 // --- LIVE CHAT UPDATES WITH SUPABASE REALTIME (ROBUST, NO FILTER) ---
