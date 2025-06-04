@@ -1573,3 +1573,155 @@ friendStyle.textContent = `
 .friend-request-toast .decline-btn { background: #e74c3c; color: #fff; }
 `;
 document.head.appendChild(friendStyle);
+
+// --- FRIENDS CHAT SIDEBAR ---
+
+// Minimal CSS for chat section
+const chatStyle = document.createElement('style');
+chatStyle.textContent = `
+.chat-section { margin-top: 2rem; background: var(--glass-bg, #23243a); border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 0.5rem 0.5rem 0.5rem 0.5rem; display: flex; flex-direction: column; min-height: 300px; max-height: 500px; overflow: hidden; }
+.chat-friends-list { max-height: 120px; overflow-y: auto; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color, #444); }
+.chat-friend { display: flex; align-items: center; gap: 0.7rem; padding: 7px 10px; border-radius: 7px; cursor: pointer; transition: background 0.2s; }
+.chat-friend:hover, .chat-friend.active { background: var(--hover-bg, #333); }
+.chat-friend-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color, #a370f7); }
+.chat-friend-name { font-size: 1rem; color: var(--text-color, #fff); font-weight: 500; }
+.chat-window { flex: 1; display: flex; flex-direction: column; height: 260px; }
+.chat-header { font-weight: bold; color: var(--primary-color, #a370f7); padding: 6px 0; border-bottom: 1px solid var(--border-color, #444); margin-bottom: 2px; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 6px 0; font-size: 0.97rem; }
+.chat-message { margin-bottom: 7px; display: flex; flex-direction: column; }
+.chat-message.me { align-items: flex-end; }
+.chat-message .msg-bubble { display: inline-block; padding: 7px 13px; border-radius: 14px; background: var(--primary-color, #a370f7); color: #fff; max-width: 80%; word-break: break-word; }
+.chat-message.me .msg-bubble { background: var(--accent-color, #0db9d7); }
+.chat-message .msg-meta { font-size: 0.75em; color: #aaa; margin-top: 1px; }
+.chat-input-form { display: flex; gap: 0.5rem; margin-top: 4px; }
+.chat-input { flex: 1; border-radius: 7px; border: 1px solid var(--border-color, #444); padding: 7px 10px; font-size: 1rem; background: var(--input-bg, #23243a); color: var(--text-color, #fff); }
+.chat-send-btn { background: var(--primary-color, #a370f7); color: #fff; border: none; border-radius: 7px; padding: 0 14px; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; }
+.chat-send-btn:hover { background: var(--accent-color, #0db9d7); }
+`;
+document.head.appendChild(chatStyle);
+
+// DOM refs
+let chatFriendsList, chatWindow, chatHeader, chatMessages, chatInputForm, chatInput;
+
+// On DOMContentLoaded, initialize chat refs
+const origDOMContentLoaded = document.onreadystatechange;
+document.onreadystatechange = function() {
+    if (origDOMContentLoaded) origDOMContentLoaded();
+    if (document.readyState === 'complete') {
+        chatFriendsList = document.getElementById('chatFriendsList');
+        chatWindow = document.getElementById('chatWindow');
+        chatHeader = document.getElementById('chatHeader');
+        chatMessages = document.getElementById('chatMessages');
+        chatInputForm = document.getElementById('chatInputForm');
+        chatInput = document.getElementById('chatInput');
+        if (chatFriendsList && chatWindow && chatHeader && chatMessages && chatInputForm && chatInput) {
+            loadFriendsForChat();
+        }
+    }
+};
+
+// Load friends (accepted only) for chat
+async function loadFriendsForChat() {
+    const user = getCurrentUser();
+    if (!user) return;
+    // Get all accepted friends
+    const { data, error } = await supabase
+        .from('user_friends')
+        .select('user_id, friend_id, status')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+    if (error) return;
+    // Get friend IDs (not self)
+    const friendIds = data
+        .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
+        .filter(id => id !== user.id);
+    if (friendIds.length === 0) {
+        chatFriendsList.innerHTML = '<div style="color:#aaa;padding:10px;">No friends yet.</div>';
+        return;
+    }
+    // Fetch friend user info
+    const { data: friends } = await supabase
+        .from('users')
+        .select('id, display_name, avatar_url')
+        .in('id', friendIds);
+    // Render friend list
+    chatFriendsList.innerHTML = '';
+    friends.forEach(friend => {
+        const div = document.createElement('div');
+        div.className = 'chat-friend';
+        div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="chat-friend-avatar"><span class="chat-friend-name">${friend.display_name}</span>`;
+        div.onclick = () => openChatWithFriend(friend);
+        div.dataset.friendId = friend.id;
+        chatFriendsList.appendChild(div);
+    });
+}
+
+// Open chat window with a friend
+let currentChatFriend = null;
+async function openChatWithFriend(friend) {
+    currentChatFriend = friend;
+    chatHeader.textContent = friend.display_name;
+    chatWindow.style.display = 'flex';
+    loadChatMessages(friend.id);
+}
+
+// Load chat messages with a friend
+async function loadChatMessages(friendId) {
+    const user = getCurrentUser();
+    if (!user) return;
+    // Get last 50 messages between user and friend
+    const { data, error } = await supabase
+        .from('user_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true })
+        .limit(50);
+    if (error) return;
+    renderChatMessages(data || [], user.id);
+}
+
+// Render chat messages
+function renderChatMessages(messages, myId) {
+    chatMessages.innerHTML = '';
+    messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = 'chat-message' + (msg.sender_id === myId ? ' me' : '');
+        div.innerHTML = `<div class="msg-bubble">${escapeHtml(msg.message)}</div><div class="msg-meta">${formatTime(msg.created_at)}</div>`;
+        chatMessages.appendChild(div);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Send message
+if (chatInputForm) {
+    chatInputForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const msg = chatInput.value.trim();
+        if (!msg || !currentChatFriend) return;
+        const user = getCurrentUser();
+        await supabase.from('user_messages').insert([
+            { sender_id: user.id, receiver_id: currentChatFriend.id, message: msg }
+        ]);
+        chatInput.value = '';
+        loadChatMessages(currentChatFriend.id);
+    };
+}
+
+// Poll for new messages every 3s if chat is open
+setInterval(() => {
+    if (currentChatFriend && chatWindow.style.display !== 'none') {
+        loadChatMessages(currentChatFriend.id);
+    }
+}, 3000);
+
+// Utility: Escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+// Utility: Format time
+function formatTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
