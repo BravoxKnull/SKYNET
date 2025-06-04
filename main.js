@@ -1826,3 +1826,144 @@ function patchChatSendButton() {
         chatInput._patched = true;
     }
 }
+
+// --- Inject custom scrollbar CSS for chat messages (left side, modern style) ---
+(function injectChatMessagesScrollbarCSS() {
+    if (!document.getElementById('chat-messages-scrollbar-style')) {
+        const style = document.createElement('style');
+        style.id = 'chat-messages-scrollbar-style';
+        style.textContent = `
+        .chat-messages {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color, #a370f7) var(--glass-bg, #23243a);
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+            background: var(--glass-bg, #23243a);
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary-color, #a370f7) 0%, var(--accent-color, #0db9d7) 100%);
+            border-radius: 8px;
+            min-height: 24px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--glass-bg, #23243a);
+            border-radius: 8px;
+        }
+        .chat-messages::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+        /* Move scrollbar to the left */
+        .chat-messages {
+            direction: rtl;
+        }
+        .chat-messages > * {
+            direction: ltr;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// Remove scroll indicator at bottom of chat (if any custom indicator is present)
+(function removeChatScrollIndicator() {
+    const indicator = document.querySelector('.chat-scroll-indicator');
+    if (indicator) indicator.remove();
+})();
+
+// --- PATCH: Adjust chat message bubble background to fit message content ---
+(function patchChatMessageBubbleCSS() {
+    if (!document.getElementById('chat-message-bubble-style')) {
+        const style = document.createElement('style');
+        style.id = 'chat-message-bubble-style';
+        style.textContent = `
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .chat-message.me {
+            align-items: flex-end;
+        }
+        .msg-bubble {
+            display: inline-block;
+            width: auto;
+            max-width: 80%;
+            min-width: 32px;
+            padding: 7px 13px;
+            border-radius: 14px;
+            background: var(--primary-color, #a370f7);
+            color: #fff;
+            word-break: break-word;
+            box-sizing: border-box;
+        }
+        .chat-message.me .msg-bubble {
+            background: var(--accent-color, #0db9d7);
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// --- SIDEBAR RESIZER FEATURE ---
+(function addSidebarResizer() {
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar || document.getElementById('sidebar-resizer')) return;
+        // Create resizer
+        const resizer = document.createElement('div');
+        resizer.id = 'sidebar-resizer';
+        resizer.style.width = '7px';
+        resizer.style.cursor = 'ew-resize';
+        resizer.style.position = 'absolute';
+        resizer.style.top = '0';
+        resizer.style.right = '0';
+        resizer.style.bottom = '0';
+        resizer.style.zIndex = '100';
+        resizer.style.background = 'linear-gradient(90deg, #a370f7 0%, #0db9d7 100%)';
+        resizer.style.borderRadius = '0 6px 6px 0';
+        sidebar.style.position = 'relative';
+        sidebar.appendChild(resizer);
+
+        // Restore width from localStorage
+        const savedWidth = localStorage.getItem('sidebarWidth');
+        if (savedWidth) {
+            sidebar.style.width = savedWidth;
+        }
+
+        let isDragging = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        resizer.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            startX = e.clientX;
+            startWidth = sidebar.offsetWidth;
+            document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            let newWidth = startWidth + dx;
+            newWidth = Math.max(180, Math.min(newWidth, 480)); // min/max width
+            sidebar.style.width = newWidth + 'px';
+        });
+        document.addEventListener('mouseup', function(e) {
+            if (isDragging) {
+                isDragging = false;
+                localStorage.setItem('sidebarWidth', sidebar.style.width);
+                document.body.style.userSelect = '';
+            }
+        });
+    });
+    // Minimal CSS for resizer
+    if (!document.getElementById('sidebar-resizer-style')) {
+        const style = document.createElement('style');
+        style.id = 'sidebar-resizer-style';
+        style.textContent = `
+        .sidebar { transition: width 0.15s cubic-bezier(0.4,0,0.2,1); min-width: 180px; max-width: 480px; }
+        #sidebar-resizer { box-shadow: 1px 0 6px rgba(163,112,247,0.08); }
+        `;
+        document.head.appendChild(style);
+    }
+})();
