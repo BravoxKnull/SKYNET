@@ -1773,18 +1773,51 @@ document.onreadystatechange = function() {
 };
 
 // --- CSS for modal and friends list ---
-(function injectChatModalCSS() {
-    if (!document.getElementById('chat-modal-style')) {
+(function injectChatModalOverlayCSS() {
+    if (!document.getElementById('chat-modal-overlay-style')) {
         const style = document.createElement('style');
-        style.id = 'chat-modal-style';
+        style.id = 'chat-modal-overlay-style';
         style.textContent = `
-        .chat-modal-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .chat-modal-header { font-weight: bold; color: #a370f7; padding: 18px 0 10px 0; font-size: 1.18rem; border-bottom: 1px solid #444; margin-bottom: 2px; display: flex; align-items: center; min-height: 40px; }
-        .chat-modal-messages { flex: 1 1 auto; overflow-y: auto; padding: 12px 0 0 0; font-size: 0.97rem; }
-        .chat-modal-input-form { display: flex; gap: 0.5rem; margin: 12px 0 10px 0; align-items: center; }
-        .chat-modal-input { flex: 1; border-radius: 7px; border: 1px solid #444; padding: 8px 12px; font-size: 1rem; background: #23243a; color: #fff; }
-        .chat-modal-send-btn { background: #a370f7; color: #fff; border: none; border-radius: 7px; padding: 0 13px; font-size: 1.2rem; cursor: pointer; transition: background 0.2s; height: 38px; display: flex; align-items: center; justify-content: center; }
-        .chat-modal-send-btn:hover { background: #0db9d7; }
+        .chat-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(30,32,44,0.85);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2.5px);
+            transition: opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .chat-modal {
+            background: #23243a;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 1.5px 8px rgba(163,112,247,0.08);
+            min-width: 340px;
+            max-width: 98vw;
+            width: 540px;
+            min-height: 420px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        .close-chat-modal {
+            position: absolute;
+            top: 14px;
+            right: 18px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 2.1rem;
+            cursor: pointer;
+            z-index: 2;
+            transition: color 0.18s;
+        }
+        .close-chat-modal:hover {
+            color: #a370f7;
+        }
         `;
         document.head.appendChild(style);
     }
@@ -1958,4 +1991,11 @@ async function subscribeToChatMessages(friendId) {
             }
         });
     await chatMessageChannel.subscribe();
+}
+
+// Utility: Escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
