@@ -2010,7 +2010,14 @@ async function markMessagesRead(friendId) {
         .eq('receiver_id', user.id)
         .eq('is_read', false);
     // Wait a short time to ensure DB update is reflected
-    await new Promise(res => setTimeout(res, 200));
+    await new Promise(res => setTimeout(res, 300));
+    // Fetch and log all messages from this friend to the user
+    const { data: afterUpdate } = await supabase
+        .from('user_messages')
+        .select('id, sender_id, receiver_id, is_read')
+        .eq('sender_id', friendId)
+        .eq('receiver_id', user.id);
+    console.log('Messages after mark as read:', afterUpdate);
     console.log('Updating sidebar unread counts after marking as read...');
     await updateSidebarUnreadCounts();
     console.log('Sidebar unread counts updated.');
