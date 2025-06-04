@@ -32,7 +32,7 @@ let socketInitialized = false;
 // --- UNREAD MESSAGE BADGES AND SORTING FOR SIDEBAR FRIENDS ---
 let sidebarUnreadCounts = {};
 
-// --- LIVE UPDATE UNREAD COUNTS WITH SUPABASE REALTIME ---
+// --- LIVE UPDATE UNREAD COUNTS WITH SUPABASE REALTIME (RELIABLE) ---
 let sidebarUnreadChannel = null;
 async function subscribeSidebarUnreadRealtime() {
     if (sidebarUnreadChannel) {
@@ -41,14 +41,7 @@ async function subscribeSidebarUnreadRealtime() {
     }
     sidebarUnreadChannel = supabase.channel('sidebar-unread-messages')
         .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'user_messages',
-        }, payload => {
-            updateSidebarUnreadCounts();
-        })
-        .on('postgres_changes', {
-            event: 'UPDATE',
+            event: '*',
             schema: 'public',
             table: 'user_messages',
         }, payload => {
@@ -57,9 +50,8 @@ async function subscribeSidebarUnreadRealtime() {
     await sidebarUnreadChannel.subscribe();
 }
 subscribeSidebarUnreadRealtime();
-// Remove or reduce polling interval
+// Remove polling interval for unread counts (rely on realtime)
 if (window.sidebarUnreadInterval) clearInterval(window.sidebarUnreadInterval);
-window.sidebarUnreadInterval = setInterval(updateSidebarUnreadCounts, 60000); // fallback every 60s
 
 // Initialize user data
 function initializeUserData() {
