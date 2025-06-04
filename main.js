@@ -1731,19 +1731,18 @@ function patchChatSendButton() {
     }
 }
 
-// --- LIVE CHAT UPDATES WITH SUPABASE REALTIME ---
-let chatMessageSubscription = null;
+// --- LIVE CHAT UPDATES WITH SUPABASE REALTIME (FIXED) ---
+let chatMessageChannel = null;
 
 async function subscribeToChatMessages(friendId) {
-    // Unsubscribe from previous subscription if any
-    if (chatMessageSubscription) {
-        await chatMessageSubscription.unsubscribe();
-        chatMessageSubscription = null;
+    // Unsubscribe from previous channel if any
+    if (chatMessageChannel) {
+        await supabase.removeChannel(chatMessageChannel);
+        chatMessageChannel = null;
     }
     const user = getCurrentUser();
     if (!user || !friendId) return;
-    chatMessageSubscription = supabase
-        .channel('chat-messages-' + friendId)
+    chatMessageChannel = supabase.channel('chat-messages-' + friendId)
         .on(
             'postgres_changes',
             {
@@ -1761,8 +1760,8 @@ async function subscribeToChatMessages(friendId) {
                     loadChatMessages(friendId);
                 }
             }
-        )
-        .subscribe();
+        );
+    await chatMessageChannel.subscribe();
 }
 
 // Patch openChatWithFriend to subscribe to realtime updates
@@ -1775,8 +1774,8 @@ window.openChatWithFriend = async function(friend) {
 
 // On page unload, clean up subscription
 window.addEventListener('beforeunload', async () => {
-    if (chatMessageSubscription) {
-        await chatMessageSubscription.unsubscribe();
+    if (chatMessageChannel) {
+        await supabase.removeChannel(chatMessageChannel);
     }
 });
 
