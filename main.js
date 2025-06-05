@@ -743,116 +743,107 @@ function initializeSocket() {
     });
 
     socket.on('offer', async (data) => {
-        console.log('Received offer:', data);
+        console.log('[WebRTC] Received offer:', data);
         try {
             let peerConnection = peerConnections[data.senderId];
-            const isInitiator = false; // When receiving an offer, this client acts as answerer
-
-            // If a peer connection for this sender doesn't exist, create one as the answerer
-        if (!peerConnection) {
-                console.log(`No existing peer connection for ${data.senderId}, creating a new one as answerer`);
+            const isInitiator = false;
+            // Always create a peer connection if not present
+            if (!peerConnection) {
+                console.log(`[WebRTC] No existing peer connection for ${data.senderId}, creating a new one as answerer`);
                 peerConnection = await createPeerConnection(data.senderId, isInitiator);
             } else {
-                console.log(`Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
-
-                // Glare handling: If we receive an offer and we are already in 'have-local-offer' state,
-                // it means both sides sent offers simultaneously. We need to decide who wins.
-                // A common strategy is to compare user IDs. The client with the lexicographically smaller ID wins.
-                if (peerConnection.signalingState === 'have-local-offer') {
-                    console.log(`Glare detected with user ${data.senderId}. Current state: have-local-offer. Resolving conflict...`);
-                    // Compare user IDs to resolve glare
-                    if (currentUser.id < data.senderId) {
-                        console.log(`Winning glare resolution, processing offer from ${data.senderId}`);
-                        // This client wins, proceed to set remote offer and send answer
-                    } else {
-                        console.log(`Losing glare resolution, ignoring offer from ${data.senderId}.`);
-                        // This client loses, ignore the incoming offer and wait for the other side's answer to our offer
-            return;
-                    }
-                }
-                 // If state is stable, it's likely the initial offer, proceed.
-                 // If state is neither 'have-local-offer' nor 'stable' (and not invalid), log a warning.
-                 else if (peerConnection.signalingState !== 'stable') {
-                     console.warn(`Received offer for ${data.senderId} in state ${peerConnection.signalingState}. Proceeding with caution.`);
-                 }
-
-                 // If state is invalid for setting a remote offer, ignore.
-                 if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
-                      console.log(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}.`);
-                      return; // Ignore offer if state is invalid for setting a remote offer
-                 }
+                console.log(`[WebRTC] Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
             }
-
-            if (peerConnection) {
-                // Proceed to set remote description and create/send answer
-                try {
-                    console.log(`Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                    
-                    // Create and send answer only after setting remote offer
-                    console.log(`Creating answer for ${data.senderId}`);
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    console.log('Sending answer:', answer);
-                    socket.emit('answer', {
-                        targetUserId: data.senderId,
-                        answer: answer
-                    });
-                } catch (error) {
-                    console.error('Error handling offer (setting remote description or creating answer):', error);
-                    // Close connection on error to prevent hanging states
-                    peerConnection.close(); 
-                    delete peerConnections[data.senderId];
+            // Always set ontrack handler
+            peerConnection.ontrack = (event) => {
+                console.log('[WebRTC] [OFFER] Received remote track event:', event);
+                if (event.streams && event.streams.length > 0) {
+                    const stream = event.streams[0];
+                    const tracks = stream.getTracks();
+                    console.log('[WebRTC] [OFFER] Remote stream tracks:', tracks);
+                    const existingAudio = document.getElementById(`audio-${data.senderId}`);
+                    if (existingAudio) existingAudio.remove();
+                    const audioElement = document.createElement('audio');
+                    audioElement.id = `audio-${data.senderId}`;
+                    audioElement.srcObject = stream;
+                    audioElement.autoplay = true;
+                    audioElement.muted = isDeafened;
+                    audioElement.volume = 1.0;
+                    audioElement.onloadedmetadata = () => {
+                        audioElement.play().catch(e => console.error('[WebRTC] [OFFER] Error playing remote audio:', e));
+                    };
+                    document.body.appendChild(audioElement);
+                    console.log('[WebRTC] [OFFER] Audio element created for remote user:', data.senderId);
+                } else {
+                    console.error('[WebRTC] [OFFER] No streams in remote track event');
                 }
-            } else {
-                 console.error('Failed to create or find peer connection for offer processing');
+            };
+            // Set remote description and create/send answer
+            try {
+                console.log(`[WebRTC] Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                // Add our own audio track if not already present
+                const senders = peerConnection.getSenders();
+                const hasAudio = senders.some(s => s.track && s.track.kind === 'audio');
+                let streamToSend = processedStream && processedStream.getAudioTracks().length > 0 ? processedStream : localStream;
+                if (!hasAudio && streamToSend && streamToSend.getAudioTracks().length > 0) {
+                    const audioTrack = streamToSend.getAudioTracks()[0];
+                    peerConnection.addTrack(audioTrack, streamToSend);
+                    console.log('[WebRTC] [OFFER] Added local audio track to peer connection:', audioTrack);
+                }
+                // Create and send answer
+                console.log(`[WebRTC] Creating answer for ${data.senderId}`);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                console.log('[WebRTC] Sending answer:', answer);
+                socket.emit('answer', {
+                    targetUserId: data.senderId,
+                    answer: answer
+                });
+            } catch (error) {
+                console.error('[WebRTC] Error handling offer (setting remote description or creating answer):', error);
+                peerConnection.close(); 
+                delete peerConnections[data.senderId];
             }
         } catch (error) {
-            console.error('Error handling received offer event:', error);
+            console.error('[WebRTC] Error handling received offer event:', error);
         }
     });
 
     socket.on('answer', async (data) => {
-        console.log('Received answer:', data);
+        console.log('[WebRTC] Received answer:', data);
         try {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
-                // Check signaling state before setting remote description
-                // An answer should typically be received when the state is 'have-local-offer'
                 if (peerConnection.signalingState === 'have-local-offer') {
                     try {
-                        console.log(`Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-
+                        console.log(`[WebRTC] Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                         // Process any queued ICE candidates
                         if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
-                            console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
-            for (const candidate of peerConnection.queuedIceCandidates) {
+                            console.log(`[WebRTC] Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
+                            for (const candidate of peerConnection.queuedIceCandidates) {
                                 try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                                 } catch (error) {
-                                    console.warn('Error adding queued ICE candidate:', error);
+                                    console.warn('[WebRTC] Error adding queued ICE candidate:', error);
                                 }
-            }
-            peerConnection.queuedIceCandidates = [];
-        }
-    } catch (error) {
-                        console.error('Error setting remote description:', error);
-                        // Close connection on error to prevent hanging states
+                            }
+                            peerConnection.queuedIceCandidates = [];
+                        }
+                    } catch (error) {
+                        console.error('[WebRTC] Error setting remote description:', error);
                         peerConnection.close();
                         delete peerConnections[data.senderId];
                     }
                 } else {
-                    console.warn(`Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}. Ignoring answer.`);
-                    // If we receive an answer in a state like 'stable', it likely means the offer/answer 
-                    // exchange is already complete or in a confused state. Ignoring it is safer than 
-                    // attempting to set it, which causes the InvalidStateError.
+                    console.warn(`[WebRTC] Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}. Ignoring answer.`);
                 }
             } else {
-                console.warn(`Received answer for unknown or closed peer connection with user ${data.senderId}.`);
+                console.warn(`[WebRTC] Received answer for unknown or closed peer connection with user ${data.senderId}.`);
             }
         } catch (error) {
-            console.error('Error handling received answer event:', error);
+            console.error('[WebRTC] Error handling received answer event:', error);
         }
     });
 
