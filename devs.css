@@ -365,4 +365,78 @@
     .tech-item i {
         font-size: 2rem;
     }
+}
+
+:root {
+    --primary-color: #00ffab;
+    --accent-color: #ff6f3c;
+    --secondary-color: #101010;
+    --text-color: #e0e0e0;
+    --success-color: #00ffab;
+    --error-color: #ff6f3c;
+    --background-color: #101010;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: 'Roboto', 'Inter', sans-serif;
+}
+
+.devs-header h2, .dev-name, .section-title, .tech-item i {
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    color: var(--primary-color);
+    text-shadow: 0 0 8px rgba(0,255,171,0.18);
+}
+
+.cyber-subtitle, .dev-role, .skill-tag, .dev-quote {
+    color: var(--accent-color);
+}
+
+.dev-card, .tech-stack, .devs-container {
+    background: rgba(24, 24, 24, 0.92);
+    border: 1.5px solid rgba(0,255,171,0.18);
+    box-shadow: 0 8px 32px 0 rgba(0,255,171,0.10);
+    border-radius: 18px;
+}
+
+.dev-avatar-container {
+    border: 3px solid var(--primary-color);
+    box-shadow: 0 0 20px rgba(0,255,171,0.18);
+}
+
+.dev-card::before {
+    background: linear-gradient(45deg, transparent, rgba(0,255,171,0.1), transparent);
+}
+
+.dev-card:hover {
+    box-shadow: 0 10px 30px rgba(0,255,171,0.18);
+}
+
+.skill-tag {
+    background: rgba(0,255,171,0.08);
+    color: var(--primary-color);
+    border: 1px solid rgba(0,255,171,0.18);
+}
+.skill-tag:hover {
+    background: rgba(255,111,60,0.08);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.social-link {
+    color: var(--primary-color);
+    background: rgba(0,255,171,0.08);
+    border: 1px solid rgba(0,255,171,0.18);
+}
+.social-link:hover {
+    color: var(--accent-color);
+    background: rgba(255,111,60,0.08);
+    box-shadow: 0 5px 15px rgba(255,111,60,0.18);
+}
+
+.dev-status {
+    background: var(--success-color);
+    border: 3px solid var(--secondary-color);
+    box-shadow: 0 0 10px var(--success-color);
 } 

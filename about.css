@@ -1,19 +1,19 @@
 /* CSS Variables */
 :root {
-    --primary-color: #00ff9d;
-    --accent-color: #00b8ff;
-    --secondary-color: #0a192f;
-    --text-color: #e6f1ff;
-    --success-color: #00ff9d;
-    --error-color: #ff3e3e;
-    --background-color: #0a192f;
+    --primary-color: #00ffab;
+    --accent-color: #ff6f3c;
+    --secondary-color: #101010;
+    --text-color: #e0e0e0;
+    --success-color: #00ffab;
+    --error-color: #ff6f3c;
+    --background-color: #101010;
 }
 
 /* Base Styles */
 body {
     background-color: var(--background-color);
     color: var(--text-color);
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Roboto', 'Inter', sans-serif;
     margin: 0;
     padding: 0;
     min-height: 100vh;
@@ -21,12 +21,12 @@ body {
 
 /* Header Styles */
 .header {
-    background: rgba(10, 25, 47, 0.95);
+    background: rgba(16, 16, 16, 0.98);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+    border-bottom: 1.5px solid rgba(0,255,171,0.18);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -45,11 +45,11 @@ body {
 }
 
 .logo-container h1 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
     color: var(--primary-color);
     margin: 0;
     font-size: 1.5rem;
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    text-shadow: 0 0 8px rgba(0,255,171,0.18);
 }
 
 .header-right {
@@ -69,7 +69,7 @@ body {
     height: 35px;
     border-radius: 50%;
     border: 2px solid var(--primary-color);
-    box-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    box-shadow: 0 0 10px rgba(0,255,171,0.18);
 }
 
 #userDisplayName {
@@ -96,9 +96,9 @@ body {
 
 /* Navigation Menu */
 .nav-menu {
-    background: rgba(10, 25, 47, 0.95);
+    background: rgba(16, 16, 16, 0.98);
     padding: 1rem 2rem;
-    border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+    border-bottom: 1.5px solid rgba(0,255,171,0.18);
 }
 
 .nav-links {
@@ -108,12 +108,12 @@ body {
 }
 
 .nav-link {
-    color: var(--text-color);
+    color: var(--primary-color);
     text-decoration: none;
     font-size: 1rem;
     padding: 0.5rem 1rem;
     border-radius: 5px;
-    transition: all 0.3s ease;
+    transition: color 0.2s, box-shadow 0.2s;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -123,15 +123,10 @@ body {
     color: var(--primary-color);
 }
 
-.nav-link:hover {
-    background: rgba(100, 255, 218, 0.1);
-    color: var(--primary-color);
-}
-
-.nav-link.active {
-    background: rgba(100, 255, 218, 0.1);
-    color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+.nav-link:hover, .nav-link.active {
+    color: var(--accent-color);
+    background: rgba(255,111,60,0.08);
+    box-shadow: 0 0 8px rgba(255,111,60,0.18);
 }
 
 /* Menu Overlay */
@@ -204,14 +199,14 @@ body {
 }
 
 .about-header h2 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
     font-size: 3rem;
     margin-bottom: 1rem;
     background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    text-shadow: 0 0 8px rgba(0,255,171,0.18);
 }
 
 .cyber-subtitle {
@@ -232,13 +227,14 @@ body {
 
 /* About Cards */
 .about-card {
-    background: rgba(10, 25, 47, 0.8);
-    border-radius: 15px;
+    background: rgba(24, 24, 24, 0.92);
+    border-radius: 18px;
     padding: 2rem;
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
-    border: 1px solid rgba(100, 255, 218, 0.1);
+    border: 1.5px solid rgba(0,255,171,0.18);
+    box-shadow: 0 8px 32px 0 rgba(0,255,171,0.10);
     animation: fadeInUp 1s ease;
 }
 
@@ -249,7 +245,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(45deg, transparent, rgba(100, 255, 218, 0.1), transparent);
+    background: linear-gradient(45deg, transparent, rgba(0,255,171,0.1), transparent);
     transform: translateX(-100%);
     transition: transform 0.6s ease;
 }
@@ -266,7 +262,7 @@ body {
 .card-icon {
     width: 60px;
     height: 60px;
-    background: rgba(100, 255, 218, 0.1);
+    background: rgba(0,255,171,0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -278,14 +274,15 @@ body {
 .card-icon i {
     font-size: 1.8rem;
     color: var(--primary-color);
+    text-shadow: 0 0 6px rgba(0,255,171,0.10);
 }
 
 .about-card h3 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
     font-size: 1.5rem;
     color: var(--primary-color);
     margin-bottom: 1rem;
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    text-shadow: 0 0 8px rgba(0,255,171,0.18);
 }
 
 .about-card p {
@@ -316,19 +313,20 @@ body {
 .features-section {
     margin-top: 4rem;
     padding: 2rem;
-    background: rgba(10, 25, 47, 0.8);
-    border-radius: 15px;
-    border: 1px solid rgba(100, 255, 218, 0.1);
+    background: rgba(24, 24, 24, 0.92);
+    border-radius: 18px;
+    border: 1.5px solid rgba(0,255,171,0.18);
+    box-shadow: 0 8px 32px 0 rgba(0,255,171,0.10);
     animation: fadeInUp 1s ease 0.5s both;
 }
 
 .section-title {
     text-align: center;
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
     font-size: 2rem;
     color: var(--primary-color);
     margin-bottom: 2rem;
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    text-shadow: 0 0 8px rgba(0,255,171,0.18);
 }
 
 .features-grid {
@@ -348,18 +346,19 @@ body {
 
 .feature-item:hover {
     transform: translateY(-5px);
-    background: rgba(100, 255, 218, 0.1);
-    box-shadow: 0 5px 15px rgba(0, 255, 157, 0.1);
+    background: rgba(255,111,60,0.08);
+    box-shadow: 0 0 8px rgba(255,111,60,0.18);
 }
 
 .feature-item i {
     font-size: 2.5rem;
     color: var(--primary-color);
     margin-bottom: 1rem;
+    text-shadow: 0 0 6px rgba(0,255,171,0.10);
 }
 
 .feature-item h4 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
     color: var(--accent-color);
     margin-bottom: 0.5rem;
 }
@@ -373,9 +372,10 @@ body {
 .timeline-section {
     margin-top: 4rem;
     padding: 2rem;
-    background: rgba(10, 25, 47, 0.8);
-    border-radius: 15px;
-    border: 1px solid rgba(100, 255, 218, 0.1);
+    background: rgba(24, 24, 24, 0.92);
+    border-radius: 18px;
+    border: 1.5px solid rgba(0,255,171,0.18);
+    box-shadow: 0 8px 32px 0 rgba(0,255,171,0.10);
     animation: fadeInUp 1s ease 0.7s both;
 }
 
@@ -434,13 +434,14 @@ body {
     background: rgba(255, 255, 255, 0.05);
     padding: 1.5rem;
     border-radius: 10px;
-    border: 1px solid rgba(100, 255, 218, 0.1);
+    border: 1px solid rgba(0,255,171,0.1);
 }
 
 .timeline-content h4 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
     color: var(--primary-color);
     margin-bottom: 0.5rem;
+    text-shadow: 0 0 8px rgba(0,255,171,0.18);
 }
 
 .timeline-content p {
@@ -452,18 +453,19 @@ body {
     text-align: center;
     margin-top: 4rem;
     padding: 3rem;
-    background: rgba(10, 25, 47, 0.8);
-    border-radius: 15px;
-    border: 1px solid rgba(100, 255, 218, 0.1);
+    background: rgba(24, 24, 24, 0.92);
+    border-radius: 18px;
+    border: 1.5px solid rgba(0,255,171,0.18);
+    box-shadow: 0 8px 32px 0 rgba(0,255,171,0.10);
     animation: fadeInUp 1s ease 0.9s both;
 }
 
 .cta-section h3 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
     font-size: 2rem;
     color: var(--primary-color);
     margin-bottom: 1rem;
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+    text-shadow: 0 0 8px rgba(0,255,171,0.18);
 }
 
 .cta-section p {
@@ -475,18 +477,21 @@ body {
     display: inline-block;
     padding: 1rem 2rem;
     background: var(--primary-color);
-    color: var(--secondary-color);
+    color: #101010;
     text-decoration: none;
     border-radius: 5px;
     font-weight: 600;
-    transition: all 0.3s ease;
-    border: none;
+    transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
+    border: 1.5px solid var(--primary-color);
     cursor: pointer;
+    box-shadow: 0 0 8px 0 rgba(0,255,171,0.18);
 }
 
 .cta-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
+    background: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 12px 0 rgba(255,111,60,0.18);
 }
 
 /* Animations */
