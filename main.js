@@ -2998,7 +2998,6 @@ const privateMessagesList = document.getElementById('privateMessagesList');
 const privateMessageInput = document.getElementById('privateMessageInput');
 const sendPrivateMessageBtn = document.getElementById('sendPrivateMessageBtn');
 const privateVoiceArea = document.getElementById('privateVoiceArea');
-const joinPrivateVoiceBtn = document.getElementById('joinPrivateVoiceBtn');
 const privateVoiceStatus = document.getElementById('privateVoiceStatus');
 
 // --- Modal for creating a private channel ---
