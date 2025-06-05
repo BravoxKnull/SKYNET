@@ -2970,3 +2970,758 @@ updateUsersList = function(usersArr) {
         document.head.appendChild(style);
     }
 })();
+
+// ================= PRIVATE CHANNELS SECTION =================
+// State for private channels
+let privateChannels = [];
+let selectedPrivateChannel = null;
+let privateChannelMembers = [];
+let privateChannelMessages = [];
+let privateVoiceActive = false;
+
+// DOM Elements for private channels
+const privateChannelsSection = document.getElementById('privateChannelsSection');
+const privateChannelsSidebar = document.getElementById('privateChannelsSidebar');
+const privateChannelsList = document.getElementById('privateChannelsList');
+const createPrivateChannelBtn = document.getElementById('createPrivateChannelBtn');
+const joinChannelCodeInput = document.getElementById('joinChannelCodeInput');
+const joinChannelByCodeBtn = document.getElementById('joinChannelByCodeBtn');
+const privateMembersSidebar = document.getElementById('privateMembersSidebar');
+const privateMembersList = document.getElementById('privateMembersList');
+const privateMainArea = document.getElementById('privateMainArea');
+const privateChannelHeader = document.getElementById('privateChannelHeader');
+const privateChannelTitle = document.getElementById('privateChannelTitle');
+const showChannelCodeBtn = document.getElementById('showChannelCodeBtn');
+const privateChannelCode = document.getElementById('privateChannelCode');
+const privateChatArea = document.getElementById('privateChatArea');
+const privateMessagesList = document.getElementById('privateMessagesList');
+const privateMessageInput = document.getElementById('privateMessageInput');
+const sendPrivateMessageBtn = document.getElementById('sendPrivateMessageBtn');
+const privateVoiceArea = document.getElementById('privateVoiceArea');
+const joinPrivateVoiceBtn = document.getElementById('joinPrivateVoiceBtn');
+const privateVoiceStatus = document.getElementById('privateVoiceStatus');
+
+// --- Modal for creating a private channel ---
+function showCreatePrivateChannelModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-card">
+            <h3>Create Private Channel</h3>
+            <input type="text" id="newPrivateChannelName" class="input-field" placeholder="Channel Name" maxlength="32" autofocus>
+            <div class="modal-actions">
+                <button id="createChannelConfirmBtn" class="join-btn">Create</button>
+                <button id="createChannelCancelBtn" class="join-btn danger">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('newPrivateChannelName').focus();
+    document.getElementById('createChannelCancelBtn').onclick = () => modal.remove();
+    document.getElementById('createChannelConfirmBtn').onclick = async () => {
+        const name = document.getElementById('newPrivateChannelName').value.trim();
+        if (!name) {
+            document.getElementById('newPrivateChannelName').classList.add('input-error');
+            setTimeout(() => document.getElementById('newPrivateChannelName').classList.remove('input-error'), 1000);
+            return;
+        }
+        await createPrivateChannel(name);
+        modal.remove();
+    };
+}
+
+// --- Helper: Show error modal ---
+function showPrivateChannelError(msg) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `<div class="modal-card"><div class="modal-error">${msg}</div><button class="join-btn" id="closeErrorModalBtn">Close</button></div>`;
+    document.body.appendChild(modal);
+    document.getElementById('closeErrorModalBtn').onclick = () => modal.remove();
+}
+
+// --- Supabase: Create Private Channel ---
+async function createPrivateChannel(name) {
+    // Generate a unique 6-character code
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const { data, error } = await supabase.from('private_channels').insert([
+        { name, owner_id: currentUser.id, join_code: code }
+    ]).select().single();
+    if (error) {
+        showPrivateChannelError('Failed to create channel: ' + error.message);
+        return;
+    }
+    // Add owner as member
+    await supabase.from('private_channel_members').insert([
+        { channel_id: data.id, user_id: currentUser.id, is_owner: true }
+    ]);
+    await fetchPrivateChannels();
+    selectPrivateChannel(data.id);
+}
+
+// --- Supabase: Join Private Channel by Code ---
+async function joinPrivateChannelByCode(code) {
+    const { data: channel, error } = await supabase
+        .from('private_channels')
+        .select('*')
+        .eq('join_code', code)
+        .single();
+    if (error || !channel) {
+        showPrivateChannelError('No channel found with that code.');
+        return;
+    }
+    // Check if already a member
+    const { data: member } = await supabase
+        .from('private_channel_members')
+        .select('*')
+        .eq('channel_id', channel.id)
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+    if (!member) {
+        await supabase.from('private_channel_members').insert([
+            { channel_id: channel.id, user_id: currentUser.id, is_owner: false }
+        ]);
+    }
+    await fetchPrivateChannels();
+    selectPrivateChannel(channel.id);
+}
+
+// --- Supabase: Fetch Owned/Joined Private Channels ---
+async function fetchPrivateChannels() {
+    const { data: memberships, error } = await supabase
+        .from('private_channel_members')
+        .select('channel_id, is_owner, private_channels(*)')
+        .eq('user_id', currentUser.id);
+    if (error) {
+        showPrivateChannelError('Failed to fetch channels: ' + error.message);
+        return;
+    }
+    privateChannels = (memberships || []).map(m => ({ ...m.private_channels, is_owner: m.is_owner }));
+    renderPrivateChannelsList();
+}
+
+// --- Supabase: Fetch Members for Selected Channel ---
+async function fetchPrivateChannelMembers(channelId) {
+    const { data: members, error } = await supabase
+        .from('private_channel_members')
+        .select('user_id, is_owner, users(id, display_name, avatar_url)')
+        .eq('channel_id', channelId);
+    if (error) {
+        showPrivateChannelError('Failed to fetch members: ' + error.message);
+        return;
+    }
+    privateChannelMembers = (members || []).map(m => ({
+        id: m.users.id,
+        displayName: m.users.display_name,
+        avatar_url: m.users.avatar_url,
+        is_owner: m.is_owner
+    }));
+    renderPrivateMembersList();
+}
+
+// --- Render: Private Channels List ---
+function renderPrivateChannelsList() {
+    privateChannelsList.innerHTML = '';
+    if (!privateChannels.length) {
+        privateChannelsList.innerHTML = '<li style="color:#aaa;text-align:center;">No channels yet.</li>';
+        return;
+    }
+    privateChannels.forEach(channel => {
+        const li = document.createElement('li');
+        li.textContent = channel.name;
+        if (channel.is_owner) {
+            li.innerHTML += ' <i class="fas fa-crown" title="Owner" style="color:#feca57;"></i>';
+        }
+        li.onclick = () => selectPrivateChannel(channel.id);
+        if (selectedPrivateChannel && channel.id === selectedPrivateChannel.id) {
+            li.classList.add('active');
+        }
+        privateChannelsList.appendChild(li);
+    });
+}
+
+// --- Render: Private Channel Members List ---
+function renderPrivateMembersList() {
+    privateMembersList.innerHTML = '';
+    if (!privateChannelMembers.length) {
+        privateMembersList.innerHTML = '<li style="color:#aaa;text-align:center;">No members yet.</li>';
+        return;
+    }
+    privateChannelMembers.forEach(member => {
+        const li = document.createElement('li');
+        li.innerHTML = `<img src="${member.avatar_url || 'assets/images/default-avatar.svg'}" class="user-avatar" style="width:28px;height:28px;border-radius:50%;margin-right:8px;">` +
+            `<span>${member.displayName}</span>` +
+            (member.is_owner ? ' <i class="fas fa-crown" title="Owner" style="color:#feca57;"></i>' : '');
+        privateMembersList.appendChild(li);
+    });
+}
+
+// --- Select a Private Channel ---
+async function selectPrivateChannel(channelId) {
+    selectedPrivateChannel = privateChannels.find(c => c.id === channelId);
+    if (!selectedPrivateChannel) return;
+    privateChannelTitle.textContent = selectedPrivateChannel.name;
+    // Show code button if owner
+    if (selectedPrivateChannel.is_owner) {
+        showChannelCodeBtn.style.display = '';
+        showChannelCodeBtn.onclick = () => {
+            privateChannelCode.textContent = selectedPrivateChannel.join_code;
+            privateChannelCode.style.display = '';
+            setTimeout(() => { privateChannelCode.style.display = 'none'; }, 8000);
+        };
+    } else {
+        showChannelCodeBtn.style.display = 'none';
+        privateChannelCode.style.display = 'none';
+    }
+    renderPrivateChannelsList();
+    await fetchPrivateChannelMembers(channelId);
+    // TODO: Fetch and render chat/messages for this channel
+    // TODO: Reset voice chat state for this channel
+}
+
+// --- Event: Create Private Channel ---
+createPrivateChannelBtn.addEventListener('click', showCreatePrivateChannelModal);
+
+// --- Event: Join Private Channel by Code ---
+joinChannelByCodeBtn.addEventListener('click', async () => {
+    const code = joinChannelCodeInput.value.trim();
+    if (!code) {
+        joinChannelCodeInput.classList.add('input-error');
+        setTimeout(() => joinChannelCodeInput.classList.remove('input-error'), 1000);
+        return;
+    }
+    await joinPrivateChannelByCode(code);
+    joinChannelCodeInput.value = '';
+});
+
+// --- Initial fetch of private channels on load ---
+document.addEventListener('DOMContentLoaded', fetchPrivateChannels);
+
+// --- Minimal modal CSS for private channel modals ---
+(function injectPrivateChannelModalCSS() {
+    if (!document.getElementById('private-channel-modal-style')) {
+        const style = document.createElement('style');
+        style.id = 'private-channel-modal-style';
+        style.textContent = `
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(30,32,44,0.85); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(2.5px); transition: opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .modal-card {
+            background: #23243a; border-radius: 18px; box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 1.5px 8px rgba(163,112,247,0.08);
+            min-width: 320px; max-width: 96vw; width: 340px; min-height: 120px; display: flex; flex-direction: column; align-items: center; padding: 2rem 1.5rem 1.5rem 1.5rem; position: relative; overflow: hidden;
+        }
+        .modal-card h3 { color: #a370f7; font-family: 'Orbitron',sans-serif; font-size: 1.3rem; margin-bottom: 1.2rem; }
+        .modal-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .modal-error { color: #ff6b6b; margin-bottom: 1.2rem; text-align: center; }
+        .modal-card .input-field { width: 100%; margin-bottom: 0.5rem; }
+        .join-btn.danger { background: #ff6b6b; }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// --- Private Channel Chat State ---
+let privateChatRealtimeChannel = null;
+
+// --- Supabase: Fetch Messages for Selected Private Channel ---
+async function fetchPrivateChannelMessages(channelId) {
+    const { data: messages, error } = await supabase
+        .from('private_channel_messages')
+        .select('id, user_id, message, created_at, users(display_name, avatar_url)')
+        .eq('channel_id', channelId)
+        .order('created_at', { ascending: true });
+    if (error) {
+        showPrivateChannelError('Failed to fetch messages: ' + error.message);
+        return;
+    }
+    privateChannelMessages = (messages || []).map(m => ({
+        id: m.id,
+        user_id: m.user_id,
+        message: m.message,
+        created_at: m.created_at,
+        displayName: m.users?.display_name || 'Unknown',
+        avatar_url: m.users?.avatar_url || 'assets/images/default-avatar.svg'
+    }));
+    renderPrivateMessagesList();
+}
+
+// --- Render: Private Channel Messages List ---
+function renderPrivateMessagesList() {
+    privateMessagesList.innerHTML = '';
+    if (!privateChannelMessages.length) {
+        privateMessagesList.innerHTML = '<li style="color:#aaa;text-align:center;">No messages yet.</li>';
+        return;
+    }
+    privateChannelMessages.forEach(msg => {
+        const li = document.createElement('li');
+        li.className = 'private-message' + (msg.user_id === currentUser.id ? ' me' : '');
+        li.innerHTML = `
+            <div class="private-msg-avatar"><img src="${msg.avatar_url}" alt="" style="width:28px;height:28px;border-radius:50%;"></div>
+            <div class="private-msg-content">
+                <div class="private-msg-header"><span class="private-msg-user">${msg.displayName}</span><span class="private-msg-time">${formatTime(msg.created_at)}</span></div>
+                <div class="private-msg-text">${escapeHtml(msg.message)}</div>
+            </div>
+        `;
+        privateMessagesList.appendChild(li);
+    });
+    privateMessagesList.scrollTop = privateMessagesList.scrollHeight;
+}
+
+// --- Send Message in Private Channel ---
+sendPrivateMessageBtn.addEventListener('click', sendPrivateChannelMessage);
+privateMessageInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendPrivateChannelMessage();
+    }
+});
+
+async function sendPrivateChannelMessage() {
+    const msg = privateMessageInput.value.trim();
+    if (!msg || !selectedPrivateChannel) return;
+    await supabase.from('private_channel_messages').insert([
+        {
+            channel_id: selectedPrivateChannel.id,
+            user_id: currentUser.id,
+            message: msg
+        }
+    ]);
+    privateMessageInput.value = '';
+}
+
+// --- Subscribe to Private Channel Messages (Realtime) ---
+async function subscribeToPrivateChannelMessages(channelId) {
+    if (privateChatRealtimeChannel) {
+        await supabase.removeChannel(privateChatRealtimeChannel);
+        privateChatRealtimeChannel = null;
+    }
+    privateChatRealtimeChannel = supabase.channel('private-messages-' + channelId)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'private_channel_messages',
+            filter: 'channel_id=eq.' + channelId
+        }, payload => {
+            if (payload.new && payload.new.channel_id === channelId) {
+                fetchPrivateChannelMessages(channelId);
+            }
+        });
+    await privateChatRealtimeChannel.subscribe();
+}
+
+// --- Patch selectPrivateChannel to fetch messages and subscribe ---
+const origSelectPrivateChannel = selectPrivateChannel;
+selectPrivateChannel = async function(channelId) {
+    await origSelectPrivateChannel(channelId);
+    await fetchPrivateChannelMessages(channelId);
+    await subscribeToPrivateChannelMessages(channelId);
+};
+
+// --- Minimal CSS for private channel chat ---
+(function injectPrivateChannelChatCSS() {
+    if (!document.getElementById('private-channel-chat-style')) {
+        const style = document.createElement('style');
+        style.id = 'private-channel-chat-style';
+        style.textContent = `
+        .private-messages-list { padding: 0.5rem 0; }
+        .private-message { display: flex; align-items: flex-start; gap: 0.7rem; margin-bottom: 0.5rem; }
+        .private-message.me { flex-direction: row-reverse; }
+        .private-msg-avatar img { box-shadow: 0 2px 8px #a370f7aa; }
+        .private-msg-content { flex: 1; }
+        .private-msg-header { display: flex; align-items: center; gap: 0.7rem; font-size: 0.93rem; color: #a370f7; font-weight: 600; }
+        .private-msg-user { font-family: 'Orbitron',sans-serif; }
+        .private-msg-time { color: #aaa; font-size: 0.85em; font-weight: 400; }
+        .private-msg-text { background: var(--card-bg, #23243a); border-radius: 8px; padding: 0.5rem 1rem; color: var(--text-color, #e0e0e0); margin-top: 2px; font-size: 1.01rem; word-break: break-word; box-shadow: 0 1px 4px #a370f733; }
+        .private-message.me .private-msg-content { align-items: flex-end; }
+        .private-message.me .private-msg-text { background: var(--primary-color, #a370f7); color: #fff; }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// --- Private Channel Voice Chat State ---
+let privateVoiceSocket = null;
+let privateVoicePeerConnections = {};
+let privateVoiceLocalStream = null;
+let privateVoiceActiveChannelId = null;
+let privateVoiceIsMuted = false;
+let privateVoiceIsDeafened = false;
+
+// --- Join Private Channel Voice ---
+joinPrivateVoiceBtn.addEventListener('click', async () => {
+    if (!selectedPrivateChannel) return;
+    if (privateVoiceActiveChannelId === selectedPrivateChannel.id) {
+        // Already in voice, leave
+        await leavePrivateVoice();
+    } else {
+        await joinPrivateVoice(selectedPrivateChannel.id);
+    }
+});
+
+async function joinPrivateVoice(channelId) {
+    if (!selectedPrivateChannel || selectedPrivateChannel.id !== channelId) return;
+    privateVoiceStatus.textContent = 'Connecting...';
+    joinPrivateVoiceBtn.disabled = true;
+    joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+    try {
+        // Get audio stream
+        privateVoiceLocalStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: false
+        });
+        // Connect to Socket.io with unique namespace/room
+        privateVoiceSocket = io('https://skynet-mdy7.onrender.com', {
+            path: '/socket.io/',
+            transports: ['websocket', 'polling'],
+            query: { room: 'private-' + channelId },
+            forceNew: true,
+            withCredentials: true
+        });
+        privateVoicePeerConnections = {};
+        privateVoiceActiveChannelId = channelId;
+        privateVoiceIsMuted = false;
+        privateVoiceIsDeafened = false;
+        // Setup socket events (similar to main channel)
+        setupPrivateVoiceSocketEvents();
+        privateVoiceStatus.textContent = 'Connected';
+        joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Leave Voice';
+        joinPrivateVoiceBtn.disabled = false;
+    } catch (err) {
+        privateVoiceStatus.textContent = 'Error: ' + err.message;
+        joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
+        joinPrivateVoiceBtn.disabled = false;
+    }
+}
+
+async function leavePrivateVoice() {
+    privateVoiceStatus.textContent = 'Disconnected';
+    joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
+    joinPrivateVoiceBtn.disabled = false;
+    privateVoiceActiveChannelId = null;
+    // Close all peer connections
+    Object.values(privateVoicePeerConnections).forEach(pc => pc.close && pc.close());
+    privateVoicePeerConnections = {};
+    // Remove all audio elements
+    document.querySelectorAll('.private-voice-audio').forEach(el => el.remove());
+    // Stop local stream
+    if (privateVoiceLocalStream) {
+        privateVoiceLocalStream.getTracks().forEach(track => track.stop());
+        privateVoiceLocalStream = null;
+    }
+    // Disconnect socket
+    if (privateVoiceSocket) {
+        privateVoiceSocket.disconnect();
+        privateVoiceSocket = null;
+    }
+}
+
+function setupPrivateVoiceSocketEvents() {
+    if (!privateVoiceSocket) return;
+    // On connect, join room
+    privateVoiceSocket.on('connect', () => {
+        privateVoiceSocket.emit('joinPrivateVoice', {
+            channelId: selectedPrivateChannel.id,
+            userId: currentUser.id,
+            displayName: currentUser.displayName,
+            avatar_url: currentUser.avatar_url || ''
+        });
+    });
+    // Handle user join/leave, offer/answer, ICE, etc. (similar to main channel)
+    privateVoiceSocket.on('usersList', async (usersList) => {
+        // Remove self
+        const others = usersList.filter(u => u.id !== currentUser.id);
+        for (const user of others) {
+            if (!privateVoicePeerConnections[user.id]) {
+                await createPrivateVoicePeerConnection(user.id, true);
+            }
+        }
+    });
+    privateVoiceSocket.on('userJoined', async (userData) => {
+        if (userData.id !== currentUser.id && !privateVoicePeerConnections[userData.id]) {
+            await createPrivateVoicePeerConnection(userData.id, true);
+        }
+    });
+    privateVoiceSocket.on('userLeft', (userId) => {
+        if (privateVoicePeerConnections[userId]) {
+            privateVoicePeerConnections[userId].close();
+            delete privateVoicePeerConnections[userId];
+        }
+        const audioEl = document.getElementById('private-voice-audio-' + userId);
+        if (audioEl) audioEl.remove();
+    });
+    privateVoiceSocket.on('offer', async (data) => {
+        let pc = privateVoicePeerConnections[data.senderId];
+        if (!pc) pc = await createPrivateVoicePeerConnection(data.senderId, false);
+        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        privateVoiceSocket.emit('answer', { targetUserId: data.senderId, answer });
+    });
+    privateVoiceSocket.on('answer', async (data) => {
+        const pc = privateVoicePeerConnections[data.senderId];
+        if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    });
+    privateVoiceSocket.on('ice-candidate', async (data) => {
+        const pc = privateVoicePeerConnections[data.senderId];
+        if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+    });
+    // Mute/deafen events (optional, can be extended)
+}
+
+async function createPrivateVoicePeerConnection(userId, isInitiator) {
+    const pc = new RTCPeerConnection({
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            {
+                urls: 'turn:relay1.expressturn.com:3480',
+                username: '000000002064061488',
+                credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+            }
+        ]
+    });
+    privateVoicePeerConnections[userId] = pc;
+    // Add local audio
+    if (privateVoiceLocalStream) {
+        privateVoiceLocalStream.getAudioTracks().forEach(track => pc.addTrack(track, privateVoiceLocalStream));
+    }
+    pc.onicecandidate = (event) => {
+        if (event.candidate) {
+            privateVoiceSocket.emit('ice-candidate', { targetUserId: userId, candidate: event.candidate });
+        }
+    };
+    pc.ontrack = (event) => {
+        let audioEl = document.getElementById('private-voice-audio-' + userId);
+        if (!audioEl) {
+            audioEl = document.createElement('audio');
+            audioEl.id = 'private-voice-audio-' + userId;
+            audioEl.className = 'private-voice-audio';
+            audioEl.autoplay = true;
+            audioEl.controls = false;
+            privateVoiceArea.appendChild(audioEl);
+        }
+        audioEl.srcObject = event.streams[0];
+    };
+    if (isInitiator) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        privateVoiceSocket.emit('offer', { targetUserId: userId, offer });
+    }
+    return pc;
+}
+
+// --- Reset private voice state on channel switch or leave ---
+const origSelectPrivateChannelForVoice = selectPrivateChannel;
+selectPrivateChannel = async function(channelId) {
+    await leavePrivateVoice();
+    await origSelectPrivateChannelForVoice(channelId);
+};
+
+// --- Minimal CSS for private voice audio elements ---
+(function injectPrivateVoiceCSS() {
+    if (!document.getElementById('private-voice-style')) {
+        const style = document.createElement('style');
+        style.id = 'private-voice-style';
+        style.textContent = `
+        .private-voice-audio { display: none; }
+        .private-voice-status { color: #0db9d7; font-size: 1rem; margin-left: 1rem; }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// --- Private Channel Voice Controls and User List ---
+function renderPrivateVoiceControls() {
+    privateVoiceArea.innerHTML = `
+        <div class="private-voice-controls">
+            <button id="privateMuteBtn" class="control-btn"><i class="fas fa-microphone"></i> <span>Mute</span></button>
+            <button id="privateDeafenBtn" class="control-btn"><i class="fas fa-volume-mute"></i> <span>Deafen</span></button>
+            <button id="leavePrivateVoiceBtn" class="control-btn danger"><i class="fas fa-sign-out-alt"></i> <span>Leave</span></button>
+            <span class="private-voice-status" id="privateVoiceStatus"></span>
+        </div>
+        <div class="private-voice-users-list" id="privateVoiceUsersList"></div>
+    `;
+}
+
+function renderPrivateVoiceUsersList(users) {
+    const list = document.getElementById('privateVoiceUsersList');
+    if (!list) return;
+    list.innerHTML = '';
+    users.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'private-voice-user-item';
+        div.setAttribute('data-user-id', user.id);
+        div.innerHTML = `
+            <img src="${user.avatar_url || 'assets/images/default-avatar.svg'}" class="user-avatar" style="width:28px;height:28px;border-radius:50%;margin-right:8px;">
+            <span class="user-name">${user.displayName}</span>
+            <span class="user-status-indicator"></span>
+            <span class="user-status"></span>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// --- Private Voice Mute/Deafen State ---
+let privateVoiceMuted = false;
+let privateVoiceDeafened = false;
+
+function updatePrivateVoiceMuteUI() {
+    const btn = document.getElementById('privateMuteBtn');
+    if (!btn) return;
+    btn.querySelector('i').className = privateVoiceMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+    btn.querySelector('span').textContent = privateVoiceMuted ? 'Unmute' : 'Mute';
+}
+function updatePrivateVoiceDeafenUI() {
+    const btn = document.getElementById('privateDeafenBtn');
+    if (!btn) return;
+    btn.querySelector('i').className = privateVoiceDeafened ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+    btn.querySelector('span').textContent = privateVoiceDeafened ? 'Undeafen' : 'Deafen';
+}
+
+// --- Private Voice Activity Detection ---
+let privateVoiceAnalyser = null;
+let privateVoiceAudioContext = null;
+function startPrivateVoiceActivityDetection() {
+    if (!privateVoiceLocalStream) return;
+    privateVoiceAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    privateVoiceAnalyser = privateVoiceAudioContext.createAnalyser();
+    privateVoiceAnalyser.fftSize = 256;
+    privateVoiceAnalyser.smoothingTimeConstant = 0.8;
+    const source = privateVoiceAudioContext.createMediaStreamSource(privateVoiceLocalStream);
+    source.connect(privateVoiceAnalyser);
+    const dataArray = new Uint8Array(privateVoiceAnalyser.frequencyBinCount);
+    let lastSpeaking = false;
+    function checkSpeaking() {
+        if (!privateVoiceAnalyser || !privateVoiceAudioContext) return;
+        privateVoiceAnalyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        const speaking = avg > -50;
+        if (speaking !== lastSpeaking && privateVoiceSocket && privateVoiceSocket.connected) {
+            privateVoiceSocket.emit(speaking ? 'userSpeaking' : 'userStoppedSpeaking', {
+                userId: currentUser.id,
+                displayName: currentUser.displayName
+            });
+            lastSpeaking = speaking;
+        }
+        requestAnimationFrame(checkSpeaking);
+    }
+    checkSpeaking();
+}
+
+// --- Patch joinPrivateVoice to render controls and user list ---
+const origJoinPrivateVoice = joinPrivateVoice;
+joinPrivateVoice = async function(channelId) {
+    await origJoinPrivateVoice(channelId);
+    renderPrivateVoiceControls();
+    updatePrivateVoiceMuteUI();
+    updatePrivateVoiceDeafenUI();
+    // Render user list (members)
+    renderPrivateVoiceUsersList(privateChannelMembers);
+    // Add event listeners
+    document.getElementById('privateMuteBtn').onclick = () => {
+        privateVoiceMuted = !privateVoiceMuted;
+        if (privateVoiceLocalStream) {
+            privateVoiceLocalStream.getAudioTracks().forEach(track => {
+                track.enabled = !privateVoiceMuted;
+            });
+        }
+        updatePrivateVoiceMuteUI();
+        if (privateVoiceSocket && privateVoiceSocket.connected) {
+            privateVoiceSocket.emit('userMuteStatus', {
+                userId: currentUser.id,
+                isMuted: privateVoiceMuted,
+                displayName: currentUser.displayName
+            });
+        }
+        updatePrivateVoiceUserStatus(currentUser.id, privateVoiceMuted, privateVoiceDeafened);
+    };
+    document.getElementById('privateDeafenBtn').onclick = () => {
+        privateVoiceDeafened = !privateVoiceDeafened;
+        document.querySelectorAll('.private-voice-audio').forEach(audio => {
+            audio.muted = privateVoiceDeafened;
+        });
+        updatePrivateVoiceDeafenUI();
+        if (privateVoiceSocket && privateVoiceSocket.connected) {
+            privateVoiceSocket.emit('userDeafenStatus', {
+                userId: currentUser.id,
+                isDeafened: privateVoiceDeafened,
+                displayName: currentUser.displayName
+            });
+        }
+        updatePrivateVoiceUserStatus(currentUser.id, privateVoiceMuted, privateVoiceDeafened);
+    };
+    document.getElementById('leavePrivateVoiceBtn').onclick = leavePrivateVoice;
+    startPrivateVoiceActivityDetection();
+};
+
+// --- Patch leavePrivateVoice to clear UI ---
+const origLeavePrivateVoice = leavePrivateVoice;
+leavePrivateVoice = async function() {
+    await origLeavePrivateVoice();
+    privateVoiceArea.innerHTML = `<button id="joinPrivateVoiceBtn" class="voice-btn"><i class="fas fa-microphone"></i> Join Voice</button><span class="private-voice-status" id="privateVoiceStatus"></span>`;
+    document.getElementById('joinPrivateVoiceBtn').onclick = () => joinPrivateVoice(selectedPrivateChannel.id);
+};
+
+// --- Patch setupPrivateVoiceSocketEvents to handle mute/deafen/speaking ---
+const origSetupPrivateVoiceSocketEvents = setupPrivateVoiceSocketEvents;
+setupPrivateVoiceSocketEvents = function() {
+    origSetupPrivateVoiceSocketEvents();
+    if (!privateVoiceSocket) return;
+    privateVoiceSocket.on('userMuteStatus', (data) => {
+        updatePrivateVoiceUserStatus(data.userId, data.isMuted, undefined);
+    });
+    privateVoiceSocket.on('userDeafenStatus', (data) => {
+        updatePrivateVoiceUserStatus(data.userId, undefined, data.isDeafened);
+    });
+    privateVoiceSocket.on('userSpeaking', (data) => {
+        setPrivateVoiceUserSpeaking(data.userId, true);
+    });
+    privateVoiceSocket.on('userStoppedSpeaking', (data) => {
+        setPrivateVoiceUserSpeaking(data.userId, false);
+    });
+};
+
+function updatePrivateVoiceUserStatus(userId, isMuted, isDeafened) {
+    const userItem = document.querySelector(`.private-voice-user-item[data-user-id="${userId}"]`);
+    if (!userItem) return;
+    if (isMuted !== undefined) {
+        userItem.setAttribute('data-muted', isMuted);
+        const status = userItem.querySelector('.user-status');
+        if (status) status.textContent = isMuted ? 'Muted' : '';
+    }
+    if (isDeafened !== undefined) {
+        userItem.setAttribute('data-deafened', isDeafened);
+        const status = userItem.querySelector('.user-status');
+        if (status) status.textContent = isDeafened ? 'Deafened' : '';
+    }
+}
+function setPrivateVoiceUserSpeaking(userId, speaking) {
+    const userItem = document.querySelector(`.private-voice-user-item[data-user-id="${userId}"]`);
+    if (!userItem) return;
+    const indicator = userItem.querySelector('.user-status-indicator');
+    if (indicator) {
+        indicator.className = 'user-status-indicator' + (speaking ? ' speaking' : '');
+    }
+}
+// --- Minimal CSS for private voice controls and user list ---
+(function injectPrivateVoiceControlsCSS() {
+    if (!document.getElementById('private-voice-controls-style')) {
+        const style = document.createElement('style');
+        style.id = 'private-voice-controls-style';
+        style.textContent = `
+        .private-voice-controls { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+        .private-voice-users-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .private-voice-user-item { display: flex; align-items: center; gap: 0.7rem; padding: 6px 10px; border-radius: 7px; background: #23243a; }
+        .private-voice-user-item .user-avatar { width: 28px; height: 28px; border-radius: 50%; }
+        .private-voice-user-item .user-name { font-size: 1rem; color: #fff; font-weight: 500; }
+        .private-voice-user-item .user-status-indicator { width: 12px; height: 12px; border-radius: 50%; background: #4CAF50; margin-left: 6px; transition: background 0.2s; }
+        .private-voice-user-item[data-muted="true"] .user-status-indicator { background: #f44336; }
+        .private-voice-user-item[data-deafened="true"] .user-status-indicator { background: #9c27b0; }
+        .private-voice-user-item .user-status-indicator.speaking { background: #0db9d7; box-shadow: 0 0 10px #0db9d7aa; animation: pulse 1.5s infinite; }
+        .private-voice-user-item .user-status { font-size: 0.85rem; color: #aaa; margin-left: 8px; }
+        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 #0db9d7bb; } 70% { transform: scale(1.2); box-shadow: 0 0 0 15px #0db9d700; } 100% { transform: scale(1); box-shadow: 0 0 0 0 #0db9d700; } }
+        `;
+        document.head.appendChild(style);
+    }
+})();

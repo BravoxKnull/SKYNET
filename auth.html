@@ -348,7 +348,7 @@
                 min-width: 90vw;
                 max-width: 98vw;
                 font-size: 1rem;
-            }
+        }
         }
 
         @media (max-width: 700px) {
@@ -380,54 +380,54 @@
 <body>
     <canvas id="bg-canvas"></canvas>
     <div class="auth-main-layout">
-        <div class="auth-container">
-            <div class="auth-box">
-                <div class="logo-container">
-                    <img src="assets/images/Skynet_Terminator_logo.svg" alt="SKYNET Logo" class="logo">
-                    <h1>SKYNET</h1>
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="logo-container">
+                <img src="assets/images/Skynet_Terminator_logo.svg" alt="SKYNET Logo" class="logo">
+                <h1>SKYNET</h1>
                     <div class="subtitle">Autonomous AI Platform</div>
-                </div>
-                <div class="form-switch">
-                    <button class="form-switch-btn active" data-form="login">Login</button>
-                    <button class="form-switch-btn" data-form="signup">Sign Up</button>
-                </div>
-                <!-- Login Form -->
+            </div>
+            <div class="form-switch">
+                <button class="form-switch-btn active" data-form="login">Login</button>
+                <button class="form-switch-btn" data-form="signup">Sign Up</button>
+            </div>
+            <!-- Login Form -->
                 <div class="auth-form active" id="loginForm">
                     <h2>Welcome Back</h2>
                     <div class="form-desc">Sign in to your SKYNET account</div>
-                    <div class="input-group">
+                <div class="input-group">
                         <input type="text" id="loginDisplayName" class="input-field" placeholder=" " autocomplete="username">
                         <label for="loginDisplayName"><i class="fas fa-user"></i> Display Name</label>
-                    </div>
-                    <div class="input-group">
+                </div>
+                <div class="input-group">
                         <input type="password" id="loginPassword" class="input-field" placeholder=" " autocomplete="current-password">
                         <label for="loginPassword"><i class="fas fa-lock"></i> Password</label>
-                    </div>
-                    <button id="loginBtn" class="auth-btn">
-                        <i class="fas fa-sign-in-alt"></i> Login
-                    </button>
                 </div>
-                <!-- Signup Form -->
+                <button id="loginBtn" class="auth-btn">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </div>
+            <!-- Signup Form -->
                 <div class="auth-form" id="signupForm">
-                    <h2>Create Account</h2>
+                <h2>Create Account</h2>
                     <div class="form-desc">Join the future of AI. Create your SKYNET account.</div>
-                    <div class="input-group">
+                <div class="input-group">
                         <input type="text" id="signupDisplayName" class="input-field" placeholder=" " autocomplete="username">
                         <label for="signupDisplayName"><i class="fas fa-user-plus"></i> Display Name</label>
-                    </div>
-                    <div class="input-group">
+                </div>
+                <div class="input-group">
                         <input type="password" id="signupPassword" class="input-field" placeholder=" " autocomplete="new-password">
                         <label for="signupPassword"><i class="fas fa-lock"></i> Password</label>
-                    </div>
-                    <div class="input-group">
+                </div>
+                <div class="input-group">
                         <input type="password" id="confirmPassword" class="input-field" placeholder=" " autocomplete="new-password">
                         <label for="confirmPassword"><i class="fas fa-lock"></i> Confirm Password</label>
-                    </div>
-                    <button id="signupBtn" class="auth-btn">
-                        <i class="fas fa-user-plus"></i> Sign Up
-                    </button>
                 </div>
-                <div id="authMessage" class="auth-message"></div>
+                <button id="signupBtn" class="auth-btn">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+            </div>
+            <div id="authMessage" class="auth-message"></div>
             </div>
         </div>
         <div class="feature-carousel-container">
