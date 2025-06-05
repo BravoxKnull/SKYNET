@@ -1005,7 +1005,7 @@ async function updateUsersList(users) {
     for (const userData of uniqueUsers.values()) {
         try {
             const userItem = createUserListItem(userData);
-            usersList.appendChild(userItem);
+    usersList.appendChild(userItem);
 
             if (!userData.avatar_url) {
                 const { data, error } = await supabase
@@ -2707,3 +2707,243 @@ function playSoundboardSound(fileUrl) {
         socket.emit('soundboard', { fileUrl });
     }
 }
+
+// --- SCREEN SHARE FEATURE ---
+let isScreenSharing = false;
+let screenShareStream = null;
+let screenShareOwnerId = null;
+let screenShareVideoEl = null;
+let screenShareViewers = new Set();
+
+// Helper: Broadcast screen share state
+function broadcastScreenShareState(state) {
+    if (socket && socket.connected) {
+        socket.emit('screenShareState', {
+            userId: currentUser.id,
+            state: state // 'start' or 'stop'
+        });
+    }
+}
+
+// Helper: Add/Remove green monitor icon on user card
+function updateScreenShareIconOnUserCards() {
+    document.querySelectorAll('.user-item').forEach(userItem => {
+        const userId = userItem.getAttribute('data-user-id');
+        let icon = userItem.querySelector('.screen-share-icon');
+        if (userId === screenShareOwnerId) {
+            if (!icon) {
+                icon = document.createElement('span');
+                icon.className = 'screen-share-icon';
+                icon.title = 'View Screen Share';
+                icon.innerHTML = '<i class="fas fa-desktop"></i>';
+                icon.style.color = '#2ecc40';
+                icon.style.marginLeft = '8px';
+                icon.style.cursor = 'pointer';
+                icon.onclick = (e) => {
+                    e.stopPropagation();
+                    if (currentUser.id !== screenShareOwnerId) {
+                        showScreenShareView();
+                    }
+                };
+                userItem.querySelector('.user-name').appendChild(icon);
+            }
+            icon.style.display = 'inline-block';
+        } else if (icon) {
+            icon.remove();
+        }
+    });
+}
+
+// Helper: Show screen share video in place of user cards
+function showScreenShareView() {
+    const usersGrid = document.getElementById('usersList');
+    usersGrid.classList.add('screenshare-active');
+    usersGrid.innerHTML = '';
+    // Video element
+    if (!screenShareVideoEl) {
+        screenShareVideoEl = document.createElement('video');
+        screenShareVideoEl.id = 'screenShareVideo';
+        screenShareVideoEl.autoplay = true;
+        screenShareVideoEl.controls = false;
+        screenShareVideoEl.style.maxWidth = '90vw';
+        screenShareVideoEl.style.maxHeight = '70vh';
+        screenShareVideoEl.style.borderRadius = '16px';
+        screenShareVideoEl.style.boxShadow = '0 8px 32px rgba(0,0,0,0.35)';
+        screenShareVideoEl.style.background = '#111';
+        screenShareVideoEl.style.margin = '0 auto';
+    }
+    usersGrid.appendChild(screenShareVideoEl);
+    // Close button for viewers
+    if (currentUser.id !== screenShareOwnerId) {
+        let closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close Screen Share';
+        closeBtn.className = 'close-screenshare-btn';
+        closeBtn.style.margin = '32px auto 0 auto';
+        closeBtn.style.display = 'block';
+        closeBtn.style.background = '#23243a';
+        closeBtn.style.color = '#fff';
+        closeBtn.style.border = 'none';
+        closeBtn.style.borderRadius = '8px';
+        closeBtn.style.padding = '12px 28px';
+        closeBtn.style.fontSize = '1.1rem';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.onclick = () => {
+            hideScreenShareView();
+        };
+        usersGrid.appendChild(closeBtn);
+    } else {
+        // Stop sharing button for owner
+        let stopBtn = document.createElement('button');
+        stopBtn.textContent = 'Stop Screen Share';
+        stopBtn.className = 'close-screenshare-btn';
+        stopBtn.style.margin = '32px auto 0 auto';
+        stopBtn.style.display = 'block';
+        stopBtn.style.background = '#e74c3c';
+        stopBtn.style.color = '#fff';
+        stopBtn.style.border = 'none';
+        stopBtn.style.borderRadius = '8px';
+        stopBtn.style.padding = '12px 28px';
+        stopBtn.style.fontSize = '1.1rem';
+        stopBtn.style.cursor = 'pointer';
+        stopBtn.onclick = () => {
+            stopScreenShare();
+        };
+        usersGrid.appendChild(stopBtn);
+    }
+    // Request the screen share stream from the owner
+    if (currentUser.id !== screenShareOwnerId) {
+        socket.emit('requestScreenShareStream', { ownerId: screenShareOwnerId, viewerId: currentUser.id });
+    } else if (screenShareStream) {
+        screenShareVideoEl.srcObject = screenShareStream;
+    }
+}
+
+function hideScreenShareView() {
+    const usersGrid = document.getElementById('usersList');
+    usersGrid.classList.remove('screenshare-active');
+    usersGrid.innerHTML = '';
+    updateUsersList(users);
+}
+
+// Start screen share
+async function startScreenShare() {
+    try {
+        screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        isScreenSharing = true;
+        screenShareOwnerId = currentUser.id;
+        broadcastScreenShareState('start');
+        updateScreenShareIconOnUserCards();
+        showScreenShareView();
+        // Send stream to all peers
+        Object.keys(peerConnections).forEach(userId => {
+            const sender = peerConnections[userId].getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) {
+                sender.replaceTrack(screenShareStream.getVideoTracks()[0]);
+            } else {
+                peerConnections[userId].addTrack(screenShareStream.getVideoTracks()[0], screenShareStream);
+            }
+        });
+        // Listen for stop
+        screenShareStream.getVideoTracks()[0].onended = () => {
+            stopScreenShare();
+        };
+    } catch (err) {
+        alert('Screen share failed: ' + err.message);
+    }
+}
+
+// Stop screen share
+function stopScreenShare() {
+    if (screenShareStream) {
+        screenShareStream.getTracks().forEach(track => track.stop());
+        screenShareStream = null;
+    }
+    isScreenSharing = false;
+    broadcastScreenShareState('stop');
+    screenShareOwnerId = null;
+    hideScreenShareView();
+    updateScreenShareIconOnUserCards();
+    // Remove video tracks from all peer connections
+    Object.keys(peerConnections).forEach(userId => {
+        const senders = peerConnections[userId].getSenders();
+        senders.forEach(sender => {
+            if (sender.track && sender.track.kind === 'video') {
+                peerConnections[userId].removeTrack(sender);
+            }
+        });
+    });
+}
+
+// Listen for screen share state from others
+if (typeof socket !== 'undefined' && socket) {
+    socket.on('screenShareState', data => {
+        if (data.state === 'start') {
+            screenShareOwnerId = data.userId;
+            updateScreenShareIconOnUserCards();
+        } else if (data.state === 'stop') {
+            screenShareOwnerId = null;
+            hideScreenShareView();
+            updateScreenShareIconOnUserCards();
+        }
+    });
+    // Listen for screen share stream requests
+    socket.on('requestScreenShareStream', ({ ownerId, viewerId }) => {
+        if (currentUser.id === ownerId && screenShareStream) {
+            // Send stream to viewer (peer-to-peer logic assumed)
+            // In mesh, viewer will renegotiate and get the video track
+        }
+    });
+}
+
+// Patch event listener for screenshareBtn
+safeSetOnClick('screenshareBtn', function() {
+    if (isScreenSharing) {
+        stopScreenShare();
+    } else {
+        startScreenShare();
+    }
+});
+
+// Patch updateUsersList to update screen share icons
+const origUpdateUsersList = updateUsersList;
+updateUsersList = function(usersArr) {
+    origUpdateUsersList(usersArr);
+    updateScreenShareIconOnUserCards();
+};
+
+// --- Minimal CSS for screen share icon and close button ---
+(function injectScreenShareCSS() {
+    if (!document.getElementById('screen-share-style')) {
+        const style = document.createElement('style');
+        style.id = 'screen-share-style';
+        style.textContent = `
+        .screen-share-icon {
+            display: inline-block;
+            margin-left: 8px;
+            color: #2ecc40;
+            font-size: 1.1em;
+            vertical-align: middle;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .screen-share-icon:hover {
+            color: #27ae60;
+        }
+        .close-screenshare-btn {
+            margin-top: 32px;
+            background: #23243a;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .close-screenshare-btn:hover {
+            background: #a370f7;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();

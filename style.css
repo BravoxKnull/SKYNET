@@ -550,13 +550,26 @@ body {
 /* Users Grid */
 .users-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Slightly smaller min width */
-    gap: 1rem; /* Slightly reduced gap */
-    padding: 1rem; /* Slightly reduced padding */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
     overflow-y: auto;
     flex: 1;
-    /* max-height: calc(100vh - 140px - 80px); Full height - header - channel header - controls - some margin */
+    min-height: 420px;
+    max-height: calc(100vh - 120px - 80px); /* Increased height for screen share */
     margin-bottom: 80px;
+    transition: min-height 0.3s, max-height 0.3s;
+}
+
+/* When screen share is active, fill the area */
+.users-grid.screenshare-active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 520px;
+    max-height: none;
+    background: rgba(26, 27, 38, 0.95);
+    padding: 0;
 }
 
 .user-item {
