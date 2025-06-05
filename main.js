@@ -2605,3 +2605,27 @@ function closeSoundboardModal() {
         document.head.appendChild(style);
     }
 })();
+
+// Fetch and render all uploaded sounds
+async function loadSoundboardSounds() {
+    const list = document.getElementById('soundboardList');
+    // Remove upload form (keep it at the top)
+    const uploadForm = list.firstChild;
+    list.innerHTML = '';
+    if (uploadForm) list.appendChild(uploadForm);
+
+    // Fetch from DB
+    const { data: sounds, error } = await supabase
+        .from('soundboard_sounds')
+        .select('*')
+        .order('created_at', { ascending: false });
+    if (error) return;
+
+    sounds.forEach(sound => {
+        const btn = document.createElement('button');
+        btn.className = 'soundboard-sound-btn';
+        btn.innerHTML = `<i class='fas fa-play'></i> ${sound.label || 'Sound'}`;
+        btn.onclick = () => playSoundboardSound(sound.file_url);
+        list.appendChild(btn);
+    });
+}
