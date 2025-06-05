@@ -28,28 +28,32 @@ button:disabled, input:disabled {
 
 /* Theme Variables */
 :root {
-    --primary-color: #00ffab; /* Emerald green for highlights */
-    --secondary-color: #101010; /* Deep matte black base */
-    --accent-color: #ff6f3c; /* Burnt orange for active/hover */
+    /* Premium Dark Theme */
+    --primary-color: #a370f7; /* A rich, vibrant purple */
+    --secondary-color: #1a1b26; /* Deep, dark background */
+    --accent-color: #0db9d7; /* A bright cyan/blue for contrast */
     --text-color: #e0e0e0; /* Soft white for readability */
-    --background-color: #101010; /* Matte black background */
-    --danger-color: #ff6f3c; /* Use orange for danger */
-    --success-color: #00ffab; /* Emerald for success */
-    --warning-color: #ffb86b; /* Muted orange-yellow */
+    --background-color: #1a1b26; /* Match secondary for main background */
+    --danger-color: #ff6b6b; /* A softer red */
+    --success-color: #7bc043; /* A natural green */
+    --warning-color: #feca57; /* A warm yellow */
 
-    --card-bg: rgba(24, 24, 24, 0.92); /* Slightly lighter for cards */
-    --border-color: rgba(0, 255, 171, 0.25); /* Emerald border with transparency */
-    --hover-bg: rgba(255, 111, 60, 0.08); /* Orange hover with transparency */
-    --shadow-color: 0 0 16px 0 rgba(0,255,171,0.12), 0 0 4px 0 rgba(255,111,60,0.10); /* Subtle emerald/orange glow */
-    --input-bg: rgba(24, 24, 24, 0.7); /* Input using card background */
-    --header-bg: rgba(16, 16, 16, 0.98); /* Header matches background */
+    /* Enhanced Glass & Depth */
+    --card-bg: rgba(36, 37, 54, 0.85); /* Slightly lighter than background for cards */
+    --border-color: rgba(163, 112, 247, 0.2); /* Border using primary color with transparency */
+    --hover-bg: rgba(163, 112, 247, 0.1); /* Hover using primary color with transparency */
+    --shadow-color: rgba(0, 0, 0, 0.4); /* Deeper shadow */
+    --input-bg: rgba(36, 37, 54, 0.6); /* Input using card background with more transparency */
+    --header-bg: rgba(26, 27, 38, 0.95); /* Header matches background with less transparency */
 
-    --glass-bg: rgba(24, 24, 24, 0.7); /* Glass background effect */
-    --glass-border: rgba(0, 255, 171, 0.18); /* Glass border using emerald */
-    --glass-shadow: 0 8px 32px 0 rgba(0,255,171,0.10); /* Emerald glass shadow */
+    /* Refined Glass Morphism */
+    --glass-bg: rgba(36, 37, 54, 0.7); /* Glass background effect */
+    --glass-border: rgba(163, 112, 247, 0.3); /* Glass border using primary color */
+    --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5); /* More pronounced glass shadow */
 
-    --gradient-primary: linear-gradient(90deg, #00ffab 0%, #ff6f3c 100%);
-    --gradient-secondary: linear-gradient(90deg, #ff6f3c 0%, #00ffab 100%);
+    /* Added Variables for gradients/overlays */
+    --gradient-primary: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    --gradient-secondary: linear-gradient(45deg, var(--accent-color), var(--primary-color));
 }
 
 /* Light Theme */
@@ -82,13 +86,16 @@ button:disabled, input:disabled {
 }
 
 body {
-    font-family: 'Roboto', 'Inter', sans-serif;
+    font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.6;
     overflow-x: hidden;
     position: relative;
-    background-image: none;
+    /* Add subtle pattern or texture */
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxIiBmaWxsPSIjM2QzZjU0Ii8+PC9zdmc+');
+    background-repeat: repeat;
+    background-size: 24px 24px;
     padding-top: 70px; /* Adjusted padding to account for fixed header height */
     padding-bottom: 80px; /* Add padding to the bottom of the body for fixed footer */
 }
@@ -184,13 +191,13 @@ body {
 }
 
 .header h1 {
-    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     font-size: 2rem;
     background: var(--gradient-primary); /* Use gradient variable */
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 8px rgba(0,255,171,0.18);
+    text-shadow: 0 0 15px rgba(163, 112, 247, 0.5); /* Shadow matching new primary color */
 }
 
 /* Header Right Section */
@@ -402,29 +409,29 @@ body {
 }
 
 .welcome-section h1 {
-    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     font-size: 3rem; /* Slightly smaller font size */
     margin-bottom: 1rem; /* Slightly reduced margin */
     background: var(--gradient-primary); /* Use gradient */
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 25px rgba(0,255,171,0.18);
+    text-shadow: 0 0 25px rgba(163, 112, 247, 0.6); /* Stronger shadow */
     animation: textGlow 2s infinite alternate; /* Add text glow animation */
 }
 
 @keyframes textGlow {
     from {
-        text-shadow: 0 0 15px rgba(0,255,171,0.10), 0 0 25px rgba(0,255,171,0.10);
+        text-shadow: 0 0 15px rgba(163, 112, 247, 0.4), 0 0 25px rgba(163, 112, 247, 0.4);
     }
     to {
-        text-shadow: 0 0 20px rgba(0,255,171,0.18), 0 0 30px rgba(0,255,171,0.18);
+        text-shadow: 0 0 20px rgba(163, 112, 247, 0.6), 0 0 30px rgba(163, 112, 247, 0.6);
     }
 }
 
 .welcome-subtitle {
     font-size: 1.2rem; /* Slightly smaller font size */
-    color: var(--primary-color); /* Use primary color */
+    color: var(--accent-color); /* Use accent color */
     margin: 1rem 0; /* Slightly reduced margin */
     opacity: 0.9; /* Slightly more opaque */
 }
@@ -500,16 +507,16 @@ body {
 }
 
 .channel-info h2 {
-    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     font-size: 1.3rem; /* Slightly smaller font size */
-    font-weight: 700;
+    font-weight: 600;
     color: var(--primary-color); /* Use primary color */
     margin: 0;
-    text-shadow: 0 0 8px rgba(0,255,171,0.18);
+    text-shadow: 0 0 12px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
 }
 
 .channel-type {
-    color: var(--primary-color); /* Use primary color */
+    color: var(--accent-color); /* Use accent color */
     font-size: 0.9rem; /* Slightly smaller font size */
 }
 
@@ -527,17 +534,17 @@ body {
     justify-content: center;
     background: var(--success-color); /* Use success color */
     color: var(--secondary-color); /* Use secondary color for icon */
-    box-shadow: 0 0 12px rgba(0,255,171,0.18); /* Shadow matching success color */
+    box-shadow: 0 0 12px rgba(123, 192, 67, 0.5); /* Shadow matching success color */
 }
 
 .status-indicator.muted {
     background: var(--danger-color); /* Use danger color */
-    box-shadow: 0 0 12px rgba(255,111,60,0.18); /* Shadow matching danger color */
+    box-shadow: 0 0 12px rgba(255, 107, 107, 0.5); /* Shadow matching danger color */
 }
 
 .status-indicator.deafened {
     background: var(--warning-color); /* Use warning color */
-    box-shadow: 0 0 12px rgba(255,170,102,0.18); /* Shadow matching warning color */
+    box-shadow: 0 0 12px rgba(254, 202, 87, 0.5); /* Shadow matching warning color */
 }
 
 /* Users Grid */
@@ -593,7 +600,7 @@ body {
     border: 3px solid var(--primary-color); /* Use primary color */
     position: relative;
     transition: all 0.3s ease;
-    box-shadow: 0 0 20px rgba(0,255,171,0.18); /* Shadow matching primary color */
+    box-shadow: 0 0 20px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
     background: var(--secondary-color); /* Use secondary color */
     display: flex;
     align-items: center;
@@ -624,7 +631,7 @@ body {
 
 .user-status-indicator.online {
     background-color: var(--success-color); /* Green */
-    box-shadow: 0 0 8px rgba(0,255,171,0.18); /* Shadow matching success color */
+    box-shadow: 0 0 8px rgba(123, 192, 67, 0.4); /* Shadow matching success color */
 }
 
 .user-status-indicator.muted {
@@ -636,8 +643,8 @@ body {
 }
 
 .user-status-indicator.speaking {
-    background-color: var(--primary-color) !important; /* Blue */
-    box-shadow: 0 0 10px rgba(0,255,171,0.18); /* Shadow matching accent color */
+    background-color: var(--accent-color) !important; /* Blue */
+    box-shadow: 0 0 10px rgba(13, 185, 215, 0.6); /* Shadow matching accent color */
     animation: pulse 1.5s infinite; /* Keep pulse animation */
 }
 
@@ -650,21 +657,21 @@ body {
 @keyframes pulse {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0,255,171,0.18); /* Use accent color */
+        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0.7); /* Use accent color */
     }
     70% {
         transform: scale(1.2); /* More pronounced pulse */
-        box-shadow: 0 0 0 15px rgba(0,255,171,0); /* More spread pulse */
+        box-shadow: 0 0 0 15px rgba(13, 185, 215, 0); /* More spread pulse */
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0,255,171,0); /* Use accent color */
+        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0); /* Use accent color */
     }
 }
 
 .user-status {
     font-size: 0.8rem; /* Slightly smaller font size */
-    color: var(--primary-color); /* Use primary color */
+    color: var(--accent-color); /* Use accent color */
     transition: all 0.3s ease;
     margin: 2px 0; /* Slightly reduced margin */
 }
@@ -673,7 +680,7 @@ body {
     display: inline-block;
     padding: 3px 8px; /* More padding */
     border-radius: 15px; /* More rounded */
-    background: rgba(0,255,171,0.10); /* Background matching accent color */
+    background: rgba(13, 185, 215, 0.15); /* Background matching accent color */
 }
 
 /* Ensure status changes are visible */
@@ -710,7 +717,7 @@ body {
 /* Add hover effect to show status more clearly */
 .user-item:hover .device-status {
     transform: scale(1.1); /* More pronounced hover effect */
-    box-shadow: 0 0 12px rgba(0,255,171,0.18); /* Shadow matching primary color */
+    box-shadow: 0 0 12px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
 }
 
 /* Ensure icons are visible */
@@ -749,7 +756,7 @@ body {
     font-weight: 600;
     color: var(--text-color);
     margin-bottom: 2px; /* Slightly reduced margin */
-    text-shadow: 0 0 8px rgba(0,255,171,0.18);
+    text-shadow: 0 0 12px rgba(224, 224, 224, 0.3); /* Shadow matching text color */
     font-size: 1rem; /* Slightly smaller font size */
     text-align: center;
     white-space: nowrap;
@@ -785,19 +792,19 @@ body {
     padding: 0.8rem 1.5rem; /* Slightly reduced padding */
     border-radius: 10px; /* Maintain rounded corners */
     border: 1px solid var(--glass-border); /* Use glass border */
-    background: var(--primary-color);
-    color: #101010;
+    background: var(--glass-bg); /* Use glass background */
+    color: var(--text-color);
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(8px); /* Increased blur */
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* Subtle initial shadow */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle initial shadow */
 }
 
 .control-btn:hover {
     transform: translateY(-5px); /* More pronounced hover effect */
-    box-shadow: 0 12px 30px rgba(0,255,171,0.18); /* Use glass shadow on hover */
-    border-color: var(--accent-color);
-    color: #fff;
+    box-shadow: var(--glass-shadow); /* Use glass shadow on hover */
+    border-color: var(--primary-color); /* Highlight border */
+    color: var(--primary-color); /* Change text color on hover */
 }
 
 .control-btn.danger {
@@ -862,8 +869,8 @@ body {
 .input-field:focus {
     outline: none;
     border-color: var(--primary-color); /* Highlight border with primary color */
-    box-shadow: 0 0 8px 0 rgba(0,255,171,0.18); /* Shadow matching primary color */
-    background: rgba(24, 24, 24, 0.8); /* Darker background on focus */
+    box-shadow: 0 0 12px rgba(163, 112, 247, 0.4); /* Shadow matching primary color */
+    background: rgba(36, 37, 54, 0.8); /* Darker background on focus */
 }
 
 .input-wrapper .input-icon {
@@ -915,7 +922,7 @@ body {
 
 .join-btn:hover {
     transform: translateY(-5px); /* More pronounced hover effect */
-    box-shadow: 0 10px 30px rgba(0,255,171,0.18); /* Shadow matching primary color */
+    box-shadow: 0 10px 30px rgba(163, 112, 247, 0.4); /* Shadow matching primary color */
 }
 
 .join-btn.loading {
@@ -979,11 +986,11 @@ body {
 }
 
 .footer-logo h3 {
-    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     color: var(--primary-color); /* Use primary color */
     margin: 0;
     font-size: 1.5rem;
-    text-shadow: 0 0 8px rgba(0,255,171,0.18);
+    text-shadow: 0 0 12px rgba(163, 112, 247, 0.4); /* Shadow matching primary color */
 }
 
 .footer-description {
@@ -1013,10 +1020,10 @@ body {
 
 .footer-section h4 {
     color: var(--primary-color); /* Use primary color */
-    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     font-size: 1.2rem; /* Slightly smaller font size */
     margin-bottom: 1rem; /* Slightly reduced margin */
-    text-shadow: 0 0 8px rgba(0,255,171,0.18);
+    text-shadow: 0 0 10px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
 }
 
 .footer-links {
@@ -1063,7 +1070,7 @@ body {
 }
 
 .newsletter-form input {
-    background: rgba(24, 24, 24, 0.7); /* Use input background */
+    background: rgba(36, 37, 54, 0.6); /* Use input background */
     border: 1px solid var(--border-color); /* Use border color */
     border-radius: 5px;
     padding: 0.7rem 1rem; /* Slightly reduced padding */
@@ -1076,8 +1083,8 @@ body {
 .newsletter-form input:focus {
     outline: none;
     border-color: var(--primary-color); /* Highlight border with primary color */
-    box-shadow: 0 0 8px 0 rgba(0,255,171,0.18); /* Shadow matching primary color */
-    background: rgba(24, 24, 24, 0.8); /* Darker background on focus */
+    box-shadow: 0 0 10px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
+    background: rgba(36, 37, 54, 0.8); /* Darker background on focus */
 }
 
 .newsletter-form button {
@@ -1093,7 +1100,7 @@ body {
 
 .newsletter-form button:hover {
     transform: translateY(-3px); /* More pronounced hover effect */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1); /* Shadow matching primary color */
+    box-shadow: 0 5px 15px rgba(163, 112, 247, 0.4); /* Shadow matching primary color */
 }
 
 /* Responsive Footer */
@@ -1152,15 +1159,15 @@ body {
 @keyframes pulse {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0,255,171,0.18); /* Use accent color */
+        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0.7); /* Use accent color */
     }
     70% {
         transform: scale(1.2); /* More pronounced */
-        box-shadow: 0 0 0 15px rgba(0,255,171,0); /* More spread */
+        box-shadow: 0 0 0 15px rgba(13, 185, 215, 0); /* More spread */
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0,255,171,0); /* Use accent color */
+        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0); /* Use accent color */
     }
 }
 
@@ -1575,8 +1582,8 @@ body {
 }
 
 .user-status-indicator.speaking {
-    background-color: var(--primary-color) !important; /* Blue */
-    box-shadow: 0 0 10px rgba(0,255,171,0.18); /* Shadow matching accent color */
+    background-color: var(--accent-color) !important; /* Blue */
+    box-shadow: 0 0 10px rgba(13, 185, 215, 0.6); /* Shadow matching accent color */
 }
 
 /* Ensure speaking animation is only for speaking users */
@@ -1588,15 +1595,15 @@ body {
 @keyframes pulse {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0,255,171,0.18); /* Use accent color */
+        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0.7); /* Use accent color */
     }
     70% {
         transform: scale(1.2); /* More pronounced pulse */
-        box-shadow: 0 0 0 15px rgba(0,255,171,0); /* More spread pulse */
+        box-shadow: 0 0 0 15px rgba(13, 185, 215, 0); /* More spread pulse */
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(0,255,171,0); /* Use accent color */
+        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0); /* Use accent color */
     }
 }
 
@@ -1753,18 +1760,18 @@ body {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 25px rgba(0,255,171,0.18);
+    text-shadow: 0 0 25px rgba(163, 112, 247, 0.6); /* Stronger shadow */
     animation: textGlow 2s infinite alternate; /* Add text glow animation */
 }
 
 .welcome-content .animated-text {
-    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     font-size: 2.8rem; /* Adjusted size */
     font-weight: 700;
         text-align: center;
     position: relative;
     color: var(--primary-color); /* Use primary color */
-    text-shadow: 0 0 18px rgba(0,255,171,0.10);
+    text-shadow: 0 0 18px rgba(163, 112, 247, 0.5); /* Adjusted shadow */
     animation: none; /* Remove glitch animation */
     }
 
@@ -1793,11 +1800,11 @@ body {
 
 /* Add styling for the channel name in the channel header */
 .channel-info h2 {
-    font-family: 'Orbitron', 'Exo', 'Roboto', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     font-size: 1.3rem; /* Slightly smaller font size */
     color: var(--primary-color); /* Use primary color */
     margin: 0;
-    text-shadow: 0 0 8px rgba(0,255,171,0.18);
+    text-shadow: 0 0 12px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
 }
 
 /* Ensure user items are not too wide in responsive grid */
@@ -1997,17 +2004,17 @@ body {
 .users-grid:has(.user-item:nth-child(9):last-child), /* 9 items or more */
 .users-grid:has(.user-item:nth-child(10):last-child) { 
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Use auto-fill for many users */
-}
+} 
 
 /* Add styles for privacy link */
 .privacy-link {
-    color: var(--primary-color, #00ffab);
+    color: var(--primary-color, #a370f7);
     font-weight: 600;
     text-decoration: none;
     transition: color 0.3s, text-shadow 0.3s;
     position: relative;
 }
 .privacy-link:hover {
-    color: var(--accent-color, #ff6f3c);
-    text-shadow: 0 0 8px var(--primary-color, #00ffab), 0 0 16px var(--accent-color, #ff6f3c);
+    color: var(--accent-color, #0db9d7);
+    text-shadow: 0 0 8px var(--primary-color, #a370f7), 0 0 16px var(--accent-color, #0db9d7);
 } 
