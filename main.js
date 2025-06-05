@@ -2998,6 +2998,7 @@ const privateMessagesList = document.getElementById('privateMessagesList');
 const privateMessageInput = document.getElementById('privateMessageInput');
 const sendPrivateMessageBtn = document.getElementById('sendPrivateMessageBtn');
 const privateVoiceArea = document.getElementById('privateVoiceArea');
+const joinPrivateVoiceBtn = document.getElementById('joinPrivateVoiceBtn');
 const privateVoiceStatus = document.getElementById('privateVoiceStatus');
 
 // --- Modal for creating a private channel ---
@@ -3349,16 +3350,21 @@ let privateVoiceIsMuted = false;
 let privateVoiceIsDeafened = false;
 
 // --- Join Private Channel Voice ---
+joinPrivateVoiceBtn.addEventListener('click', async () => {
+    if (!selectedPrivateChannel) return;
+    if (privateVoiceActiveChannelId === selectedPrivateChannel.id) {
+        // Already in voice, leave
+        await leavePrivateVoice();
+    } else {
+        await joinPrivateVoice(selectedPrivateChannel.id);
+    }
+});
+
 async function joinPrivateVoice(channelId) {
     if (!selectedPrivateChannel || selectedPrivateChannel.id !== channelId) return;
-    const statusEl = document.getElementById('privateVoiceStatus');
-    if (statusEl) statusEl.textContent = 'Connecting...';
-    // Set button state only if it exists in the DOM
-    const joinBtn = document.getElementById('joinPrivateVoiceBtn');
-    if (joinBtn) {
-        joinBtn.disabled = true;
-        joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
-    }
+    privateVoiceStatus.textContent = 'Connecting...';
+    joinPrivateVoiceBtn.disabled = true;
+    joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
     try {
         // Get audio stream
         privateVoiceLocalStream = await navigator.mediaDevices.getUserMedia({
@@ -3379,32 +3385,20 @@ async function joinPrivateVoice(channelId) {
         privateVoiceIsDeafened = false;
         // Setup socket events (similar to main channel)
         setupPrivateVoiceSocketEvents();
-        const statusEl2 = document.getElementById('privateVoiceStatus');
-        if (statusEl2) statusEl2.textContent = 'Connected';
-        if (joinBtn) {
-            joinBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Leave Voice';
-            joinBtn.disabled = false;
-        }
+        privateVoiceStatus.textContent = 'Connected';
+        joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Leave Voice';
+        joinPrivateVoiceBtn.disabled = false;
     } catch (err) {
-        const statusEl3 = document.getElementById('privateVoiceStatus');
-        if (statusEl3) statusEl3.textContent = 'Error: ' + err.message;
-        if (joinBtn) {
-            joinBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
-            joinBtn.disabled = false;
-        }
+        privateVoiceStatus.textContent = 'Error: ' + err.message;
+        joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
+        joinPrivateVoiceBtn.disabled = false;
     }
 }
 
 async function leavePrivateVoice() {
-    // Update status if element exists
-    const statusEl = document.getElementById('privateVoiceStatus');
-    if (statusEl) statusEl.textContent = 'Disconnected';
-    // Update join button if it exists
-    const joinBtn = document.getElementById('joinPrivateVoiceBtn');
-    if (joinBtn) {
-        joinBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
-        joinBtn.disabled = false;
-    }
+    privateVoiceStatus.textContent = 'Disconnected';
+    joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
+    joinPrivateVoiceBtn.disabled = false;
     privateVoiceActiveChannelId = null;
     // Close all peer connections
     Object.values(privateVoicePeerConnections).forEach(pc => pc.close && pc.close());
@@ -3420,13 +3414,6 @@ async function leavePrivateVoice() {
     if (privateVoiceSocket) {
         privateVoiceSocket.disconnect();
         privateVoiceSocket = null;
-    }
-    // Render Join Voice button if area exists
-    const area = document.getElementById('privateVoiceArea');
-    if (area) {
-        area.innerHTML = `<button id="joinPrivateVoiceBtn" class="voice-btn"><i class="fas fa-microphone"></i> Join Voice</button><span class="private-voice-status" id="privateVoiceStatus"></span>`;
-        const btn = document.getElementById('joinPrivateVoiceBtn');
-        if (btn) btn.onclick = () => joinPrivateVoice(selectedPrivateChannel.id);
     }
 }
 
@@ -3738,59 +3725,3 @@ function setPrivateVoiceUserSpeaking(userId, speaking) {
         document.head.appendChild(style);
     }
 })();
-
-// ================= UNIFIED VOICE CHAT ENVIRONMENT =================
-// Remove all privateVoice* state, socket, and UI logic.
-// When joining a channel (DUNE PC or private), use the main channelSection and its logic.
-// Scope signaling/room to either 'dunepc' or 'private-<channel_id>' as needed.
-
-// --- Helper: Join Voice Channel (DUNE PC or Private) ---
-async function joinVoiceChannel(channelType, channelId = null) {
-    // channelType: 'dunepc' or 'private'
-    // channelId: private channel id if channelType is 'private'
-    let roomName = 'dunepc';
-    if (channelType === 'private' && channelId) {
-        roomName = 'private-' + channelId;
-    }
-    // Disconnect from any existing socket
-    if (socket) {
-        socket.disconnect();
-        socket = null;
-    }
-    // Reset peer connections and UI
-    Object.keys(peerConnections).forEach(userId => closePeerConnection(userId));
-    peerConnections = {};
-    users = [];
-    updateUsersList(users);
-    // Get audio stream
-    localStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false
-    });
-    // Connect to Socket.io with room
-    socket = io('https://skynet-mdy7.onrender.com', {
-        path: '/socket.io/',
-        transports: ['websocket', 'polling'],
-        query: { room: roomName },
-        forceNew: true,
-        withCredentials: true
-    });
-    // Reuse all main channelSection logic and event handlers
-    initializeSocket();
-    // Show main channelSection, hide others
-    welcomeSection.classList.add('hidden');
-    channelSection.classList.remove('hidden');
-    channelSection.classList.add('visible');
-    // Update UI title
-    const channelInfo = channelSection.querySelector('.channel-info h2');
-    if (channelType === 'private' && channelId) {
-        const privateChan = privateChannels.find(c => c.id === channelId);
-        channelInfo.textContent = privateChan ? privateChan.name : 'Private Channel';
-    } else {
-        channelInfo.textContent = 'DUNE PC';
-    }
-}
-
-// --- Patch: When user selects a private channel and clicks Join Voice, call joinVoiceChannel('private', channelId) ---
-// --- When user clicks Join DUNE PC, call joinVoiceChannel('dunepc') ---
-// --- Ensure only one voice chat area is ever visible ---
