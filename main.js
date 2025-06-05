@@ -1586,20 +1586,20 @@ setInterval(async () => {
     if (data && data.length > 0) {
         for (const notif of data) {
             // Find who sent the request
-            const { data: friendRow } = await supabase
+            const { data: friendRows } = await supabase
                 .from('user_friends')
                 .select('user_id')
                 .eq('friend_id', currentUser.id)
                 .eq('status', 'pending')
-                .single();
-            if (friendRow) {
+                .limit(1);
+            if (friendRows && friendRows.length > 0) {
                 // Get sender's display name
-                const { data: sender } = await supabase
+                const { data: senderRows } = await supabase
                     .from('users')
                     .select('display_name')
-                    .eq('id', friendRow.user_id)
-                    .single();
-                showFriendRequestNotification(friendRow.user_id, sender?.display_name || 'Someone');
+                    .eq('id', friendRows[0].user_id)
+                    .limit(1);
+                showFriendRequestNotification(friendRows[0].user_id, senderRows && senderRows.length > 0 ? senderRows[0].display_name : 'Someone');
             }
         }
     }
