@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channels - SKYNET</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(120deg, #2d1846 0%, #1a1b26 100%);
+            min-height: 100vh;
+            color: var(--text-color, #e0e0e0);
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .channels-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            z-index: 2;
+            position: relative;
+            padding-top: 4vh;
+        }
+        .channels-card {
+            background: var(--glass-bg, rgba(36, 37, 54, 0.85));
+            border-radius: 28px;
+            box-shadow: var(--glass-shadow, 0 12px 40px 0 rgba(0,0,0,0.5));
+            border: 2px solid var(--glass-border, rgba(163,112,247,0.3));
+            padding: 2.5rem 2rem 2rem 2rem;
+            max-width: 1100px;
+            width: 96vw;
+            margin: 2vh 0;
+            animation: fadeInUp 1.2s cubic-bezier(.4,2,.6,1);
+            display: flex;
+            gap: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .channels-list-section, .channels-main-section {
+            flex: 1 1 340px;
+            min-width: 320px;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .channels-list-section {
+            border-right: 2px solid var(--glass-border, rgba(163,112,247,0.15));
+            padding-right: 2rem;
+        }
+        .channels-main-section {
+            padding-left: 2rem;
+        }
+        .channels-heading {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #a370f7, #0db9d7, #a370f7 80%);
+            background-size: 200% auto;
+            color: transparent;
+            background-clip: text;
+            -webkit-background-clip: text;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            animation: shimmer 3s linear infinite, pulse 2.5s cubic-bezier(.4,2,.6,1) infinite;
+            position: relative;
+            text-align: left;
+        }
+        .channels-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        .channel-item {
+            background: rgba(36, 37, 54, 0.92);
+            border-radius: 16px;
+            border: 2px solid var(--border-color, rgba(163,112,247,0.2));
+            box-shadow: 0 4px 18px 0 rgba(0,0,0,0.18);
+            padding: 1.1rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.1rem;
+            cursor: pointer;
+            transition: box-shadow 0.3s, border 0.3s, background 0.3s;
+        }
+        .channel-item:hover, .channel-item.active {
+            border-color: var(--primary-color, #a370f7);
+            box-shadow: 0 6px 24px 0 #a370f7aa;
+            background: rgba(163,112,247,0.08);
+        }
+        .channel-icon {
+            font-size: 1.5rem;
+            color: var(--primary-color, #a370f7);
+        }
+        .channel-info {
+            flex: 1;
+        }
+        .channel-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color, #a370f7);
+        }
+        .channel-type {
+            font-size: 0.9rem;
+            color: var(--accent-color, #0db9d7);
+            opacity: 0.8;
+        }
+        .channel-join-btn {
+            background: var(--gradient-primary, linear-gradient(90deg,#a370f7,#0db9d7));
+            color: var(--secondary-color, #fff);
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, color 0.3s;
+        }
+        .channel-join-btn:hover {
+            background: var(--accent-color, #0db9d7);
+            color: #fff;
+        }
+        .channels-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .channels-actions button {
+            background: var(--gradient-primary, linear-gradient(90deg,#a370f7,#0db9d7));
+            color: var(--secondary-color, #fff);
+            border: none;
+            border-radius: 8px;
+            padding: 0.7rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s, color 0.3s;
+        }
+        .channels-actions button:hover {
+            background: var(--accent-color, #0db9d7);
+            color: #fff;
+        }
+        .channels-main-section .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--primary-color, #a370f7);
+            margin-bottom: 0.7rem;
+        }
+        .role-badge {
+            display: inline-block;
+            background: var(--accent-color, #0db9d7);
+            color: #fff;
+            border-radius: 8px;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin-left: 0.7rem;
+        }
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+            margin-top: 1rem;
+        }
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color, #a370f7);
+        }
+        .user-name {
+            font-size: 1rem;
+            color: var(--text-color, #e0e0e0);
+        }
+        .user-role {
+            font-size: 0.9rem;
+            color: var(--accent-color, #0db9d7);
+            margin-left: 0.5rem;
+        }
+        .invite-section {
+            margin-top: 1.5rem;
+        }
+        .invite-link {
+            background: rgba(36, 37, 54, 0.7);
+            border: 1px solid var(--border-color, rgba(163,112,247,0.2));
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: var(--primary-color, #a370f7);
+            font-size: 0.98rem;
+            word-break: break-all;
+            margin-bottom: 0.7rem;
+            display: inline-block;
+        }
+        .copy-btn {
+            background: var(--accent-color, #0db9d7);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+        }
+        .copy-btn:hover {
+            background: #a370f7;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(60px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.045); }
+        }
+        @media (max-width: 900px) {
+            .channels-card {
+                flex-direction: column;
+                gap: 2rem;
+                padding: 1.2rem 0.5rem;
+            }
+            .channels-list-section, .channels-main-section {
+                max-width: 100%;
+                padding: 0;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="channels-container">
+        <div class="channels-card">
+            <div class="channels-list-section">
+                <div class="channels-heading"><i class="fas fa-hashtag"></i> Channels</div>
+                <div class="channels-actions">
+                    <button id="createChannelBtn"><i class="fas fa-plus"></i> Create</button>
+                    <button id="joinChannelBtn"><i class="fas fa-sign-in-alt"></i> Join</button>
+                </div>
+                <div class="channels-list" id="channelsList">
+                    <!-- Channels will be listed here -->
+                </div>
+            </div>
+            <div class="channels-main-section" id="channelsMainSection">
+                <div class="section-title">Select a channel to view details</div>
+                <!-- Channel details, user list, roles, invites, etc. will appear here -->
+            </div>
+        </div>
+    </div>
+    <!-- Create Channel Modal -->
+    <div id="createChannelModal" style="display:none;">
+        <!-- Modal content will be injected here -->
+    </div>
+    <!-- Join Channel Modal -->
+    <div id="joinChannelModal" style="display:none;">
+        <!-- Modal content will be injected here -->
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Use the same Supabase config as index.html
+        const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2amx2emlkbWN3Y3NoYmVpZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Nzg5ODksImV4cCI6MjA2NDI1NDk4OX0.pTuQXNNsnqLJhFbA6W47wNoTmLZq4Fw53xnUmZdEUUw';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Get user from localStorage
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) {
+            window.location.href = 'auth.html';
+        }
+
+        // Animated background (stars, matching site)
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < 120; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.2 + 0.3,
+                    d: Math.random() * 0.5 + 0.2,
+                    o: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const s of stars) {
+                ctx.save();
+                ctx.globalAlpha = s.o;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+                ctx.fillStyle = '#64ffda';
+                ctx.shadowColor = '#00ff9d';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.restore();
+                s.y += s.d;
+                if (s.y > canvas.height) {
+                    s.y = 0;
+                    s.x = Math.random() * canvas.width;
+                }
+            }
+        }
+        function animateStars() {
+            drawStars();
+            requestAnimationFrame(animateStars);
+        }
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            createStars();
+        });
+        resizeCanvas();
+        createStars();
+        animateStars();
+
+        // --- CHANNELS LOGIC ---
+        let channelsCache = {};
+        let membershipsCache = {};
+        let selectedChannelId = null;
+        let membersRealtimeChannel = null;
+        let chatRealtimeChannel = null;
+
+        async function loadChannels() {
+            const list = document.getElementById('channelsList');
+            list.innerHTML = '<div style="color:#aaa;">Loading channels...</div>';
+            // Get memberships for this user
+            const { data: memberships, error: memError } = await supabase
+                .from('memberships')
+                .select('channel_id, role, channels!inner(id, name, type)')
+                .eq('user_id', user.id);
+            // Get public channels not joined
+            const { data: publicChannels, error: pubError } = await supabase
+                .from('channels')
+                .select('*')
+                .eq('type', 'public');
+            if (memError || pubError) {
+                list.innerHTML = '<div style=\'color:#f66;\'>Error loading channels</div>';
+                return;
+            }
+            // Build a set of joined channel IDs
+            const joinedIds = new Set((memberships||[]).map(m => m.channel_id));
+            // Cache for details
+            channelsCache = {};
+            membershipsCache = {};
+            (memberships||[]).forEach(m => {
+                channelsCache[m.channels.id] = m.channels;
+                membershipsCache[m.channels.id] = m.role;
+            });
+            (publicChannels||[]).forEach(c => {
+                channelsCache[c.id] = c;
+            });
+            // Render joined channels
+            let html = '';
+            if (memberships && memberships.length > 0) {
+                html += '<div style="color:#0db9d7;font-weight:600;margin-bottom:0.5rem;">Your Channels</div>';
+                memberships.forEach(m => {
+                    html += `<div class=\"channel-item\" data-id=\"${m.channels.id}\" onclick=\"selectChannel('${m.channels.id}')\">
+                        <span class=\"channel-icon\"><i class=\"fas fa-hashtag\"></i></span>
+                        <div class=\"channel-info\">
+                            <div class=\"channel-name\">${m.channels.name}</div>
+                            <div class=\"channel-type\">${m.channels.type} <span class='role-badge'>${m.role}</span></div>
+                        </div>
+                    </div>`;
+                });
+            }
+            // Render public channels not joined
+            const notJoined = (publicChannels||[]).filter(c => !joinedIds.has(c.id));
+            if (notJoined.length > 0) {
+                html += '<div style="color:#a370f7;font-weight:600;margin:1rem 0 0.5rem;">Public Channels</div>';
+                notJoined.forEach(c => {
+                    html += `<div class=\"channel-item\" data-id=\"${c.id}\" onclick=\"selectChannel('${c.id}')\">
+                        <span class=\"channel-icon\"><i class=\"fas fa-hashtag\"></i></span>
+                        <div class=\"channel-info\">
+                            <div class=\"channel-name\">${c.name}</div>
+                            <div class=\"channel-type\">${c.type}</div>
+                        </div>
+                        <button class=\"channel-join-btn\" onclick=\"event.stopPropagation();joinPublicChannel('${c.id}')\">Join</button>
+                    </div>`;
+                });
+            }
+            if (!html) html = '<div style="color:#aaa;">No channels found.</div>';
+            list.innerHTML = html;
+        }
+        window.loadChannels = loadChannels;
+
+        // Select a channel to view details
+        window.selectChannel = async function(channelId) {
+            selectedChannelId = channelId;
+            const main = document.getElementById('channelsMainSection');
+            const channel = channelsCache[channelId];
+            if (!channel) {
+                main.innerHTML = '<div class="section-title">Channel not found.</div>';
+                return;
+            }
+            // Subscribe to real-time updates for this channel's members
+            subscribeToMembersRealtime(channelId);
+            // Subscribe to real-time chat
+            subscribeToChatRealtime(channelId);
+            // Get members
+            const { data: members, error } = await supabase
+                .from('memberships')
+                .select('id, user_id, role, users:users_id(id, display_name, avatar_url)')
+                .eq('channel_id', channelId);
+            let membersHtml = '';
+            const myRole = membershipsCache[channelId];
+            if (members && members.length > 0) {
+                membersHtml = '<div class="user-list">' + members.map(m => {
+                    let controls = '';
+                    if ((myRole === 'owner' || myRole === 'admin') && m.user_id !== user.id && m.role !== 'owner') {
+                        controls = `<select class='role-select' data-mid='${m.id}' style='margin-left:0.7rem;padding:0.2rem 0.5rem;border-radius:6px;'>
+                            <option value='member' ${m.role==='member'?'selected':''}>Member</option>
+                            <option value='mod' ${m.role==='mod'?'selected':''}>Mod</option>
+                            <option value='admin' ${m.role==='admin'?'selected':''}>Admin</option>
+                        </select>
+                        <button class='copy-btn' style='background:#ff6b6b;margin-left:0.5rem;' onclick='kickMember("${m.id}")'>Kick</button>`;
+                    }
+                    return `
+                        <div class="user-item">
+                            <img class="user-avatar" src="${m.users?.avatar_url || 'assets/images/default-avatar.svg'}" alt="avatar">
+                            <span class="user-name">${m.users?.display_name || m.user_id}</span>
+                            <span class="user-role">${m.role}</span>
+                            ${controls}
+                        </div>
+                    `;
+                }).join('') + '</div>';
+            } else {
+                membersHtml = '<div style="color:#aaa;">No members found.</div>';
+            }
+            // Invite section (for owner/admin)
+            let inviteSection = '';
+            if (myRole === 'owner' || myRole === 'admin') {
+                inviteSection = `<div class='invite-section'>
+                    <button class='copy-btn' onclick='generateInviteCode()'>Generate Invite Link</button>
+                    <div id='inviteLinkBox'></div>
+                </div>`;
+            }
+            // Role management info
+            let roleMgmt = '';
+            if (myRole === 'owner' || myRole === 'admin') {
+                roleMgmt = `<div style='margin-top:1.5rem;color:#a370f7;font-weight:600;'>Role Management: Use dropdowns to change roles, or kick to remove.</div>`;
+            }
+            // Chat UI
+            let chatSection = `<div class='chat-section' style='margin-top:2rem;'>
+                <div class='section-title' style='font-size:1.1rem;color:#0db9d7;'>Text Chat</div>
+                <div id='chatMessages' style='background:rgba(36,37,54,0.7);border-radius:12px;max-height:220px;overflow-y:auto;padding:1rem 0.7rem 0.7rem 0.7rem;margin-bottom:0.7rem;'></div>
+                <form id='chatForm' style='display:flex;gap:0.7rem;'>
+                    <input id='chatInput' type='text' placeholder='Type a message...' style='flex:1;padding:0.6rem 1rem;border-radius:8px;border:1px solid #a370f7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                    <button type='submit' style='padding:0.6rem 1.2rem;background:linear-gradient(90deg,#a370f7,#0db9d7);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;'>Send</button>
+                </form>
+            </div>`;
+            // Voice Chat UI
+            let voiceSection = `<div class='voice-section' style='margin-top:2.2rem;'>
+                <button id='joinVoiceBtn' style='padding:0.7rem 1.5rem;background:linear-gradient(90deg,#0db9d7,#a370f7);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:1.08rem;cursor:pointer;box-shadow:0 2px 12px #0db9d755;'><i class='fas fa-microphone'></i> Join Voice</button>
+                <div id='voiceUI'></div>
+            </div>`;
+            // Channel Settings section (owner/admin only)
+            let settingsSection = '';
+            if (myRole === 'owner' || myRole === 'admin') {
+                settingsSection = `<div class='settings-section' style='margin-top:2.5rem;padding:1.2rem 1rem;background:rgba(36,37,54,0.7);border-radius:14px;'>
+                    <div class='section-title' style='color:#ffb300;font-size:1.08rem;margin-bottom:0.7rem;'><i class='fas fa-cog'></i> Channel Settings</div>
+                    <div style='margin-bottom:1rem;'>
+                        <label style='color:#a370f7;font-weight:600;'>Rename Channel:</label><br>
+                        <input id='renameChannelInput' type='text' value='${channel.name}' style='width:70%;padding:0.5rem 1rem;margin-top:0.4rem;border-radius:8px;border:1px solid #a370f7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                        <button id='renameChannelBtn' style='margin-left:0.7rem;padding:0.5rem 1.2rem;background:linear-gradient(90deg,#a370f7,#0db9d7);color:#fff;border:none;border-radius:8px;font-weight:700;'><i class='fas fa-save'></i> Save</button>
+                    </div>
+                    ${(myRole === 'owner') ? `<button id='deleteChannelBtn' style='background:#ff6b6b;color:#fff;padding:0.5rem 1.2rem;border:none;border-radius:8px;font-weight:700;'><i class='fas fa-trash'></i> Delete Channel</button>` : ''}
+                </div>`;
+            }
+            main.innerHTML = `
+                <div class="section-title">${channel.name} <span class='role-badge'>${myRole || ''}</span></div>
+                <div style="color:#0db9d7;margin-bottom:0.7rem;">Type: ${channel.type}</div>
+                <div style="margin-bottom:1.2rem;">Members:</div>
+                ${membersHtml}
+                ${inviteSection}
+                ${roleMgmt}
+                ${chatSection}
+                ${voiceSection}
+                ${settingsSection}
+            `;
+            // Add event listeners for role changes
+            document.querySelectorAll('.role-select').forEach(sel => {
+                sel.onchange = async function() {
+                    const mid = this.getAttribute('data-mid');
+                    const newRole = this.value;
+                    await supabase.from('memberships').update({ role: newRole }).eq('id', mid);
+                };
+            });
+            // Chat form logic
+            const chatForm = document.getElementById('chatForm');
+            const chatInput = document.getElementById('chatInput');
+            chatForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const content = chatInput.value.trim();
+                if (!content) return;
+                await supabase.from('channel_messages').insert([
+                    { channel_id: channelId, user_id: user.id, content }
+                ]);
+                chatInput.value = '';
+            };
+            // Load messages
+            loadChatMessages(channelId);
+            // Voice Chat logic
+            let voiceSocket = null;
+            let localVoiceStream = null;
+            let voicePeerConnections = {};
+            let isMuted = false;
+            let isInVoice = false;
+            let voiceUsers = [];
+            let currentVoiceChannelId = null;
+
+            function renderVoicePanel() {
+                const voiceUI = document.getElementById('voiceUI');
+                if (!isInVoice) {
+                    voiceUI.innerHTML = '';
+                    document.getElementById('joinVoiceBtn').style.display = '';
+                    return;
+                }
+                let usersHtml = voiceUsers.map(u => `
+                    <div class='voice-user' style='display:flex;align-items:center;gap:0.7rem;margin-bottom:0.5rem;'>
+                        <img src='${u.avatar_url || 'assets/images/default-avatar.svg'}' style='width:32px;height:32px;border-radius:50%;border:2px solid #a370f7;'>
+                        <span style='color:#a370f7;font-weight:600;'>${u.displayName || u.id}</span>
+                        <span style='margin-left:0.5rem;'>
+                            <i class='fas fa-microphone${u.isMuted ? '-slash' : ''}' style='color:${u.isMuted ? '#f66' : '#0db9d7'};'></i>
+                        </span>
+                        <span class='voice-speaking-indicator' style='margin-left:0.5rem;${u.isSpeaking ? 'color:#0db9d7;font-weight:700;' : 'color:#aaa;'}'>${u.isSpeaking ? 'Speaking' : ''}</span>
+                    </div>
+                `).join('') || '<div style="color:#aaa;">No one in voice.</div>';
+                voiceUI.innerHTML = `
+                    <div style='margin-bottom:1rem;'>${usersHtml}</div>
+                    <button id='muteBtn' style='padding:0.5rem 1.2rem;background:linear-gradient(90deg,#a370f7,#0db9d7);color:#fff;border:none;border-radius:8px;font-weight:700;margin-right:0.7rem;'><i class='fas fa-microphone${isMuted ? '-slash' : ''}'></i> ${isMuted ? 'Unmute' : 'Mute'}</button>
+                    <button id='leaveVoiceBtn' style='padding:0.5rem 1.2rem;background:#ff6b6b;color:#fff;border:none;border-radius:8px;font-weight:700;'><i class='fas fa-sign-out-alt'></i> Leave Voice</button>
+                `;
+                document.getElementById('muteBtn').onclick = toggleMute;
+                document.getElementById('leaveVoiceBtn').onclick = leaveVoice;
+            }
+
+            function setupVoiceEvents() {
+                document.getElementById('joinVoiceBtn').onclick = joinVoice;
+            }
+            setupVoiceEvents();
+
+            async function joinVoice() {
+                if (isInVoice) return;
+                isInVoice = true;
+                currentVoiceChannelId = selectedChannelId;
+                document.getElementById('joinVoiceBtn').style.display = 'none';
+                renderVoicePanel();
+                // Connect to signaling server
+                voiceSocket = io('https://skynet-mdy7.onrender.com', {
+                    path: '/socket.io/',
+                    transports: ['websocket', 'polling'],
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    timeout: 10000,
+                    forceNew: true,
+                    withCredentials: true
+                });
+                // Get mic
+                try {
+                    localVoiceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                } catch (e) {
+                    alert('Microphone access denied.');
+                    leaveVoice();
+                    return;
+                }
+                // Join channel room
+                voiceSocket.emit('joinChannel', {
+                    id: user.id,
+                    displayName: user.display_name || user.id,
+                    avatar_url: user.avatar_url || null,
+                    channelId: currentVoiceChannelId
+                });
+                // Handle events
+                voiceSocket.on('usersList', usersList => {
+                    voiceUsers = usersList;
+                    renderVoicePanel();
+                });
+                voiceSocket.on('userJoined', userData => {
+                    if (!voiceUsers.some(u => u.id === userData.id)) voiceUsers.push(userData);
+                    renderVoicePanel();
+                });
+                voiceSocket.on('userLeft', userId => {
+                    voiceUsers = voiceUsers.filter(u => u.id !== userId);
+                    renderVoicePanel();
+                    if (voicePeerConnections[userId]) {
+                        voicePeerConnections[userId].close();
+                        delete voicePeerConnections[userId];
+                    }
+                    const audioEl = document.getElementById('audio-' + userId);
+                    if (audioEl) audioEl.remove();
+                });
+                // WebRTC signaling
+                voiceSocket.on('offer', async data => {
+                    await handleOffer(data);
+                });
+                voiceSocket.on('answer', async data => {
+                    await handleAnswer(data);
+                });
+                voiceSocket.on('ice-candidate', async data => {
+                    await handleIceCandidate(data);
+                });
+                // Speaking/mute
+                voiceSocket.on('userSpeaking', data => {
+                    const u = voiceUsers.find(u => u.id === data.userId);
+                    if (u) u.isSpeaking = true;
+                    renderVoicePanel();
+                });
+                voiceSocket.on('userStoppedSpeaking', data => {
+                    const u = voiceUsers.find(u => u.id === data.userId);
+                    if (u) u.isSpeaking = false;
+                    renderVoicePanel();
+                });
+                voiceSocket.on('userMuteStatus', data => {
+                    const u = voiceUsers.find(u => u.id === data.userId);
+                    if (u) u.isMuted = data.isMuted;
+                    renderVoicePanel();
+                });
+                // Add self to users
+                voiceUsers = [{ id: user.id, displayName: user.display_name || user.id, avatar_url: user.avatar_url, isMuted, isSpeaking: false }, ...voiceUsers.filter(u => u.id !== user.id)];
+                renderVoicePanel();
+                // Start WebRTC with others
+                setTimeout(() => {
+                    voiceUsers.forEach(u => {
+                        if (u.id !== user.id && !voicePeerConnections[u.id]) {
+                            createVoicePeerConnection(u.id, true);
+                        }
+                    });
+                }, 500);
+                // Voice activity detection
+                startVoiceActivityDetection();
+            }
+
+            function leaveVoice() {
+                isInVoice = false;
+                currentVoiceChannelId = null;
+                if (voiceSocket) {
+                    voiceSocket.emit('leaveChannel', { id: user.id });
+                    voiceSocket.disconnect();
+                    voiceSocket = null;
+                }
+                Object.values(voicePeerConnections).forEach(pc => pc.close());
+                voicePeerConnections = {};
+                if (localVoiceStream) {
+                    localVoiceStream.getTracks().forEach(track => track.stop());
+                    localVoiceStream = null;
+                }
+                voiceUsers = [];
+                renderVoicePanel();
+            }
+
+            function toggleMute() {
+                isMuted = !isMuted;
+                if (localVoiceStream) {
+                    localVoiceStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+                }
+                if (voiceSocket && voiceSocket.connected) {
+                    voiceSocket.emit('userMuteStatus', { userId: user.id, isMuted });
+                }
+                renderVoicePanel();
+            }
+
+            // WebRTC logic
+            async function createVoicePeerConnection(userId, isInitiator) {
+                if (voicePeerConnections[userId]) {
+                    voicePeerConnections[userId].close();
+                    delete voicePeerConnections[userId];
+                }
+                const config = { iceServers: [ { urls: 'stun:stun.l.google.com:19302' } ] };
+                const pc = new RTCPeerConnection(config);
+                voicePeerConnections[userId] = pc;
+                if (localVoiceStream) {
+                    localVoiceStream.getAudioTracks().forEach(track => pc.addTrack(track, localVoiceStream));
+                }
+                pc.onicecandidate = event => {
+                    if (event.candidate) {
+                        voiceSocket.emit('ice-candidate', { targetUserId: userId, candidate: event.candidate });
+                    }
+                };
+                pc.ontrack = event => {
+                    const stream = event.streams[0];
+                    let audioEl = document.getElementById('audio-' + userId);
+                    if (!audioEl) {
+                        audioEl = document.createElement('audio');
+                        audioEl.id = 'audio-' + userId;
+                        audioEl.autoplay = true;
+                        audioEl.style.display = 'none';
+                        document.body.appendChild(audioEl);
+                    }
+                    audioEl.srcObject = stream;
+                };
+                if (isInitiator) {
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    voiceSocket.emit('offer', { targetUserId: userId, offer });
+                }
+                return pc;
+            }
+            async function handleOffer(data) {
+                let pc = voicePeerConnections[data.senderId];
+                if (!pc) pc = await createVoicePeerConnection(data.senderId, false);
+                await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                voiceSocket.emit('answer', { targetUserId: data.senderId, answer });
+            }
+            async function handleAnswer(data) {
+                const pc = voicePeerConnections[data.senderId];
+                if (pc) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                }
+            }
+            async function handleIceCandidate(data) {
+                const pc = voicePeerConnections[data.senderId];
+                if (pc) {
+                    await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            }
+            // Voice activity detection
+            function startVoiceActivityDetection() {
+                if (!localVoiceStream) return;
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                const source = audioCtx.createMediaStreamSource(localVoiceStream);
+                source.connect(analyser);
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                function checkSpeaking() {
+                    analyser.getByteFrequencyData(dataArray);
+                    const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+                    const speaking = avg > 30 && !isMuted;
+                    if (voiceSocket && voiceSocket.connected) {
+                        voiceSocket.emit(speaking ? 'userSpeaking' : 'userStoppedSpeaking', { userId: user.id });
+                    }
+                    requestAnimationFrame(checkSpeaking);
+                }
+                checkSpeaking();
+            }
+        }
+
+        // Join a public channel
+        window.joinPublicChannel = async function(channelId) {
+            const { error } = await supabase.from('memberships').insert([
+                { user_id: user.id, channel_id: channelId, role: 'member' }
+            ]);
+            if (!error) loadChannels();
+            else alert('Error joining channel');
+        };
+
+        // Create channel modal logic
+        const createChannelBtn = document.getElementById('createChannelBtn');
+        const createChannelModal = document.getElementById('createChannelModal');
+        createChannelBtn.onclick = () => {
+            createChannelModal.innerHTML = `<div style='background:rgba(36,37,54,0.98);padding:2rem 2.5rem;border-radius:18px;max-width:340px;margin:2rem auto;box-shadow:0 8px 32px #000a;'>
+                <h2 style='font-family:Orbitron,sans-serif;font-size:1.3rem;color:#a370f7;margin-bottom:1.2rem;'>Create Channel</h2>
+                <input id='newChannelName' type='text' placeholder='Channel name' style='width:100%;padding:0.7rem 1rem;margin-bottom:1rem;border-radius:8px;border:1px solid #a370f7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                <select id='newChannelType' style='width:100%;padding:0.7rem 1rem;margin-bottom:1.2rem;border-radius:8px;border:1px solid #0db9d7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                    <option value='public'>Public</option>
+                    <option value='private'>Private</option>
+                </select>
+                <button id='createChannelSubmit' style='width:100%;padding:0.8rem 0;font-weight:700;background:linear-gradient(90deg,#a370f7,#0db9d7);color:#fff;border:none;border-radius:8px;font-size:1.1rem;cursor:pointer;'>Create</button>
+                <button id='createChannelCancel' style='width:100%;padding:0.7rem 0;margin-top:0.7rem;background:none;border:none;color:#aaa;font-size:1rem;cursor:pointer;'>Cancel</button>
+            </div>`;
+            createChannelModal.style.display = 'block';
+            document.getElementById('createChannelCancel').onclick = () => {
+                createChannelModal.style.display = 'none';
+            };
+            document.getElementById('createChannelSubmit').onclick = async () => {
+                const name = document.getElementById('newChannelName').value.trim();
+                const type = document.getElementById('newChannelType').value;
+                if (!name) return alert('Enter a channel name');
+                // Insert channel
+                const { data: channel, error } = await supabase.from('channels').insert([
+                    { name, type, owner_id: user.id }
+                ]).select().single();
+                if (error) return alert('Error creating channel');
+                // Add creator to memberships as owner
+                await supabase.from('memberships').insert([
+                    { user_id: user.id, channel_id: channel.id, role: 'owner' }
+                ]);
+                createChannelModal.style.display = 'none';
+                loadChannels();
+            };
+        };
+
+        // Join Channel Modal logic
+        const joinChannelBtn = document.getElementById('joinChannelBtn');
+        const joinChannelModal = document.getElementById('joinChannelModal');
+        joinChannelBtn.onclick = () => {
+            joinChannelModal.innerHTML = `<div style='background:rgba(36,37,54,0.98);padding:2rem 2.5rem;border-radius:18px;max-width:340px;margin:2rem auto;box-shadow:0 8px 32px #000a;'>
+                <h2 style='font-family:Orbitron,sans-serif;font-size:1.3rem;color:#0db9d7;margin-bottom:1.2rem;'>Join Channel</h2>
+                <input id='inviteCodeInput' type='text' placeholder='Invite code' style='width:100%;padding:0.7rem 1rem;margin-bottom:1.2rem;border-radius:8px;border:1px solid #0db9d7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                <button id='joinChannelSubmit' style='width:100%;padding:0.8rem 0;font-weight:700;background:linear-gradient(90deg,#a370f7,#0db9d7);color:#fff;border:none;border-radius:8px;font-size:1.1rem;cursor:pointer;'>Join</button>
+                <button id='joinChannelCancel' style='width:100%;padding:0.7rem 0;margin-top:0.7rem;background:none;border:none;color:#aaa;font-size:1rem;cursor:pointer;'>Cancel</button>
+            </div>`;
+            joinChannelModal.style.display = 'block';
+            document.getElementById('joinChannelCancel').onclick = () => {
+                joinChannelModal.style.display = 'none';
+            };
+            document.getElementById('joinChannelSubmit').onclick = async () => {
+                const code = document.getElementById('inviteCodeInput').value.trim();
+                if (!code) return alert('Enter an invite code');
+                // Validate invite
+                const { data: invite, error } = await supabase.from('invites').select('*').eq('code', code).single();
+                if (error || !invite) return alert('Invalid invite code');
+                // Check if expired or max uses
+                if (invite.expires_at && new Date(invite.expires_at) < new Date()) return alert('Invite expired');
+                if (invite.max_uses && invite.uses >= invite.max_uses) return alert('Invite max uses reached');
+                // Add to memberships
+                const { error: joinError } = await supabase.from('memberships').insert([
+                    { user_id: user.id, channel_id: invite.channel_id, role: 'member' }
+                ]);
+                if (joinError) return alert('Error joining channel');
+                // Increment uses
+                await supabase.from('invites').update({ uses: (invite.uses || 0) + 1 }).eq('id', invite.id);
+                joinChannelModal.style.display = 'none';
+                loadChannels();
+            };
+        };
+
+        // Generate invite code (for owner/admin)
+        window.generateInviteCode = async function() {
+            if (!selectedChannelId) return;
+            // Generate a random code
+            const code = Math.random().toString(36).substring(2, 10);
+            // Insert invite
+            const { data: invite, error } = await supabase.from('invites').insert([
+                { code, channel_id: selectedChannelId, created_by: user.id }
+            ]).select().single();
+            if (error) {
+                document.getElementById('inviteLinkBox').innerHTML = '<span style="color:#f66;">Error generating invite</span>';
+                return;
+            }
+            document.getElementById('inviteLinkBox').innerHTML = `<div class='invite-link'>${invite.code}</div><button class='copy-btn' onclick='navigator.clipboard.writeText("${invite.code}")'>Copy</button>`;
+        };
+
+        // Kick member
+        window.kickMember = async function(membershipId) {
+            if (!confirm('Remove this member from the channel?')) return;
+            await supabase.from('memberships').delete().eq('id', membershipId);
+        };
+
+        // Real-time updates for members/roles
+        function subscribeToMembersRealtime(channelId) {
+            if (membersRealtimeChannel) {
+                supabase.removeChannel(membersRealtimeChannel);
+                membersRealtimeChannel = null;
+            }
+            membersRealtimeChannel = supabase.channel('memberships-' + channelId)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'memberships',
+                    filter: 'channel_id=eq.' + channelId
+                }, payload => {
+                    // Refresh member list on any change
+                    window.selectChannel(channelId);
+                });
+            membersRealtimeChannel.subscribe();
+        }
+
+        // Initial load
+        loadChannels();
+    </script>
+</body>
+</html> 
