@@ -951,6 +951,7 @@ function initializeSocket() {
 
     // --- SCREEN SHARE STATE HANDLERS ---
     socket.on('screenShareState', data => {
+        console.log('[ScreenShare] Received screenShareState event:', data);
         if (data.state === 'start') {
             screenShareOwnerId = data.userId;
             updateScreenShareIconOnUserCards();
@@ -2736,6 +2737,7 @@ let screenShareViewers = new Set();
 
 // Helper: Broadcast screen share state
 function broadcastScreenShareState(state) {
+    console.log('[ScreenShare] Emitting screenShareState:', { userId: currentUser.id, state });
     if (socket && socket.connected) {
         socket.emit('screenShareState', {
             userId: currentUser.id,
@@ -2746,6 +2748,7 @@ function broadcastScreenShareState(state) {
 
 // Helper: Add/Remove green monitor icon on user card
 function updateScreenShareIconOnUserCards() {
+    console.log('[ScreenShare] updateScreenShareIconOnUserCards, screenShareOwnerId:', screenShareOwnerId);
     document.querySelectorAll('.user-item').forEach(userItem => {
         const userId = userItem.getAttribute('data-user-id');
         let icon = userItem.querySelector('.screen-share-icon');
@@ -2928,6 +2931,7 @@ const origUpdateUsersList = updateUsersList;
 updateUsersList = function(usersArr) {
     origUpdateUsersList(usersArr);
     updateScreenShareIconOnUserCards();
+    console.log('[ScreenShare] updateUsersList called, ensured icon update');
 };
 
 // --- Minimal CSS for screen share icon and close button ---
