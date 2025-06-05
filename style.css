@@ -1592,8 +1592,6 @@ body {
     display: flex;
     align-items: stretch;
     justify-content: center;
-    position: relative;
-    z-index: 10;
     margin-bottom: 0;
     animation: fadeInScale 1s cubic-bezier(.4,2,.6,1);
 }
