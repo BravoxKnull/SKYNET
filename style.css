@@ -2004,4 +2004,17 @@ body {
 .users-grid:has(.user-item:nth-child(9):last-child), /* 9 items or more */
 .users-grid:has(.user-item:nth-child(10):last-child) { 
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Use auto-fill for many users */
+}
+
+/* Add styles for privacy link */
+.privacy-link {
+    color: var(--primary-color, #a370f7);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s, text-shadow 0.3s;
+    position: relative;
+}
+.privacy-link:hover {
+    color: var(--accent-color, #0db9d7);
+    text-shadow: 0 0 8px var(--primary-color, #a370f7), 0 0 16px var(--accent-color, #0db9d7);
 } 

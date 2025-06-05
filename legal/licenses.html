@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licenses - SKYNET</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(120deg, #2d1846 0%, #1a1b26 100%);
+            min-height: 100vh;
+            color: var(--text-color, #e0e0e0);
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .licenses-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            position: relative;
+        }
+        .licenses-card {
+            background: var(--glass-bg, rgba(36, 37, 54, 0.85));
+            border-radius: 28px;
+            box-shadow: var(--glass-shadow, 0 12px 40px 0 rgba(0,0,0,0.5));
+            border: 2px solid var(--glass-border, rgba(163,112,247,0.3));
+            padding: 3.2rem 2.5rem 2.5rem 2.5rem;
+            max-width: 700px;
+            width: 90vw;
+            margin: 4vh 0;
+            animation: fadeInUp 1.2s cubic-bezier(.4,2,.6,1);
+        }
+        .licenses-heading {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #a370f7, #0db9d7, #a370f7 80%);
+            background-size: 200% auto;
+            color: transparent;
+            background-clip: text;
+            -webkit-background-clip: text;
+            text-align: center;
+            margin-bottom: 2.2rem;
+            letter-spacing: 2px;
+            animation: shimmer 3s linear infinite, pulse 2.5s cubic-bezier(.4,2,.6,1) infinite;
+            position: relative;
+        }
+        .licenses-section {
+            margin-bottom: 2.2rem;
+            opacity: 0;
+            transform: translateY(40px);
+            animation: fadeInSection 1.2s cubic-bezier(.4,2,.6,1) forwards;
+        }
+        .licenses-section:nth-child(2) { animation-delay: 0.2s; }
+        .licenses-section:nth-child(3) { animation-delay: 0.4s; }
+        .licenses-section:nth-child(4) { animation-delay: 0.6s; }
+        .licenses-section:nth-child(5) { animation-delay: 0.8s; }
+        .licenses-section:nth-child(6) { animation-delay: 1s; }
+        .licenses-section:last-child { margin-bottom: 0; }
+        .licenses-section-title {
+            font-size: 1.18rem;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            color: var(--primary-color, #a370f7);
+            margin-bottom: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .licenses-section-title i {
+            font-size: 1.2rem;
+            color: var(--accent-color, #0db9d7);
+        }
+        .licenses-section-content {
+            font-size: 1.04rem;
+            color: var(--text-color, #e0e0e0);
+            opacity: 0.92;
+            line-height: 1.7;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(60px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInSection {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.045); }
+        }
+        @media (max-width: 600px) {
+            .licenses-card { padding: 1.2rem 0.5rem; }
+            .licenses-heading { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="licenses-container">
+        <div class="licenses-card">
+            <div class="licenses-heading">Licenses</div>
+            <nav class="licenses-toc" style="margin-bottom:2.2rem;">
+                <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:1.2rem;justify-content:center;">
+                    <li><a href="#introduction" class="privacy-link"><i class="fas fa-certificate"></i> Introduction</a></li>
+                    <li><a href="#skynet-license" class="privacy-link"><i class="fas fa-file-contract"></i> SKYNET License</a></li>
+                    <li><a href="#third-party" class="privacy-link"><i class="fas fa-cubes"></i> Third-Party Libraries</a></li>
+                    <li><a href="#open-source" class="privacy-link"><i class="fas fa-code-branch"></i> Open Source</a></li>
+                    <li><a href="#request" class="privacy-link"><i class="fas fa-info-circle"></i> Request Info</a></li>
+                    <li><a href="#contact" class="privacy-link"><i class="fas fa-envelope"></i> Contact</a></li>
+                </ul>
+            </nav>
+            <div class="licenses-section" id="introduction">
+                <div class="licenses-section-title"><i class="fas fa-certificate"></i> Introduction</div>
+                <div class="licenses-section-content">
+                    This page details the licenses and acknowledgments for SKYNET and its dependencies. We value open source and transparency.
+                </div>
+            </div>
+            <div class="licenses-section" id="skynet-license">
+                <div class="licenses-section-title"><i class="fas fa-file-contract"></i> SKYNET License</div>
+                <div class="licenses-section-content">
+                    <b>Copyright &copy; 2024 SKYNET.</b><br>
+                    All rights reserved. Unauthorized copying, distribution, or modification of any part of this site is prohibited without express written permission.<br><br>
+                    <b>License:</b> Proprietary. For personal, non-commercial use only unless otherwise stated.
+                </div>
+            </div>
+            <div class="licenses-section" id="third-party">
+                <div class="licenses-section-title"><i class="fas fa-cubes"></i> Third-Party Libraries</div>
+                <div class="licenses-section-content">
+                    SKYNET uses the following third-party libraries and frameworks:<br>
+                    <ul>
+                        <li>FontAwesome <span style="color:#0db9d7">(CC BY 4.0)</span></li>
+                        <li>Google Fonts (Orbitron, Roboto) <span style="color:#0db9d7">(Open Font License)</span></li>
+                        <li>Socket.IO <span style="color:#0db9d7">(MIT License)</span></li>
+                        <li>Supabase JS <span style="color:#0db9d7">(MIT License)</span></li>
+                        <li>WebRTC Adapter <span style="color:#0db9d7">(BSD License)</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="licenses-section" id="open-source">
+                <div class="licenses-section-title"><i class="fas fa-code-branch"></i> Open Source Acknowledgments</div>
+                <div class="licenses-section-content">
+                    We gratefully acknowledge the open source community. Some assets, code, or inspiration may be derived from open source projects. Please see individual library documentation for full license details.
+                </div>
+            </div>
+            <div class="licenses-section" id="request">
+                <div class="licenses-section-title"><i class="fas fa-info-circle"></i> How to Request Source or Info</div>
+                <div class="licenses-section-content">
+                    For information about specific licenses, or to request source code or attributions, please contact us. We are committed to honoring all license requirements and attributions.
+                </div>
+            </div>
+            <div class="licenses-section" id="contact">
+                <div class="licenses-section-title"><i class="fas fa-envelope"></i> Contact Us</div>
+                <div class="licenses-section-content">
+                    For license questions or requests, email <a href="mailto:legal@skynet.com" class="privacy-link">legal@skynet.com</a>.
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Animated background (stars, matching auth.html)
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < 120; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.2 + 0.3,
+                    d: Math.random() * 0.5 + 0.2,
+                    o: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const s of stars) {
+                ctx.save();
+                ctx.globalAlpha = s.o;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+                ctx.fillStyle = '#64ffda';
+                ctx.shadowColor = '#00ff9d';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.restore();
+                s.y += s.d;
+                if (s.y > canvas.height) {
+                    s.y = 0;
+                    s.x = Math.random() * canvas.width;
+                }
+            }
+        }
+        function animateStars() {
+            drawStars();
+            requestAnimationFrame(animateStars);
+        }
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            createStars();
+        });
+        resizeCanvas();
+        createStars();
+        animateStars();
+    </script>
+</body>
+</html> 

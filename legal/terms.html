@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - SKYNET</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(120deg, #2d1846 0%, #1a1b26 100%);
+            min-height: 100vh;
+            color: var(--text-color, #e0e0e0);
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .terms-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            position: relative;
+        }
+        .terms-card {
+            background: var(--glass-bg, rgba(36, 37, 54, 0.85));
+            border-radius: 28px;
+            box-shadow: var(--glass-shadow, 0 12px 40px 0 rgba(0,0,0,0.5));
+            border: 2px solid var(--glass-border, rgba(163,112,247,0.3));
+            padding: 3.2rem 2.5rem 2.5rem 2.5rem;
+            max-width: 700px;
+            width: 90vw;
+            margin: 4vh 0;
+            animation: fadeInUp 1.2s cubic-bezier(.4,2,.6,1);
+        }
+        .terms-heading {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #a370f7, #0db9d7, #a370f7 80%);
+            background-size: 200% auto;
+            color: transparent;
+            background-clip: text;
+            -webkit-background-clip: text;
+            text-align: center;
+            margin-bottom: 2.2rem;
+            letter-spacing: 2px;
+            animation: shimmer 3s linear infinite, pulse 2.5s cubic-bezier(.4,2,.6,1) infinite;
+            position: relative;
+        }
+        .terms-section {
+            margin-bottom: 2.2rem;
+            opacity: 0;
+            transform: translateY(40px);
+            animation: fadeInSection 1.2s cubic-bezier(.4,2,.6,1) forwards;
+        }
+        .terms-section:nth-child(2) { animation-delay: 0.2s; }
+        .terms-section:nth-child(3) { animation-delay: 0.4s; }
+        .terms-section:nth-child(4) { animation-delay: 0.6s; }
+        .terms-section:nth-child(5) { animation-delay: 0.8s; }
+        .terms-section:nth-child(6) { animation-delay: 1s; }
+        .terms-section:last-child { margin-bottom: 0; }
+        .terms-section-title {
+            font-size: 1.18rem;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            color: var(--primary-color, #a370f7);
+            margin-bottom: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .terms-section-title i {
+            font-size: 1.2rem;
+            color: var(--accent-color, #0db9d7);
+        }
+        .terms-section-content {
+            font-size: 1.04rem;
+            color: var(--text-color, #e0e0e0);
+            opacity: 0.92;
+            line-height: 1.7;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(60px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInSection {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.045); }
+        }
+        @media (max-width: 600px) {
+            .terms-card { padding: 1.2rem 0.5rem; }
+            .terms-heading { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="terms-container">
+        <div class="terms-card">
+            <div class="terms-heading">Terms of Service</div>
+            <nav class="terms-toc" style="margin-bottom:2.2rem;">
+                <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:1.2rem;justify-content:center;">
+                    <li><a href="#introduction" class="privacy-link"><i class="fas fa-user-shield"></i> Introduction</a></li>
+                    <li><a href="#acceptance" class="privacy-link"><i class="fas fa-check-circle"></i> Acceptance</a></li>
+                    <li><a href="#accounts" class="privacy-link"><i class="fas fa-user"></i> User Accounts</a></li>
+                    <li><a href="#acceptable-use" class="privacy-link"><i class="fas fa-shield-alt"></i> Acceptable Use</a></li>
+                    <li><a href="#ip" class="privacy-link"><i class="fas fa-copyright"></i> Intellectual Property</a></li>
+                    <li><a href="#termination" class="privacy-link"><i class="fas fa-ban"></i> Termination</a></li>
+                    <li><a href="#disclaimer" class="privacy-link"><i class="fas fa-exclamation-triangle"></i> Disclaimers</a></li>
+                    <li><a href="#changes" class="privacy-link"><i class="fas fa-sync-alt"></i> Changes</a></li>
+                    <li><a href="#contact" class="privacy-link"><i class="fas fa-envelope"></i> Contact</a></li>
+                </ul>
+            </nav>
+            <div class="terms-section" id="introduction">
+                <div class="terms-section-title"><i class="fas fa-user-shield"></i> Introduction</div>
+                <div class="terms-section-content">
+                    Welcome to SKYNET. These Terms of Service ("Terms") govern your use of our platform and services. By accessing or using SKYNET, you agree to these Terms.
+                </div>
+            </div>
+            <div class="terms-section" id="acceptance">
+                <div class="terms-section-title"><i class="fas fa-check-circle"></i> Acceptance of Terms</div>
+                <div class="terms-section-content">
+                    By using SKYNET, you confirm that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use our services.
+                </div>
+            </div>
+            <div class="terms-section" id="accounts">
+                <div class="terms-section-title"><i class="fas fa-user"></i> User Accounts</div>
+                <div class="terms-section-content">
+                    <ul>
+                        <li>You must provide accurate and complete information when creating an account.</li>
+                        <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
+                        <li>You are responsible for all activities that occur under your account.</li>
+                        <li>Notify us immediately of any unauthorized use of your account.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="terms-section" id="acceptable-use">
+                <div class="terms-section-title"><i class="fas fa-shield-alt"></i> Acceptable Use</div>
+                <div class="terms-section-content">
+                    <ul>
+                        <li>Do not use SKYNET for any unlawful, harmful, or abusive activities.</li>
+                        <li>Do not attempt to disrupt, hack, or interfere with our platform or other users.</li>
+                        <li>Respect the rights and privacy of others.</li>
+                        <li>Do not upload or share content that is illegal, offensive, or infringes on intellectual property rights.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="terms-section" id="ip">
+                <div class="terms-section-title"><i class="fas fa-copyright"></i> Intellectual Property</div>
+                <div class="terms-section-content">
+                    All content, trademarks, and technology on SKYNET are the property of SKYNET or its licensors. You may not use, copy, or distribute any content without our permission.
+                </div>
+            </div>
+            <div class="terms-section" id="termination">
+                <div class="terms-section-title"><i class="fas fa-ban"></i> Termination</div>
+                <div class="terms-section-content">
+                    We reserve the right to suspend or terminate your account at any time for violation of these Terms or for any other reason. You may also delete your account at any time.
+                </div>
+            </div>
+            <div class="terms-section" id="disclaimer">
+                <div class="terms-section-title"><i class="fas fa-exclamation-triangle"></i> Disclaimers & Limitation of Liability</div>
+                <div class="terms-section-content">
+                    SKYNET is provided "as is" and "as available" without warranties of any kind. We are not liable for any damages arising from your use of the platform, to the maximum extent permitted by law.
+                </div>
+            </div>
+            <div class="terms-section" id="changes">
+                <div class="terms-section-title"><i class="fas fa-sync-alt"></i> Changes to Terms</div>
+                <div class="terms-section-content">
+                    We may update these Terms from time to time. We will notify you of significant changes by posting the new Terms on this page and updating the effective date. Please review these Terms periodically.
+                </div>
+            </div>
+            <div class="terms-section" id="contact">
+                <div class="terms-section-title"><i class="fas fa-envelope"></i> Contact Us</div>
+                <div class="terms-section-content">
+                    If you have any questions or concerns about these Terms, please contact us at <a href="mailto:legal@skynet.com" class="privacy-link">legal@skynet.com</a>.
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Animated background (stars, matching auth.html)
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < 120; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.2 + 0.3,
+                    d: Math.random() * 0.5 + 0.2,
+                    o: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const s of stars) {
+                ctx.save();
+                ctx.globalAlpha = s.o;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+                ctx.fillStyle = '#64ffda';
+                ctx.shadowColor = '#00ff9d';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.restore();
+                s.y += s.d;
+                if (s.y > canvas.height) {
+                    s.y = 0;
+                    s.x = Math.random() * canvas.width;
+                }
+            }
+        }
+        function animateStars() {
+            drawStars();
+            requestAnimationFrame(animateStars);
+        }
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            createStars();
+        });
+        resizeCanvas();
+        createStars();
+        animateStars();
+    </script>
+</body>
+</html> 
