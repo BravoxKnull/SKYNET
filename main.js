@@ -3351,7 +3351,8 @@ let privateVoiceIsDeafened = false;
 // --- Join Private Channel Voice ---
 async function joinPrivateVoice(channelId) {
     if (!selectedPrivateChannel || selectedPrivateChannel.id !== channelId) return;
-    privateVoiceStatus.textContent = 'Connecting...';
+    const statusEl = document.getElementById('privateVoiceStatus');
+    if (statusEl) statusEl.textContent = 'Connecting...';
     // Set button state only if it exists in the DOM
     const joinBtn = document.getElementById('joinPrivateVoiceBtn');
     if (joinBtn) {
@@ -3378,13 +3379,15 @@ async function joinPrivateVoice(channelId) {
         privateVoiceIsDeafened = false;
         // Setup socket events (similar to main channel)
         setupPrivateVoiceSocketEvents();
-        privateVoiceStatus.textContent = 'Connected';
+        const statusEl2 = document.getElementById('privateVoiceStatus');
+        if (statusEl2) statusEl2.textContent = 'Connected';
         if (joinBtn) {
             joinBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Leave Voice';
             joinBtn.disabled = false;
         }
     } catch (err) {
-        privateVoiceStatus.textContent = 'Error: ' + err.message;
+        const statusEl3 = document.getElementById('privateVoiceStatus');
+        if (statusEl3) statusEl3.textContent = 'Error: ' + err.message;
         if (joinBtn) {
             joinBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
             joinBtn.disabled = false;
@@ -3393,7 +3396,8 @@ async function joinPrivateVoice(channelId) {
 }
 
 async function leavePrivateVoice() {
-    privateVoiceStatus.textContent = 'Disconnected';
+    const statusEl = document.getElementById('privateVoiceStatus');
+    if (statusEl) statusEl.textContent = 'Disconnected';
     const joinBtn = document.getElementById('joinPrivateVoiceBtn');
     if (joinBtn) {
         joinBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
