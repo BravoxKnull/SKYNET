@@ -2696,3 +2696,14 @@ async function subscribeUserFriendsRealtime() {
     await userFriendsRealtimeChannel.subscribe();
 }
 subscribeUserFriendsRealtime();
+
+function playSoundboardSound(fileUrl) {
+    // Play locally
+    const audio = new Audio(fileUrl);
+    audio.play();
+
+    // Broadcast to all users in the channel
+    if (socket && socket.connected) {
+        socket.emit('soundboard', { fileUrl });
+    }
+}
