@@ -948,6 +948,25 @@ function initializeSocket() {
         const audio = new Audio(fileUrl);
         audio.play();
     });
+
+    // --- SCREEN SHARE STATE HANDLERS ---
+    socket.on('screenShareState', data => {
+        if (data.state === 'start') {
+            screenShareOwnerId = data.userId;
+            updateScreenShareIconOnUserCards();
+        } else if (data.state === 'stop') {
+            screenShareOwnerId = null;
+            hideScreenShareView();
+            updateScreenShareIconOnUserCards();
+        }
+    });
+    // Listen for screen share stream requests
+    socket.on('requestScreenShareStream', ({ ownerId, viewerId }) => {
+        if (currentUser.id === ownerId && screenShareStream) {
+            // Send stream to viewer (peer-to-peer logic assumed)
+            // In mesh, viewer will renegotiate and get the video track
+        }
+    });
 }
 
 // Function to create user list item
