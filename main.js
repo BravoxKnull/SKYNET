@@ -3114,10 +3114,11 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Patch initializeWebRTC to use processedStream for outgoing audio
+// --- PATCHED: Robust Debug Logging and Audio Streaming for WebRTC ---
+
 async function initializeWebRTC() {
     try {
-        console.log('Initializing WebRTC...');
+        console.log('[WebRTC] Initializing WebRTC...');
         localStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: true,
@@ -3126,7 +3127,7 @@ async function initializeWebRTC() {
             },
             video: false
         });
-        console.log('Audio stream obtained successfully');
+        console.log('[WebRTC] Audio stream obtained:', localStream, localStream.getAudioTracks());
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
@@ -3140,20 +3141,25 @@ async function initializeWebRTC() {
             await audioContext.resume();
         }
         startVoiceActivityDetection();
-        console.log('Audio context and analyser initialized successfully');
+        // Debug: Log processedStream
+        if (processedStream) {
+            console.log('[WebRTC] Processed stream ready:', processedStream, processedStream.getAudioTracks());
+        } else {
+            console.warn('[WebRTC] No processedStream, will use localStream for outgoing audio');
+        }
         return true;
     } catch (error) {
-        console.error('Error initializing WebRTC:', error);
+        console.error('[WebRTC] Error initializing WebRTC:', error);
         warningMessage.textContent = 'Error accessing microphone. Please check your permissions.';
         return false;
     }
 }
-// Patch createPeerConnection to use processedStream
+
 async function createPeerConnection(userId, isInitiator) {
     try {
-        console.log(`Creating peer connection for ${userId}, isInitiator: ${isInitiator}`);
+        console.log(`[WebRTC] Creating peer connection for ${userId}, isInitiator: ${isInitiator}`);
         if (peerConnections[userId]) {
-            console.log(`Closing existing connection to ${userId}`);
+            console.log(`[WebRTC] Closing existing connection to ${userId}`);
             peerConnections[userId].close();
             delete peerConnections[userId];
         }
@@ -3174,23 +3180,56 @@ async function createPeerConnection(userId, isInitiator) {
         const peerConnection = new RTCPeerConnection(configuration);
         peerConnections[userId] = peerConnection;
         peerConnection.queuedIceCandidates = [];
-        // Use processedStream for outgoing audio
-        const streamToSend = processedStream || localStream;
-        if (streamToSend) {
-            const audioTrack = streamToSend.getAudioTracks()[0];
-            if (audioTrack) {
-                peerConnection.addTrack(audioTrack, streamToSend);
-            } else {
-                console.error('No audio track found in stream');
-                return null;
-            }
+        // Use processedStream for outgoing audio if available, else fallback to localStream
+        let streamToSend = null;
+        if (processedStream && processedStream.getAudioTracks().length > 0) {
+            streamToSend = processedStream;
+            console.log('[WebRTC] Using processedStream for outgoing audio:', processedStream.getAudioTracks()[0]);
+        } else if (localStream && localStream.getAudioTracks().length > 0) {
+            streamToSend = localStream;
+            console.warn('[WebRTC] Using localStream for outgoing audio:', localStream.getAudioTracks()[0]);
         } else {
-            console.error('No stream available');
+            console.error('[WebRTC] No valid audio stream to send!');
             return null;
         }
+        const audioTrack = streamToSend.getAudioTracks()[0];
+        if (audioTrack) {
+            peerConnection.addTrack(audioTrack, streamToSend);
+            console.log('[WebRTC] Added audio track to peer connection:', audioTrack);
+        } else {
+            console.error('[WebRTC] No audio track found in streamToSend!');
+            return null;
+        }
+        // Debug: Log when remote tracks are received
+        peerConnection.ontrack = (event) => {
+            console.log('[WebRTC] Received remote track event:', event);
+            if (event.streams && event.streams.length > 0) {
+                const stream = event.streams[0];
+                const tracks = stream.getTracks();
+                console.log('[WebRTC] Remote stream tracks:', tracks);
+                // Remove any existing audio element for this user
+                const existingAudio = document.getElementById(`audio-${userId}`);
+                if (existingAudio) {
+                    existingAudio.remove();
+                }
+                const audioElement = document.createElement('audio');
+                audioElement.id = `audio-${userId}`;
+                audioElement.srcObject = stream;
+                audioElement.autoplay = true;
+                audioElement.muted = isDeafened;
+                audioElement.volume = 1.0;
+                audioElement.onloadedmetadata = () => {
+                    audioElement.play().catch(e => console.error('[WebRTC] Error playing remote audio:', e));
+                };
+                document.body.appendChild(audioElement);
+                console.log('[WebRTC] Audio element created for remote user:', userId);
+            } else {
+                console.error('[WebRTC] No streams in remote track event');
+            }
+        };
         // ... rest of function unchanged ...
     } catch (error) {
-        console.error('Error creating peer connection:', error);
+        console.error('[WebRTC] Error creating peer connection:', error);
         return null;
     }
 }
