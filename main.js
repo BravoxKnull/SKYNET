@@ -2478,3 +2478,131 @@ function closeSoundboardModal() {
     overlay.classList.remove('active');
     setTimeout(() => { overlay.style.display = 'none'; }, 320);
 }
+
+// Inject modern, animated CSS for the soundboard modal and its elements
+(function injectSoundboardModalCSS() {
+    if (!document.getElementById('soundboard-modal-style')) {
+        const style = document.createElement('style');
+        style.id = 'soundboard-modal-style';
+        style.textContent = `
+        .soundboard-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(30,32,44,0.85);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2.5px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .soundboard-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .soundboard-modal {
+            background: #23243a;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 1.5px 8px rgba(163,112,247,0.08);
+            min-width: 320px;
+            max-width: 96vw;
+            width: 400px;
+            min-height: 220px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transform: scale(0.92) translateY(32px);
+            opacity: 0;
+            transition: transform 0.32s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .soundboard-modal-overlay.active .soundboard-modal {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .close-soundboard-modal {
+            position: absolute;
+            top: 14px;
+            right: 18px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 2.1rem;
+            cursor: pointer;
+            z-index: 2;
+            transition: color 0.18s;
+        }
+        .close-soundboard-modal:hover {
+            color: #a370f7;
+        }
+        .soundboard-header {
+            font-weight: bold;
+            color: #a370f7;
+            padding: 18px 0 10px 24px;
+            font-size: 1.18rem;
+            border-bottom: 1px solid #444;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            min-height: 40px;
+            gap: 1.2rem;
+        }
+        .soundboard-toggle {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+        .soundboard-list {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 18px 18px 18px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .soundboard-sound-btn {
+            background: #a370f7;
+            color: #fff;
+            border: none;
+            border-radius: 7px;
+            padding: 8px 16px;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .soundboard-sound-btn:hover {
+            background: #0db9d7;
+        }
+        .soundboard-upload-btn {
+            margin-bottom: 10px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            background: #0db9d7;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .soundboard-upload-btn:hover {
+            background: #a370f7;
+        }
+        @media (max-width: 600px) {
+            .soundboard-modal { width: 98vw; min-width: 0; }
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
