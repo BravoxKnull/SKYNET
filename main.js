@@ -2384,6 +2384,10 @@ function renderSoundboardList() {
     list.appendChild(labelInputRow);
     let pendingFile = null;
 
+    // Cloudinary config
+    const cloudName = "dnfq5swp9";
+    const uploadPreset = "SKYNET_audio_upload";
+
     document.getElementById('soundboardUploadBtn').onclick = () => {
         document.getElementById('soundboardUploadInput').click();
     };
@@ -2406,16 +2410,16 @@ function renderSoundboardList() {
         const user = getCurrentUser();
         const formData = new FormData();
         formData.append('file', pendingFile);
-        formData.append('upload_preset', 'skynet_soundboard');
+        formData.append('upload_preset', uploadPreset);
         formData.append('folder', user.id + '/soundboard');
         try {
-            const res = await fetch('https://api.cloudinary.com/v1_1/dnfq5swp9/auto/upload', {
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
                 method: 'POST',
                 body: formData
             });
             const data = await res.json();
             if (!data.secure_url) {
-                alert('Cloudinary upload failed: ' + (data.error?.message || 'Unknown error. Make sure the unsigned preset "skynet_soundboard" exists in your Cloudinary dashboard.'));
+                alert('Cloudinary upload failed: ' + (data.error?.message || 'Unknown error. Make sure the unsigned preset "' + uploadPreset + '" exists in your Cloudinary dashboard.'));
                 labelInputRow.style.display = 'none';
                 pendingFile = null;
                 return;
