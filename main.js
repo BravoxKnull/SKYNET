@@ -2342,23 +2342,74 @@ function formatTime(ts) {
 })();
 
 // --- SOUNDBOARD FEATURE ---
-const soundboardSounds = [
-    { id: 'airhorn', label: 'Airhorn', file: 'assets/sounds/airhorn.mp3' },
-    { id: 'clap', label: 'Clap', file: 'assets/sounds/clap.mp3' },
-    { id: 'wow', label: 'Wow', file: 'assets/sounds/wow.mp3' },
-    { id: 'laugh', label: 'Laugh', file: 'assets/sounds/laugh.mp3' },
-    { id: 'boo', label: 'Boo', file: 'assets/sounds/boo.mp3' }
-];
+// Remove static soundboardSounds array
 let soundboardEnabled = true;
 
+// Render the soundboard list, including upload UI and all uploaded sounds
 function renderSoundboardList() {
     const list = document.getElementById('soundboardList');
     list.innerHTML = '';
-    soundboardSounds.forEach(sound => {
+
+    // Upload form
+    const uploadForm = document.createElement('form');
+    uploadForm.innerHTML = `
+        <input type="file" id="soundboardUploadInput" accept="audio/*" style="display:none;">
+        <button type="button" id="soundboardUploadBtn" class="soundboard-upload-btn">
+            <i class="fas fa-upload"></i> Upload Sound
+        </button>
+    `;
+    list.appendChild(uploadForm);
+
+    document.getElementById('soundboardUploadBtn').onclick = () => {
+        document.getElementById('soundboardUploadInput').click();
+    };
+    document.getElementById('soundboardUploadInput').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const label = prompt('Enter a label for this sound:', file.name.replace(/\.[^/.]+$/, ''));
+        if (!label) return;
+
+        // Upload to Supabase Storage
+        const user = getCurrentUser();
+        const filePath = `${user.id}/${Date.now()}_${file.name}`;
+        let { data, error } = await supabase.storage.from('soundboard').upload(filePath, file);
+        if (error) return alert('Upload failed: ' + error.message);
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage.from('soundboard').getPublicUrl(filePath);
+        const fileUrl = publicUrlData.publicUrl;
+
+        // Insert into DB
+        await supabase.from('soundboard_sounds').insert([
+            { user_id: user.id, file_url: fileUrl, label }
+        ]);
+        loadSoundboardSounds();
+    };
+
+    // List sounds
+    loadSoundboardSounds();
+}
+
+// Fetch and render all uploaded sounds
+async function loadSoundboardSounds() {
+    const list = document.getElementById('soundboardList');
+    // Remove upload form (keep it at the top)
+    const uploadForm = list.firstChild;
+    list.innerHTML = '';
+    if (uploadForm) list.appendChild(uploadForm);
+
+    // Fetch from DB
+    const { data: sounds, error } = await supabase
+        .from('soundboard_sounds')
+        .select('*')
+        .order('created_at', { ascending: false });
+    if (error) return;
+
+    sounds.forEach(sound => {
         const btn = document.createElement('button');
         btn.className = 'soundboard-sound-btn';
-        btn.innerHTML = `<i class='fas fa-play'></i> ${sound.label}`;
-        btn.onclick = () => playSoundboardSound(sound.id);
+        btn.innerHTML = `<i class='fas fa-play'></i> ${sound.label || 'Sound'}`;
+        btn.onclick = () => playSoundboardSound(sound.file_url);
         list.appendChild(btn);
     });
 }
@@ -2387,27 +2438,50 @@ safeSetOnClick('screenshareBtn', function() {
     alert('Screenshare coming soon!');
 });
 
-function playSoundboardSound(soundId) {
+// Play and broadcast uploaded sound
+function playSoundboardSound(fileUrl) {
     if (!soundboardEnabled) return;
     // Play locally
-    const sound = soundboardSounds.find(s => s.id === soundId);
-    if (sound) {
-        const audio = new Audio(sound.file);
-        audio.play();
-    }
+    const audio = new Audio(fileUrl);
+    audio.play();
     // Broadcast to channel
     if (socket && socket.connected) {
-        socket.emit('soundboard', { soundId });
+        socket.emit('soundboard', { fileUrl });
     }
 }
 // Listen for soundboard events from others
 if (typeof socket !== 'undefined') {
-    socket.on('soundboard', ({ soundId }) => {
+    socket.on('soundboard', ({ fileUrl }) => {
         if (!soundboardEnabled) return;
-        const sound = soundboardSounds.find(s => s.id === soundId);
-        if (sound) {
-            const audio = new Audio(sound.file);
-            audio.play();
-        }
+        const audio = new Audio(fileUrl);
+        audio.play();
     });
 }
+
+// Inject minimal CSS for upload button
+(function injectSoundboardUploadCSS() {
+    if (!document.getElementById('soundboard-upload-style')) {
+        const style = document.createElement('style');
+        style.id = 'soundboard-upload-style';
+        style.textContent = `
+        .soundboard-upload-btn {
+            margin-bottom: 10px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            background: #0db9d7;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .soundboard-upload-btn:hover {
+            background: #a370f7;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
