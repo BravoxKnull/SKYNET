@@ -26,101 +26,173 @@
         }
 
         body {
-            background-color: var(--background-color);
+            background: linear-gradient(120deg, #2d1846 0%, #1a1b26 100%);
             color: var(--text-color);
             min-height: 100vh;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .auth-main-layout {
             display: flex;
+            flex-direction: row;
             justify-content: center;
             align-items: center;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            z-index: 2;
         }
 
         .auth-container {
-            width: 100%;
-            max-width: 400px;
-            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-end;
+            width: 44vw;
+            min-width: 340px;
+            max-width: 520px;
+            height: 60vh;
+            min-height: 420px;
+            max-height: 600px;
+            margin-right: 2vw;
         }
 
         .auth-box {
-            background: rgba(10, 25, 47, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
-            border: 1px solid rgba(100, 255, 218, 0.1);
+            background: var(--glass-bg, rgba(36, 37, 54, 0.7));
+            backdrop-filter: blur(18px) saturate(180%);
+            border-radius: 22px;
+            padding: 2.2rem 2.2rem 2rem 2.2rem;
+            box-shadow: var(--glass-shadow, 0 12px 40px 0 rgba(0,0,0,0.5));
+            border: 1.5px solid var(--glass-border, rgba(163,112,247,0.3));
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .logo-container {
-            text-align: center;
-            margin-bottom: 2rem;
+            text-align: left;
+            margin-bottom: 1.2rem;
         }
 
         .logo {
-            height: 60px;
-            margin-bottom: 1rem;
+            height: 32px;
+            margin-bottom: 0.2rem;
             animation: pulse 2s infinite;
         }
 
         .logo-container h1 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            font-size: 1.3rem;
+            background: var(--gradient-primary, linear-gradient(45deg, #a370f7, #0db9d7));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+            text-shadow: 0 0 10px rgba(163,112,247,0.18);
+            margin-bottom: 0.1rem;
+        }
+
+        .logo-container .subtitle {
+            font-size: 0.95rem;
+            color: var(--accent-color, #0db9d7);
+            opacity: 0.7;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            margin-bottom: 0.2rem;
         }
 
         .auth-form h2 {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: var(--text-color);
+            text-align: left;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color, #a370f7);
+            font-size: 1.18rem;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .auth-form .form-desc {
+            text-align: left;
+            color: var(--text-color, #e0e0e0);
+            opacity: 0.7;
+            font-size: 0.97rem;
+            margin-bottom: 1.1rem;
         }
 
         .input-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.3rem;
+            position: relative;
         }
 
         .input-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-color);
+            position: absolute;
+            left: 16px;
+            top: 14px;
+            color: #aaa;
+            pointer-events: none;
+            transition: 0.2s;
+            background: transparent;
+            padding: 0 4px;
         }
 
         .input-field {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid rgba(100, 255, 218, 0.2);
-            border-radius: 4px;
-            background: rgba(10, 25, 47, 0.5);
-            color: var(--text-color);
-            transition: all 0.3s ease;
+            padding: 1.1rem 0.75rem 0.5rem 0.75rem;
+            border: 1.5px solid var(--border-color, rgba(163,112,247,0.2));
+            border-radius: 8px;
+            background: var(--input-bg, rgba(36,37,54,0.6));
+            color: var(--text-color, #e0e0e0);
+            font-size: 1.08rem;
+            transition: border 0.3s, box-shadow 0.3s;
         }
 
         .input-field:focus {
             outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+            border-color: var(--primary-color, #a370f7);
+            box-shadow: 0 0 12px 0 rgba(163,112,247,0.18);
+        }
+
+        .input-field:focus + label,
+        .input-field:not(:placeholder-shown) + label {
+            top: -12px;
+            left: 10px;
+            font-size: 0.92rem;
+            color: var(--primary-color, #a370f7);
+            background: var(--glass-bg, rgba(36,37,54,0.7));
         }
 
         .auth-btn {
             width: 100%;
-            padding: 1rem;
+            padding: 1.1rem;
             border: none;
-            border-radius: 4px;
-            background: var(--primary-color);
-            color: var(--secondary-color);
-            font-weight: 600;
+            border-radius: 8px;
+            background: var(--gradient-primary, linear-gradient(90deg, #a370f7, #0db9d7));
+            color: var(--secondary-color, #1a1b26);
+            font-weight: 700;
+            font-size: 1.1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.7rem;
+            box-shadow: 0 2px 12px 0 rgba(163,112,247,0.10);
         }
 
         .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 0 24px 0 rgba(163,112,247,0.22);
         }
 
         .auth-btn:disabled {
@@ -129,125 +201,239 @@
             transform: none;
         }
 
-        .auth-switch {
-            text-align: center;
-            margin-top: 1.5rem;
-            color: var(--text-color);
-        }
-
-        .auth-switch a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .auth-switch a:hover {
-            color: var(--accent-color);
-        }
-
-        .auth-message {
-            text-align: center;
-            margin-top: 1rem;
-            padding: 0.5rem;
-            border-radius: 4px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .auth-message.error {
-            background: rgba(255, 77, 77, 0.1);
-            color: var(--danger-color);
-            opacity: 1;
-        }
-
-        .auth-message.success {
-            background: rgba(0, 255, 157, 0.1);
-            color: var(--success-color);
-            opacity: 1;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
         .form-switch {
-            text-align: center;
-            margin-bottom: 2rem;
+            text-align: left;
+            margin-bottom: 1.2rem;
+            display: flex;
+            justify-content: flex-start;
+            gap: 1.2rem;
         }
 
         .form-switch-btn {
             background: none;
             border: none;
-            color: var(--primary-color);
+            color: var(--primary-color, #a370f7);
             cursor: pointer;
-            font-size: 1.1rem;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .form-switch-btn:hover {
-            background: rgba(0, 255, 157, 0.1);
+            font-size: 1.08rem;
+            padding: 0.5rem 1.1rem;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-weight: 600;
         }
 
         .form-switch-btn.active {
-            background: rgba(0, 255, 157, 0.2);
-            color: var(--accent-color);
+            background: var(--hover-bg, rgba(163,112,247,0.1));
+            color: var(--accent-color, #0db9d7);
+            box-shadow: 0 0 8px 0 rgba(163,112,247,0.10);
+        }
+
+        .auth-form {
+            opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            pointer-events: none;
+            position: absolute;
+            width: 100%;
+            left: 0;
+            top: 110px;
+            transition: opacity 0.6s cubic-bezier(.4,2,.6,1), transform 0.6s cubic-bezier(.4,2,.6,1);
+        }
+
+        .auth-form.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            position: static;
+        }
+
+        #authMessage {
+            z-index: 3;
+        }
+
+        .feature-carousel-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            width: 48vw;
+            min-width: 400px;
+            max-width: 800px;
+            height: 80vh;
+            min-height: 500px;
+            max-height: 900px;
+            margin-left: 2vw;
+        }
+
+        .feature-carousel {
+            display: flex;
+            gap: 2.5rem;
+            width: 100%;
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+
+        .feature-card {
+            min-width: 440px;
+            max-width: 650px;
+            background: var(--card-bg, rgba(36, 37, 54, 0.92));
+            border-radius: 32px;
+            box-shadow: var(--glass-shadow, 0 18px 60px 0 rgba(0,0,0,0.6));
+            border: 2.5px solid var(--border-color, rgba(163,112,247,0.25));
+            padding: 3.2rem 2.5rem 2.5rem 2.5rem;
+            color: var(--text-color, #e0e0e0);
+            font-family: 'Orbitron', 'Roboto', sans-serif;
+            font-size: 1.32rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            opacity: 0;
+            transform: translateX(80px) scale(0.98);
+            transition: opacity 0.7s cubic-bezier(.4,2,.6,1), transform 0.7s cubic-bezier(.4,2,.6,1);
+            pointer-events: none;
+        }
+
+        .feature-card.active {
+            opacity: 1;
+            transform: translateX(0) scale(1.04);
+            pointer-events: auto;
+        }
+
+        .feature-card .feature-icon {
+            font-size: 2.7rem;
+            color: var(--primary-color, #a370f7);
+            margin-bottom: 1.1rem;
+            filter: drop-shadow(0 2px 12px #a370f7aa);
+        }
+
+        .feature-card .feature-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: var(--primary-color, #a370f7);
+            margin-bottom: 0.6rem;
+            letter-spacing: 1.5px;
+        }
+
+        .feature-card .feature-desc {
+            font-size: 1.18rem;
+            color: var(--text-color, #e0e0e0);
+            opacity: 0.92;
+            margin-bottom: 0.7rem;
+        }
+
+        .feature-card .feature-more {
+            font-size: 1.01rem;
+            color: var(--accent-color, #0db9d7);
+            opacity: 0.85;
+            margin-top: 0.2rem;
+        }
+
+        @media (max-width: 1100px) {
+            .auth-main-layout {
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: center;
+                height: auto;
+                min-height: 100vh;
+                padding-top: 5vh;
+            }
+            .auth-container, .feature-carousel-container {
+                width: 90vw;
+                max-width: 98vw;
+                min-width: 0;
+                margin: 0;
+                height: auto;
+                min-height: 0;
+                max-height: none;
+            }
+            .feature-card {
+                min-width: 90vw;
+                max-width: 98vw;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .auth-main-layout {
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: center;
+                height: auto;
+                min-height: 100vh;
+                padding-top: 2vh;
+            }
+            .auth-container, .feature-carousel-container {
+                width: 98vw;
+                max-width: 100vw;
+                min-width: 0;
+                margin: 0;
+                height: auto;
+                min-height: 0;
+                max-height: none;
+            }
+            .feature-card {
+                min-width: 98vw;
+                max-width: 100vw;
+                font-size: 0.98rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-box">
-            <div class="logo-container">
-                <img src="assets/images/Skynet_Terminator_logo.svg" alt="SKYNET Logo" class="logo">
-                <h1>SKYNET</h1>
+    <canvas id="bg-canvas"></canvas>
+    <div class="auth-main-layout">
+        <div class="auth-container">
+            <div class="auth-box">
+                <div class="logo-container">
+                    <img src="assets/images/Skynet_Terminator_logo.svg" alt="SKYNET Logo" class="logo">
+                    <h1>SKYNET</h1>
+                    <div class="subtitle">Autonomous AI Platform</div>
+                </div>
+                <div class="form-switch">
+                    <button class="form-switch-btn active" data-form="login">Login</button>
+                    <button class="form-switch-btn" data-form="signup">Sign Up</button>
+                </div>
+                <!-- Login Form -->
+                <div class="auth-form active" id="loginForm">
+                    <h2>Welcome Back</h2>
+                    <div class="form-desc">Sign in to your SKYNET account</div>
+                    <div class="input-group">
+                        <input type="text" id="loginDisplayName" class="input-field" placeholder=" " autocomplete="username">
+                        <label for="loginDisplayName"><i class="fas fa-user"></i> Display Name</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="loginPassword" class="input-field" placeholder=" " autocomplete="current-password">
+                        <label for="loginPassword"><i class="fas fa-lock"></i> Password</label>
+                    </div>
+                    <button id="loginBtn" class="auth-btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </div>
+                <!-- Signup Form -->
+                <div class="auth-form" id="signupForm">
+                    <h2>Create Account</h2>
+                    <div class="form-desc">Join the future of AI. Create your SKYNET account.</div>
+                    <div class="input-group">
+                        <input type="text" id="signupDisplayName" class="input-field" placeholder=" " autocomplete="username">
+                        <label for="signupDisplayName"><i class="fas fa-user-plus"></i> Display Name</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="signupPassword" class="input-field" placeholder=" " autocomplete="new-password">
+                        <label for="signupPassword"><i class="fas fa-lock"></i> Password</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="confirmPassword" class="input-field" placeholder=" " autocomplete="new-password">
+                        <label for="confirmPassword"><i class="fas fa-lock"></i> Confirm Password</label>
+                    </div>
+                    <button id="signupBtn" class="auth-btn">
+                        <i class="fas fa-user-plus"></i> Sign Up
+                    </button>
+                </div>
+                <div id="authMessage" class="auth-message"></div>
             </div>
-            <div class="form-switch">
-                <button class="form-switch-btn active" data-form="login">Login</button>
-                <button class="form-switch-btn" data-form="signup">Sign Up</button>
+        </div>
+        <div class="feature-carousel-container">
+            <div class="feature-carousel" id="featureCarousel">
+                <!-- Feature cards will be injected here -->
             </div>
-            
-            <!-- Login Form -->
-            <div class="auth-form" id="loginForm">
-                <h2>Login to SKYNET</h2>
-                <div class="input-group">
-                    <label for="loginDisplayName">Display Name</label>
-                    <input type="text" id="loginDisplayName" class="input-field" placeholder="Enter your display name">
-                </div>
-                <div class="input-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" class="input-field" placeholder="Enter your password">
-                </div>
-                <button id="loginBtn" class="auth-btn">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </button>
-            </div>
-
-            <!-- Signup Form -->
-            <div class="auth-form" id="signupForm" style="display: none;">
-                <h2>Create Account</h2>
-                <div class="input-group">
-                    <label for="signupDisplayName">Display Name</label>
-                    <input type="text" id="signupDisplayName" class="input-field" placeholder="Choose a display name">
-                </div>
-                <div class="input-group">
-                    <label for="signupPassword">Password</label>
-                    <input type="password" id="signupPassword" class="input-field" placeholder="Create a password">
-                </div>
-                <div class="input-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" class="input-field" placeholder="Confirm your password">
-                </div>
-                <button id="signupBtn" class="auth-btn">
-                    <i class="fas fa-user-plus"></i> Sign Up
-                </button>
-            </div>
-
-            <div id="authMessage" class="auth-message"></div>
         </div>
     </div>
 
@@ -292,11 +478,11 @@
                 btn.classList.add('active')
                 
                 if (form === 'login') {
-                    loginForm.style.display = 'block'
-                    signupForm.style.display = 'none'
+                    signupForm.classList.remove('active')
+                    setTimeout(() => loginForm.classList.add('active'), 60)
                 } else {
-                    loginForm.style.display = 'none'
-                    signupForm.style.display = 'block'
+                    loginForm.classList.remove('active')
+                    setTimeout(() => signupForm.classList.add('active'), 60)
                 }
             })
         })
@@ -471,6 +657,155 @@
         document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleSignup()
         })
+
+        // Animated background (stars)
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < 120; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.2 + 0.3,
+                    d: Math.random() * 0.5 + 0.2,
+                    o: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const s of stars) {
+                ctx.save();
+                ctx.globalAlpha = s.o;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+                ctx.fillStyle = '#64ffda';
+                ctx.shadowColor = '#00ff9d';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.restore();
+                s.y += s.d;
+                if (s.y > canvas.height) {
+                    s.y = 0;
+                    s.x = Math.random() * canvas.width;
+                }
+            }
+        }
+        function animateStars() {
+            drawStars();
+            requestAnimationFrame(animateStars);
+        }
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            createStars();
+        });
+        resizeCanvas();
+        createStars();
+        animateStars();
+
+        // Feature carousel logic
+        const featureList = [
+            {
+                icon: 'fas fa-robot',
+                title: 'AI-Powered',
+                desc: 'Harness the power of advanced artificial intelligence for automation and insight.',
+                more: 'Our neural networks adapt to your needs, providing smart automation and deep learning.'
+            },
+            {
+                icon: 'fas fa-chart-line',
+                title: 'Real-Time Analytics',
+                desc: 'Monitor and analyze data as it happens for instant decision making.',
+                more: 'Visualize trends, get instant alerts, and make data-driven decisions on the fly.'
+            },
+            {
+                icon: 'fas fa-cloud',
+                title: 'Secure Cloud',
+                desc: 'Your data is protected with enterprise-grade security and encryption.',
+                more: 'End-to-end encryption and compliance with global standards keep your data safe.'
+            },
+            {
+                icon: 'fas fa-brain',
+                title: 'Autonomous Agents',
+                desc: 'Deploy self-learning agents that adapt and optimize on their own.',
+                more: 'Agents learn from every interaction, improving efficiency and outcomes.'
+            },
+            {
+                icon: 'fas fa-clock',
+                title: '24/7 Uptime',
+                desc: 'Always available, always reliable. SKYNET never sleeps.',
+                more: 'Redundant systems and global infrastructure ensure you\'re always connected.'
+            },
+            {
+                icon: 'fas fa-graduation-cap',
+                title: 'Adaptive Learning',
+                desc: 'Systems that evolve and improve with every interaction.',
+                more: 'Continuous learning algorithms personalize your experience.'
+            },
+            {
+                icon: 'fas fa-network-wired',
+                title: 'Scalable API',
+                desc: 'Integrate seamlessly and scale effortlessly as your needs grow.',
+                more: 'Robust APIs and SDKs for every platform and use case.'
+            },
+            {
+                icon: 'fas fa-atom',
+                title: 'Quantum-Ready',
+                desc: 'Future-proofed for the next generation of quantum computing.',
+                more: 'Our architecture is designed for tomorrow\'s quantum breakthroughs.'
+            },
+            {
+                icon: 'fas fa-users',
+                title: 'Human-AI Collaboration',
+                desc: 'Empowering people and machines to work together in harmony.',
+                more: 'Tools for seamless teamwork between humans and AI.'
+            },
+            {
+                icon: 'fas fa-bullseye',
+                title: 'Predictive Insights',
+                desc: 'See the future with powerful predictive analytics.',
+                more: 'Anticipate trends and opportunities before they happen.'
+            }
+        ];
+        const featureCarousel = document.getElementById('featureCarousel');
+        let currentFeature = 0;
+        function renderFeatureCard(idx) {
+            featureCarousel.innerHTML = '';
+            const f = featureList[idx];
+            const card = document.createElement('div');
+            card.className = 'feature-card active';
+            card.innerHTML = `
+                <div class="feature-icon"><i class="${f.icon}"></i></div>
+                <div class="feature-title">${f.title}</div>
+                <div class="feature-desc">${f.desc}</div>
+                <div class="feature-more">${f.more}</div>
+            `;
+            featureCarousel.appendChild(card);
+        }
+        function animateFeatureCard(nextIdx) {
+            const oldCard = document.querySelector('.feature-card.active');
+            if (oldCard) {
+                oldCard.classList.remove('active');
+                oldCard.style.transform = 'translateX(-60px) scale(0.98)';
+                oldCard.style.opacity = '0';
+                setTimeout(() => {
+                    renderFeatureCard(nextIdx);
+                }, 500);
+            } else {
+                renderFeatureCard(nextIdx);
+            }
+        }
+        renderFeatureCard(currentFeature);
+        setInterval(() => {
+            const next = (currentFeature + 1) % featureList.length;
+            animateFeatureCard(next);
+            currentFeature = next;
+        }, 3200);
     </script>
 </body>
 </html> 
