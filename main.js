@@ -941,6 +941,13 @@ function initializeSocket() {
             userLeftSound.play().catch(error => console.error('Error playing userLeftSound:', error));
         }
     });
+
+    // Listen for soundboard events from others (moved here to ensure socket is initialized)
+    socket.on('soundboard', ({ fileUrl }) => {
+        if (!soundboardEnabled) return;
+        const audio = new Audio(fileUrl);
+        audio.play();
+    });
 }
 
 // Function to create user list item
@@ -1476,13 +1483,13 @@ async function getFriendshipStatus(currentUserId, otherUserId) {
             .from('user_friends')
             .select('status')
             .eq('friend_id', otherUserId)
-            .eq('status', 'pending')
-            .maybeSingle();
+            .eq('status', 'pending'); // removed .maybeSingle()
         if (error) {
             console.error('getFriendshipStatus error:', error);
             return null;
         }
-        return data?.status || null;
+        // data is an array; return the first status if present
+        return (data && data.length > 0) ? data[0].status : null;
     } catch (err) {
         console.error('getFriendshipStatus exception:', err);
         return null;
@@ -2360,127 +2367,100 @@ function renderSoundboardList() {
     `;
     list.appendChild(uploadForm);
 
+    // Inline label input UI (hidden by default)
+    let labelInputRow = document.getElementById('soundboardLabelInputRow');
+    if (!labelInputRow) {
+        labelInputRow = document.createElement('div');
+        labelInputRow.id = 'soundboardLabelInputRow';
+        labelInputRow.style.display = 'none';
+        labelInputRow.innerHTML = `
+            <input type="text" id="soundboardLabelInput" class="soundboard-label-input" placeholder="Enter label for sound..." maxlength="40" />
+            <button type="button" id="soundboardLabelConfirm" class="soundboard-label-confirm">Add</button>
+            <button type="button" id="soundboardLabelCancel" class="soundboard-label-cancel">Cancel</button>
+        `;
+        list.insertBefore(labelInputRow, uploadForm.nextSibling);
+    }
+    let pendingFile = null;
+
     document.getElementById('soundboardUploadBtn').onclick = () => {
         document.getElementById('soundboardUploadInput').click();
     };
-    document.getElementById('soundboardUploadInput').onchange = async (e) => {
+    document.getElementById('soundboardUploadInput').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const label = prompt('Enter a label for this sound:', file.name.replace(/\.[^/.]+$/, ''));
-        if (!label) return;
-
+        pendingFile = file;
+        labelInputRow.style.display = 'flex';
+        document.getElementById('soundboardLabelInput').value = file.name.replace(/\.[^/.]+$/, '');
+        document.getElementById('soundboardLabelInput').focus();
+    };
+    document.getElementById('soundboardLabelConfirm').onclick = async () => {
+        const label = document.getElementById('soundboardLabelInput').value.trim();
+        if (!label || !pendingFile) return;
         // Upload to Supabase Storage
         const user = getCurrentUser();
-        const filePath = `${user.id}/${Date.now()}_${file.name}`;
-        let { data, error } = await supabase.storage.from('soundboard').upload(filePath, file);
-        if (error) return alert('Upload failed: ' + error.message);
-
+        const filePath = `${user.id}/${Date.now()}_${pendingFile.name}`;
+        let { data, error } = await supabase.storage.from('soundboard').upload(filePath, pendingFile);
+        if (error) { alert('Upload failed: ' + error.message); return; }
         // Get public URL
         const { data: publicUrlData } = supabase.storage.from('soundboard').getPublicUrl(filePath);
         const fileUrl = publicUrlData.publicUrl;
-
         // Insert into DB
         await supabase.from('soundboard_sounds').insert([
             { user_id: user.id, file_url: fileUrl, label }
         ]);
+        labelInputRow.style.display = 'none';
+        pendingFile = null;
         loadSoundboardSounds();
+    };
+    document.getElementById('soundboardLabelCancel').onclick = () => {
+        labelInputRow.style.display = 'none';
+        pendingFile = null;
     };
 
     // List sounds
     loadSoundboardSounds();
 }
 
-// Fetch and render all uploaded sounds
-async function loadSoundboardSounds() {
-    const list = document.getElementById('soundboardList');
-    // Remove upload form (keep it at the top)
-    const uploadForm = list.firstChild;
-    list.innerHTML = '';
-    if (uploadForm) list.appendChild(uploadForm);
-
-    // Fetch from DB
-    const { data: sounds, error } = await supabase
-        .from('soundboard_sounds')
-        .select('*')
-        .order('created_at', { ascending: false });
-    if (error) return;
-
-    sounds.forEach(sound => {
-        const btn = document.createElement('button');
-        btn.className = 'soundboard-sound-btn';
-        btn.innerHTML = `<i class='fas fa-play'></i> ${sound.label || 'Sound'}`;
-        btn.onclick = () => playSoundboardSound(sound.file_url);
-        list.appendChild(btn);
-    });
-}
-
-function openSoundboardModal() {
-    const overlay = document.getElementById('soundboardModalOverlay');
-    overlay.style.display = 'flex';
-    setTimeout(() => overlay.classList.add('active'), 10);
-    renderSoundboardList();
-    document.getElementById('soundboardToggle').checked = soundboardEnabled;
-}
-function closeSoundboardModal() {
-    const overlay = document.getElementById('soundboardModalOverlay');
-    overlay.classList.remove('active');
-    setTimeout(() => { overlay.style.display = 'none'; }, 320);
-}
-safeSetOnClick('soundboardBtn', openSoundboardModal);
-safeSetOnClick('closeSoundboardModal', closeSoundboardModal);
-safeAddEventListener('soundboardModalOverlay', 'click', function(e) {
-    if (e.target === this) closeSoundboardModal();
-});
-safeAddEventListener('soundboardToggle', 'change', function(e) {
-    soundboardEnabled = e.target.checked;
-});
-safeSetOnClick('screenshareBtn', function() {
-    alert('Screenshare coming soon!');
-});
-
-// Play and broadcast uploaded sound
-function playSoundboardSound(fileUrl) {
-    if (!soundboardEnabled) return;
-    // Play locally
-    const audio = new Audio(fileUrl);
-    audio.play();
-    // Broadcast to channel
-    if (socket && socket.connected) {
-        socket.emit('soundboard', { fileUrl });
-    }
-}
-// Listen for soundboard events from others
-if (typeof socket !== 'undefined') {
-    socket.on('soundboard', ({ fileUrl }) => {
-        if (!soundboardEnabled) return;
-        const audio = new Audio(fileUrl);
-        audio.play();
-    });
-}
-
-// Inject minimal CSS for upload button
-(function injectSoundboardUploadCSS() {
-    if (!document.getElementById('soundboard-upload-style')) {
+// Add minimal CSS for inline label input
+(function injectSoundboardLabelInputCSS() {
+    if (!document.getElementById('soundboard-label-input-style')) {
         const style = document.createElement('style');
-        style.id = 'soundboard-upload-style';
+        style.id = 'soundboard-label-input-style';
         style.textContent = `
-        .soundboard-upload-btn {
+        #soundboardLabelInputRow {
+            display: flex;
+            gap: 8px;
             margin-bottom: 10px;
-            padding: 6px 14px;
+            align-items: center;
+            background: #23243a;
+            padding: 8px 10px;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .soundboard-label-input {
+            flex: 1;
             border-radius: 6px;
-            background: #0db9d7;
+            border: 1px solid #444;
+            padding: 7px 12px;
+            font-size: 1rem;
+            background: #181926;
+            color: #fff;
+        }
+        .soundboard-label-confirm, .soundboard-label-cancel {
+            background: #a370f7;
             color: #fff;
             border: none;
+            border-radius: 6px;
+            padding: 7px 14px;
+            font-size: 1rem;
             cursor: pointer;
-            font-size: 0.95rem;
             transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
-        .soundboard-upload-btn:hover {
-            background: #a370f7;
+        .soundboard-label-cancel {
+            background: #e74c3c;
         }
+        .soundboard-label-confirm:hover { background: #0db9d7; }
+        .soundboard-label-cancel:hover { background: #c0392b; }
         `;
         document.head.appendChild(style);
     }
