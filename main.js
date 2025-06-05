@@ -1563,12 +1563,14 @@ function showFriendRequestNotification(fromUserId, fromDisplayName) {
         await acceptFriendRequest(getCurrentUser().id, fromUserId);
         notif.remove();
         updateUsersList(users); // Refresh UI
+        renderFriendsSidebarList(); // Also refresh sidebar
     };
     // Decline
     notif.querySelector('.decline-btn').onclick = async () => {
         await declineFriendRequest(getCurrentUser().id, fromUserId);
         notif.remove();
         updateUsersList(users); // Refresh UI
+        renderFriendsSidebarList(); // Also refresh sidebar
     };
     setTimeout(() => notif.remove(), 10000);
 }
