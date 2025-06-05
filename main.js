@@ -2395,8 +2395,12 @@ function renderSoundboardList() {
         if (!file) return;
         pendingFile = file;
         labelInputRow.style.display = 'flex';
-        document.getElementById('soundboardLabelInput').value = file.name.replace(/\.[^/.]+$/, '');
-        document.getElementById('soundboardLabelInput').focus();
+        // Re-query after showing
+        const labelInput = document.getElementById('soundboardLabelInput');
+        if (labelInput) {
+            labelInput.value = file.name.replace(/\.[^/.]+$/, '');
+            labelInput.focus();
+        }
     };
     document.getElementById('soundboardLabelConfirm').onclick = async () => {
         const label = document.getElementById('soundboardLabelInput').value.trim();
