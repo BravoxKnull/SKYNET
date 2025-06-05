@@ -293,13 +293,6 @@ function initializeEventListeners() {
                 audioContext.close();
                 audioContext = null;
             }
-
-            // Clean up voice FX
-            try { if (voiceFxNodes.source) voiceFxNodes.source.disconnect(); } catch (e) {}
-            try { if (voiceFxNodes.effect) voiceFxNodes.effect.disconnect(); } catch (e) {}
-            try { if (voiceFxNodes.destination) voiceFxNodes.destination.disconnect(); } catch (e) {}
-            voiceFxNodes = { source: null, effect: null, destination: null };
-            processedStream = null;
         }, 500);
     });
 }
@@ -750,107 +743,116 @@ function initializeSocket() {
     });
 
     socket.on('offer', async (data) => {
-        console.log('[WebRTC] Received offer:', data);
+        console.log('Received offer:', data);
         try {
             let peerConnection = peerConnections[data.senderId];
-            const isInitiator = false;
-            // Always create a peer connection if not present
-            if (!peerConnection) {
-                console.log(`[WebRTC] No existing peer connection for ${data.senderId}, creating a new one as answerer`);
+            const isInitiator = false; // When receiving an offer, this client acts as answerer
+
+            // If a peer connection for this sender doesn't exist, create one as the answerer
+        if (!peerConnection) {
+                console.log(`No existing peer connection for ${data.senderId}, creating a new one as answerer`);
                 peerConnection = await createPeerConnection(data.senderId, isInitiator);
             } else {
-                console.log(`[WebRTC] Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
+                console.log(`Existing peer connection found for ${data.senderId} in state: ${peerConnection.signalingState}`);
+
+                // Glare handling: If we receive an offer and we are already in 'have-local-offer' state,
+                // it means both sides sent offers simultaneously. We need to decide who wins.
+                // A common strategy is to compare user IDs. The client with the lexicographically smaller ID wins.
+                if (peerConnection.signalingState === 'have-local-offer') {
+                    console.log(`Glare detected with user ${data.senderId}. Current state: have-local-offer. Resolving conflict...`);
+                    // Compare user IDs to resolve glare
+                    if (currentUser.id < data.senderId) {
+                        console.log(`Winning glare resolution, processing offer from ${data.senderId}`);
+                        // This client wins, proceed to set remote offer and send answer
+                    } else {
+                        console.log(`Losing glare resolution, ignoring offer from ${data.senderId}.`);
+                        // This client loses, ignore the incoming offer and wait for the other side's answer to our offer
+            return;
+                    }
+                }
+                 // If state is stable, it's likely the initial offer, proceed.
+                 // If state is neither 'have-local-offer' nor 'stable' (and not invalid), log a warning.
+                 else if (peerConnection.signalingState !== 'stable') {
+                     console.warn(`Received offer for ${data.senderId} in state ${peerConnection.signalingState}. Proceeding with caution.`);
+                 }
+
+                 // If state is invalid for setting a remote offer, ignore.
+                 if (peerConnection.signalingState === 'have-remote-offer' || peerConnection.signalingState === 'closed') {
+                      console.log(`Ignoring received offer for ${data.senderId} in invalid signaling state: ${peerConnection.signalingState}.`);
+                      return; // Ignore offer if state is invalid for setting a remote offer
+                 }
             }
-            // Always set ontrack handler
-            peerConnection.ontrack = (event) => {
-                console.log('[WebRTC] [OFFER] Received remote track event:', event);
-                if (event.streams && event.streams.length > 0) {
-                    const stream = event.streams[0];
-                    const tracks = stream.getTracks();
-                    console.log('[WebRTC] [OFFER] Remote stream tracks:', tracks);
-                    const existingAudio = document.getElementById(`audio-${data.senderId}`);
-                    if (existingAudio) existingAudio.remove();
-                    const audioElement = document.createElement('audio');
-                    audioElement.id = `audio-${data.senderId}`;
-                    audioElement.srcObject = stream;
-                    audioElement.autoplay = true;
-                    audioElement.muted = isDeafened;
-                    audioElement.volume = 1.0;
-                    audioElement.onloadedmetadata = () => {
-                        audioElement.play().catch(e => console.error('[WebRTC] [OFFER] Error playing remote audio:', e));
-                    };
-                    document.body.appendChild(audioElement);
-                    console.log('[WebRTC] [OFFER] Audio element created for remote user:', data.senderId);
-                } else {
-                    console.error('[WebRTC] [OFFER] No streams in remote track event');
+
+            if (peerConnection) {
+                // Proceed to set remote description and create/send answer
+                try {
+                    console.log(`Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    
+                    // Create and send answer only after setting remote offer
+                    console.log(`Creating answer for ${data.senderId}`);
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    console.log('Sending answer:', answer);
+                    socket.emit('answer', {
+                        targetUserId: data.senderId,
+                        answer: answer
+                    });
+                } catch (error) {
+                    console.error('Error handling offer (setting remote description or creating answer):', error);
+                    // Close connection on error to prevent hanging states
+                    peerConnection.close(); 
+                    delete peerConnections[data.senderId];
                 }
-            };
-            // Set remote description and create/send answer
-            try {
-                console.log(`[WebRTC] Setting remote description (offer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                // Add our own audio track if not already present
-                const senders = peerConnection.getSenders();
-                const hasAudio = senders.some(s => s.track && s.track.kind === 'audio');
-                let streamToSend = processedStream && processedStream.getAudioTracks().length > 0 ? processedStream : localStream;
-                if (!hasAudio && streamToSend && streamToSend.getAudioTracks().length > 0) {
-                    const audioTrack = streamToSend.getAudioTracks()[0];
-                    peerConnection.addTrack(audioTrack, streamToSend);
-                    console.log('[WebRTC] [OFFER] Added local audio track to peer connection:', audioTrack);
-                }
-                // Create and send answer
-                console.log(`[WebRTC] Creating answer for ${data.senderId}`);
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                console.log('[WebRTC] Sending answer:', answer);
-                socket.emit('answer', {
-                    targetUserId: data.senderId,
-                    answer: answer
-                });
-            } catch (error) {
-                console.error('[WebRTC] Error handling offer (setting remote description or creating answer):', error);
-                peerConnection.close(); 
-                delete peerConnections[data.senderId];
+            } else {
+                 console.error('Failed to create or find peer connection for offer processing');
             }
         } catch (error) {
-            console.error('[WebRTC] Error handling received offer event:', error);
+            console.error('Error handling received offer event:', error);
         }
     });
 
     socket.on('answer', async (data) => {
-        console.log('[WebRTC] Received answer:', data);
+        console.log('Received answer:', data);
         try {
             const peerConnection = peerConnections[data.senderId];
             if (peerConnection) {
+                // Check signaling state before setting remote description
+                // An answer should typically be received when the state is 'have-local-offer'
                 if (peerConnection.signalingState === 'have-local-offer') {
                     try {
-                        console.log(`[WebRTC] Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        console.log(`Setting remote description (answer) for ${data.senderId} in state: ${peerConnection.signalingState}`);
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+
                         // Process any queued ICE candidates
                         if (peerConnection.queuedIceCandidates && peerConnection.queuedIceCandidates.length > 0) {
-                            console.log(`[WebRTC] Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
-                            for (const candidate of peerConnection.queuedIceCandidates) {
+                            console.log(`Processing ${peerConnection.queuedIceCandidates.length} queued ICE candidates for ${data.senderId}`);
+            for (const candidate of peerConnection.queuedIceCandidates) {
                                 try {
-                                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                                 } catch (error) {
-                                    console.warn('[WebRTC] Error adding queued ICE candidate:', error);
+                                    console.warn('Error adding queued ICE candidate:', error);
                                 }
-                            }
-                            peerConnection.queuedIceCandidates = [];
-                        }
-                    } catch (error) {
-                        console.error('[WebRTC] Error setting remote description:', error);
+            }
+            peerConnection.queuedIceCandidates = [];
+        }
+    } catch (error) {
+                        console.error('Error setting remote description:', error);
+                        // Close connection on error to prevent hanging states
                         peerConnection.close();
                         delete peerConnections[data.senderId];
                     }
                 } else {
-                    console.warn(`[WebRTC] Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}. Ignoring answer.`);
+                    console.warn(`Received answer in unexpected signaling state: ${peerConnection.signalingState} for user ${data.senderId}. Ignoring answer.`);
+                    // If we receive an answer in a state like 'stable', it likely means the offer/answer 
+                    // exchange is already complete or in a confused state. Ignoring it is safer than 
+                    // attempting to set it, which causes the InvalidStateError.
                 }
             } else {
-                console.warn(`[WebRTC] Received answer for unknown or closed peer connection with user ${data.senderId}.`);
+                console.warn(`Received answer for unknown or closed peer connection with user ${data.senderId}.`);
             }
         } catch (error) {
-            console.error('[WebRTC] Error handling received answer event:', error);
+            console.error('Error handling received answer event:', error);
         }
     });
 
@@ -2968,255 +2970,3 @@ updateUsersList = function(usersArr) {
         document.head.appendChild(style);
     }
 })();
-
-// Add Voice FX Modal HTML to the DOM on page load
-window.addEventListener('DOMContentLoaded', () => {
-    const modal = document.createElement('div');
-    modal.id = 'voiceFxModalOverlay';
-    modal.style.display = 'none';
-    modal.innerHTML = `
-        <div id="voiceFxModal" class="voicefx-modal">
-            <button id="closeVoiceFxModal" class="close-voicefx-modal">&times;</button>
-            <div class="voicefx-header">
-                <i class="fas fa-robot"></i>
-                <span>Voice Modulation</span>
-            </div>
-            <div class="voicefx-options">
-                <label><input type="radio" name="voicefx" value="none" checked> None</label>
-                <label><input type="radio" name="voicefx" value="robot"> Robot</label>
-                <label><input type="radio" name="voicefx" value="chipmunk"> Chipmunk</label>
-                <label><input type="radio" name="voicefx" value="deep"> Deep</label>
-                <label><input type="radio" name="voicefx" value="echo"> Echo</label>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    // Show modal on Voice FX button click
-    const voiceFxBtn = document.getElementById('voiceFxBtn');
-    if (voiceFxBtn) {
-        voiceFxBtn.addEventListener('click', () => {
-            modal.style.display = 'flex';
-        });
-    }
-    // Close modal logic
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-    document.getElementById('closeVoiceFxModal').addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-});
-
-// --- VOICE FX (Voice Modulation) ---
-let currentVoiceFx = 'none';
-let voiceFxNodes = { source: null, effect: null, destination: null };
-let processedStream = null;
-
-// --- PATCH: Robust VoiceFX and WebRTC Audio Handling ---
-function setupVoiceFxChain(effectName) {
-    if (!audioContext || !localStream) return;
-    // Only disconnect effect nodes, keep source-destination connection
-    if (voiceFxNodes.effect) {
-        try {
-            voiceFxNodes.source.disconnect(voiceFxNodes.effect);
-            if (voiceFxNodes.effect.disconnect) voiceFxNodes.effect.disconnect();
-        } catch (e) { /* ignore */ }
-    }
-    // Create new source node if needed
-    if (!voiceFxNodes.source) {
-        voiceFxNodes.source = audioContext.createMediaStreamSource(localStream);
-    }
-    // Create destination if needed
-    if (!voiceFxNodes.destination) {
-        voiceFxNodes.destination = audioContext.createMediaStreamDestination();
-    }
-    // Effect selection
-    let effectNode = null;
-    switch (effectName) {
-        case 'robot': {
-            const ringMod = audioContext.createGain();
-            const osc = audioContext.createOscillator();
-            osc.type = 'square';
-            osc.frequency.value = 30;
-            const oscGain = audioContext.createGain();
-            oscGain.gain.value = 0.5;
-            osc.connect(oscGain);
-            oscGain.connect(ringMod.gain);
-            osc.start();
-            effectNode = ringMod;
-            break;
-        }
-        case 'chipmunk': {
-            const pitch = audioContext.createBiquadFilter();
-            pitch.type = 'highshelf';
-            pitch.frequency.value = 1500;
-            pitch.gain.value = 18;
-            effectNode = pitch;
-            break;
-        }
-        case 'deep': {
-            const pitch = audioContext.createBiquadFilter();
-            pitch.type = 'lowshelf';
-            pitch.frequency.value = 300;
-            pitch.gain.value = 15;
-            effectNode = pitch;
-            break;
-        }
-        case 'echo': {
-            const delay = audioContext.createDelay();
-            delay.delayTime.value = 0.18;
-            const feedback = audioContext.createGain();
-            feedback.gain.value = 0.35;
-            delay.connect(feedback);
-            feedback.connect(delay);
-            effectNode = delay;
-            break;
-        }
-        case 'none':
-        default: {
-            // Direct connection for no effect
-            try {
-                voiceFxNodes.source.disconnect();
-            } catch (e) { /* ignore */ }
-            voiceFxNodes.source.connect(voiceFxNodes.destination);
-            voiceFxNodes.effect = null;
-            processedStream = voiceFxNodes.destination.stream;
-            currentVoiceFx = effectName;
-            return;
-        }
-    }
-    // Connect nodes: source -> effect -> destination
-    try {
-        voiceFxNodes.source.disconnect();
-    } catch (e) { /* ignore */ }
-    voiceFxNodes.source.connect(effectNode);
-    effectNode.connect(voiceFxNodes.destination);
-    voiceFxNodes.effect = effectNode;
-    processedStream = voiceFxNodes.destination.stream;
-    currentVoiceFx = effectName;
-}
-
-// Patch createPeerConnection to use processedStream only if effect is active
-async function createPeerConnection(userId, isInitiator) {
-    try {
-        console.log(`[WebRTC] Creating peer connection for ${userId}, isInitiator: ${isInitiator}`);
-        if (peerConnections[userId]) {
-            console.log(`[WebRTC] Closing existing connection to ${userId}`);
-            peerConnections[userId].close();
-            delete peerConnections[userId];
-        }
-        const configuration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                {
-                    urls: 'turn:relay1.expressturn.com:3480',
-                    username: '000000002064061488',
-                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
-                }
-            ],
-            iceTransportPolicy: 'all',
-            iceCandidatePoolSize: 10,
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require',
-        };
-        const peerConnection = new RTCPeerConnection(configuration);
-        peerConnections[userId] = peerConnection;
-        peerConnection.queuedIceCandidates = [];
-        // Use localStream by default, processedStream only if effect is active
-        const streamToSend = (currentVoiceFx !== 'none' && processedStream) ? processedStream : localStream;
-        const audioTrack = streamToSend.getAudioTracks()[0];
-        if (audioTrack) {
-            peerConnection.addTrack(audioTrack, streamToSend);
-            console.log('[WebRTC] Added audio track to peer connection:', {
-                track: audioTrack,
-                stream: streamToSend,
-                effect: currentVoiceFx
-            });
-        }
-        // Connection state logging
-        peerConnection.onconnectionstatechange = () => {
-            console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
-            if (peerConnection.connectionState === 'failed') {
-                console.log(`Recreating connection to ${userId}`);
-                createPeerConnection(userId, isInitiator);
-            }
-        };
-        // ... rest of function unchanged ...
-    } catch (error) {
-        console.error('[WebRTC] Error creating peer connection:', error);
-        return null;
-    }
-}
-
-// Patch initializeWebRTC to always start with 'none' effect and connect analyser
-async function initializeWebRTC() {
-    try {
-        console.log('[WebRTC] Initializing WebRTC...');
-        localStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-            },
-            video: false
-        });
-        console.log('[WebRTC] Audio stream obtained:', localStream, localStream.getAudioTracks());
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.8;
-        // Initialize with no effect first
-        setupVoiceFxChain('none');
-        // Connect analyser to source for VAD
-        if (voiceFxNodes.source) {
-            voiceFxNodes.source.connect(analyser);
-        }
-        startVoiceActivityDetection();
-        if (processedStream) {
-            console.log('[WebRTC] Processed stream ready:', processedStream, processedStream.getAudioTracks());
-        } else {
-            console.warn('[WebRTC] No processedStream, will use localStream for outgoing audio');
-        }
-        return true;
-    } catch (error) {
-        console.error('[WebRTC] Error initializing WebRTC:', error);
-        warningMessage.textContent = 'Error accessing microphone. Please check your permissions.';
-        return false;
-    }
-}
-
-// Patch VoiceFX change listener for robust error handling and fallback
-window.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById('voiceFxModalOverlay');
-    if (!modal) return;
-    modal.addEventListener('change', (e) => {
-        if (e.target && e.target.name === 'voicefx') {
-            const newEffect = e.target.value;
-            try {
-                setupVoiceFxChain(newEffect);
-                if (processedStream) {
-                    const newTrack = processedStream.getAudioTracks()[0];
-                    Object.values(peerConnections).forEach(pc => {
-                        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
-                        if (sender && newTrack) {
-                            sender.replaceTrack(newTrack).catch(err => {
-                                console.error('Error replacing track:', err);
-                                // Fallback to local stream
-                                if (localStream) {
-                                    sender.replaceTrack(localStream.getAudioTracks()[0]);
-                                }
-                            });
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error('Error applying voice effect:', err);
-                // Fallback to no effect
-                setupVoiceFxChain('none');
-            }
-        }
-    });
-});
