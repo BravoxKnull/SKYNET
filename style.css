@@ -2017,4 +2017,100 @@ body {
 .privacy-link:hover {
     color: var(--accent-color, #0db9d7);
     text-shadow: 0 0 8px var(--primary-color, #a370f7), 0 0 16px var(--accent-color, #0db9d7);
+}
+
+/* Voice FX Modal Styles */
+#voiceFxModalOverlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(26, 27, 38, 0.65);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+}
+#voiceFxModalOverlay[style*="display: flex"] {
+    display: flex !important;
+}
+.voicefx-modal {
+    background: var(--glass-bg, rgba(36, 37, 54, 0.92));
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow, 0 12px 40px 0 rgba(0,0,0,0.5));
+    border: 2px solid var(--border-color, rgba(163,112,247,0.2));
+    padding: 2.2rem 2rem 2rem 2rem;
+    color: var(--text-color, #e0e0e0);
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    min-width: 320px;
+    max-width: 95vw;
+    min-height: 220px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeInScale 0.5s cubic-bezier(.4,2,.6,1);
+}
+.close-voicefx-modal {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    background: none;
+    border: none;
+    color: var(--primary-color, #a370f7);
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.2s;
+    z-index: 10;
+}
+.close-voicefx-modal:hover {
+    color: var(--accent-color, #0db9d7);
+}
+.voicefx-header {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary-color, #a370f7);
+    margin-bottom: 1.2rem;
+    letter-spacing: 1.5px;
+}
+.voicefx-header i {
+    font-size: 2rem;
+    filter: drop-shadow(0 2px 12px #a370f7aa);
+}
+.voicefx-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+.voicefx-options label {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 1.08rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    transition: background 0.2s, color 0.2s;
+    background: transparent;
+}
+.voicefx-options label:hover, .voicefx-options input[type="radio"]:focus + label {
+    background: var(--hover-bg, rgba(163,112,247,0.1));
+    color: var(--primary-color, #a370f7);
+}
+.voicefx-options input[type="radio"] {
+    accent-color: var(--primary-color, #a370f7);
+    width: 1.1rem;
+    height: 1.1rem;
+}
+@media (max-width: 600px) {
+    .voicefx-modal {
+        min-width: 90vw;
+        padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+    }
 } 

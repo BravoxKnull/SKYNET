@@ -2970,3 +2970,227 @@ updateUsersList = function(usersArr) {
         document.head.appendChild(style);
     }
 })();
+
+// Add Voice FX Modal HTML to the DOM on page load
+window.addEventListener('DOMContentLoaded', () => {
+    const modal = document.createElement('div');
+    modal.id = 'voiceFxModalOverlay';
+    modal.style.display = 'none';
+    modal.innerHTML = `
+        <div id="voiceFxModal" class="voicefx-modal">
+            <button id="closeVoiceFxModal" class="close-voicefx-modal">&times;</button>
+            <div class="voicefx-header">
+                <i class="fas fa-robot"></i>
+                <span>Voice Modulation</span>
+            </div>
+            <div class="voicefx-options">
+                <label><input type="radio" name="voicefx" value="none" checked> None</label>
+                <label><input type="radio" name="voicefx" value="robot"> Robot</label>
+                <label><input type="radio" name="voicefx" value="chipmunk"> Chipmunk</label>
+                <label><input type="radio" name="voicefx" value="deep"> Deep</label>
+                <label><input type="radio" name="voicefx" value="echo"> Echo</label>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Show modal on Voice FX button click
+    const voiceFxBtn = document.getElementById('voiceFxBtn');
+    if (voiceFxBtn) {
+        voiceFxBtn.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+    }
+    // Close modal logic
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    document.getElementById('closeVoiceFxModal').addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+});
+
+// --- VOICE FX (Voice Modulation) ---
+let currentVoiceFx = 'none';
+let voiceFxNodes = { source: null, effect: null, destination: null };
+let processedStream = null;
+
+function setupVoiceFxChain(effectName) {
+    if (!audioContext || !localStream) return;
+    // Disconnect previous nodes
+    if (voiceFxNodes.source) voiceFxNodes.source.disconnect();
+    if (voiceFxNodes.effect) voiceFxNodes.effect.disconnect();
+    if (voiceFxNodes.destination) voiceFxNodes.destination.disconnect();
+
+    // Create nodes
+    const source = audioContext.createMediaStreamSource(localStream);
+    let effectNode = null;
+    const destination = audioContext.createMediaStreamDestination();
+
+    // Effect selection
+    switch (effectName) {
+        case 'robot': {
+            // Simple ring modulator (robotic)
+            const ringMod = audioContext.createGain();
+            const osc = audioContext.createOscillator();
+            osc.type = 'square';
+            osc.frequency.value = 30; // 30Hz for robot
+            const oscGain = audioContext.createGain();
+            oscGain.gain.value = 0.5;
+            osc.connect(oscGain);
+            oscGain.connect(ringMod.gain);
+            osc.start();
+            source.connect(ringMod);
+            effectNode = ringMod;
+            break;
+        }
+        case 'chipmunk': {
+            // Pitch up (chipmunk) - use playbackRate hack
+            // Not perfect, but simple for demo
+            const pitch = audioContext.createBiquadFilter();
+            pitch.type = 'highshelf';
+            pitch.frequency.value = 1500;
+            pitch.gain.value = 18;
+            source.connect(pitch);
+            effectNode = pitch;
+            break;
+        }
+        case 'deep': {
+            // Pitch down (deep voice) - use lowshelf
+            const pitch = audioContext.createBiquadFilter();
+            pitch.type = 'lowshelf';
+            pitch.frequency.value = 300;
+            pitch.gain.value = 15;
+            source.connect(pitch);
+            effectNode = pitch;
+            break;
+        }
+        case 'echo': {
+            // Simple echo
+            const delay = audioContext.createDelay();
+            delay.delayTime.value = 0.18;
+            const feedback = audioContext.createGain();
+            feedback.gain.value = 0.35;
+            delay.connect(feedback);
+            feedback.connect(delay);
+            source.connect(delay);
+            effectNode = delay;
+            break;
+        }
+        case 'none':
+        default: {
+            // Bypass
+            source.connect(destination);
+            effectNode = null;
+            break;
+        }
+    }
+    if (effectNode) effectNode.connect(destination);
+    voiceFxNodes = { source, effect: effectNode, destination };
+    processedStream = destination.stream;
+}
+
+// Listen for changes in the Voice FX modal
+window.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('voiceFxModalOverlay');
+    if (!modal) return;
+    modal.addEventListener('change', (e) => {
+        if (e.target && e.target.name === 'voicefx') {
+            currentVoiceFx = e.target.value;
+            setupVoiceFxChain(currentVoiceFx);
+            // Replace outgoing audio track in all peer connections
+            if (processedStream) {
+                const newTrack = processedStream.getAudioTracks()[0];
+                Object.values(peerConnections).forEach(pc => {
+                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+                    if (sender && newTrack) {
+                        sender.replaceTrack(newTrack);
+                    }
+                });
+            }
+        }
+    });
+});
+
+// Patch initializeWebRTC to use processedStream for outgoing audio
+async function initializeWebRTC() {
+    try {
+        console.log('Initializing WebRTC...');
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            },
+            video: false
+        });
+        console.log('Audio stream obtained successfully');
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        // Setup initial voice FX chain
+        setupVoiceFxChain(currentVoiceFx);
+        // Connect analyser for VAD
+        if (voiceFxNodes.source) voiceFxNodes.source.connect(analyser);
+        // Start audio context if it's suspended
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        startVoiceActivityDetection();
+        console.log('Audio context and analyser initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('Error initializing WebRTC:', error);
+        warningMessage.textContent = 'Error accessing microphone. Please check your permissions.';
+        return false;
+    }
+}
+// Patch createPeerConnection to use processedStream
+async function createPeerConnection(userId, isInitiator) {
+    try {
+        console.log(`Creating peer connection for ${userId}, isInitiator: ${isInitiator}`);
+        if (peerConnections[userId]) {
+            console.log(`Closing existing connection to ${userId}`);
+            peerConnections[userId].close();
+            delete peerConnections[userId];
+        }
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: 'turn:relay1.expressturn.com:3480',
+                    username: '000000002064061488',
+                    credential: 'Y4KkTGe7+4T5LeMWjkXn5T5Zv54='
+                }
+            ],
+            iceTransportPolicy: 'all',
+            iceCandidatePoolSize: 10,
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+        };
+        const peerConnection = new RTCPeerConnection(configuration);
+        peerConnections[userId] = peerConnection;
+        peerConnection.queuedIceCandidates = [];
+        // Use processedStream for outgoing audio
+        const streamToSend = processedStream || localStream;
+        if (streamToSend) {
+            const audioTrack = streamToSend.getAudioTracks()[0];
+            if (audioTrack) {
+                peerConnection.addTrack(audioTrack, streamToSend);
+            } else {
+                console.error('No audio track found in stream');
+                return null;
+            }
+        } else {
+            console.error('No stream available');
+            return null;
+        }
+        // ... rest of function unchanged ...
+    } catch (error) {
+        console.error('Error creating peer connection:', error);
+        return null;
+    }
+}
