@@ -2631,3 +2631,23 @@ async function loadSoundboardSounds() {
         list.appendChild(btn);
     });
 }
+
+// --- LIVE UPDATE USER CARDS ON FRIENDSHIP CHANGES ---
+let userFriendsRealtimeChannel = null;
+async function subscribeUserFriendsRealtime() {
+    if (userFriendsRealtimeChannel) {
+        await supabase.removeChannel(userFriendsRealtimeChannel);
+        userFriendsRealtimeChannel = null;
+    }
+    userFriendsRealtimeChannel = supabase.channel('user-friends-userlist')
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'user_friends',
+        }, payload => {
+            // Refresh user cards (main user list)
+            updateUsersList(users);
+        });
+    await userFriendsRealtimeChannel.subscribe();
+}
+subscribeUserFriendsRealtime();
