@@ -113,19 +113,8 @@
                     <div class="welcome-subtitle">
                         Experience the future of voice communication
                     </div>
-                    <div class="welcome-features">
-                        <div class="feature">
-                            <i class="fas fa-microphone"></i>
-                            <span>Crystal Clear Voice</span>
-                        </div>
-                        <div class="feature">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Secure Connection</span>
-                        </div>
-                        <div class="feature">
-                            <i class="fas fa-bolt"></i>
-                            <span>Real-time Communication</span>
-                        </div>
+                    <div class="welcome-features" id="welcomeFeaturesCarousel">
+                        <!-- Carousel cards will be injected here -->
                     </div>
                 </div>
             </section>
@@ -460,11 +449,117 @@
                 }
             };
         }
+
+        // Welcome Features Carousel
+        const welcomeFeatures = [
+            {
+                icon: 'fas fa-microphone',
+                title: 'Crystal Clear Voice',
+                more: 'Experience ultra-low latency, high-fidelity audio for every conversation.'
+            },
+            {
+                icon: 'fas fa-shield-alt',
+                title: 'Secure Connection',
+                more: 'End-to-end encryption keeps your chats private and protected.'
+            },
+            {
+                icon: 'fas fa-bolt',
+                title: 'Real-time Communication',
+                more: 'Instant voice delivery with no lag, even across continents.'
+            }
+        ];
+        const welcomeFeaturesCarousel = document.getElementById('welcomeFeaturesCarousel');
+        let currentWelcomeFeature = 0;
+        function renderWelcomeFeature(idx) {
+            welcomeFeaturesCarousel.innerHTML = '';
+            const f = welcomeFeatures[idx];
+            const card = document.createElement('div');
+            card.className = 'feature feature-carousel-card active';
+            card.innerHTML = `
+                <div class="feature-icon"><i class="${f.icon}"></i></div>
+                <div class="feature-title">${f.title}</div>
+                <div class="feature-more">${f.more}</div>
+            `;
+            welcomeFeaturesCarousel.appendChild(card);
+        }
+        function animateWelcomeFeature(nextIdx) {
+            const oldCard = document.querySelector('.feature-carousel-card.active');
+            if (oldCard) {
+                oldCard.classList.remove('active');
+                oldCard.style.transform = 'translateX(-60px) scale(0.98)';
+                oldCard.style.opacity = '0';
+                setTimeout(() => {
+                    renderWelcomeFeature(nextIdx);
+                }, 500);
+            } else {
+                renderWelcomeFeature(nextIdx);
+            }
+        }
+        renderWelcomeFeature(currentWelcomeFeature);
+        setInterval(() => {
+            const next = (currentWelcomeFeature + 1) % welcomeFeatures.length;
+            animateWelcomeFeature(next);
+            currentWelcomeFeature = next;
+        }, 3200);
     </script>
     <script src="main.js"></script>
 
     <!-- Audio elements for notifications -->
     <audio id="userJoinedSound" src="assets/sounds/user_joined.mp3" preload="auto"></audio>
     <audio id="userLeftSound" src="assets/sounds/user_left.mp3" preload="auto"></audio>
+
+    <style>
+        .feature-carousel-card {
+            min-width: 340px;
+            max-width: 480px;
+            background: var(--card-bg, rgba(36, 37, 54, 0.92));
+            border-radius: 22px;
+            box-shadow: var(--glass-shadow, 0 12px 40px 0 rgba(0,0,0,0.5));
+            border: 2px solid var(--border-color, rgba(163,112,247,0.2));
+            padding: 2.2rem 2rem 2rem 2rem;
+            color: var(--text-color, #e0e0e0);
+            font-family: 'Orbitron', 'Roboto', sans-serif;
+            font-size: 1.18rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transform: translateX(60px) scale(0.98);
+            transition: opacity 0.7s cubic-bezier(.4,2,.6,1), transform 0.7s cubic-bezier(.4,2,.6,1);
+            pointer-events: none;
+        }
+        .feature-carousel-card.active {
+            opacity: 1;
+            transform: translateX(0) scale(1.04);
+            pointer-events: auto;
+        }
+        .feature-carousel-card .feature-icon {
+            font-size: 2.2rem;
+            color: var(--primary-color, #a370f7);
+            margin-bottom: 1.1rem;
+            filter: drop-shadow(0 2px 12px #a370f7aa);
+        }
+        .feature-carousel-card .feature-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-color, #a370f7);
+            margin-bottom: 0.6rem;
+            letter-spacing: 1.5px;
+        }
+        .feature-carousel-card .feature-more {
+            font-size: 1.01rem;
+            color: var(--accent-color, #0db9d7);
+            opacity: 0.85;
+            margin-top: 0.2rem;
+            text-align: center;
+        }
+        @media (max-width: 700px) {
+            .feature-carousel-card {
+                min-width: 98vw;
+                max-width: 100vw;
+                font-size: 0.98rem;
+            }
+        }
+    </style>
 </body>
 </html> 
