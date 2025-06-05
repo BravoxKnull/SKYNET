@@ -2401,21 +2401,37 @@ function renderSoundboardList() {
     document.getElementById('soundboardLabelConfirm').onclick = async () => {
         const label = document.getElementById('soundboardLabelInput').value.trim();
         if (!label || !pendingFile) return;
-        // Upload to Supabase Storage
+        // Upload to Cloudinary
         const user = getCurrentUser();
-        const filePath = `${user.id}/${Date.now()}_${pendingFile.name}`;
-        let { data, error } = await supabase.storage.from('soundboard').upload(filePath, pendingFile);
-        if (error) { alert('Upload failed: ' + error.message); return; }
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage.from('soundboard').getPublicUrl(filePath);
-        const fileUrl = publicUrlData.publicUrl;
-        // Insert into DB
-        await supabase.from('soundboard_sounds').insert([
-            { user_id: user.id, file_url: fileUrl, label }
-        ]);
-        labelInputRow.style.display = 'none';
-        pendingFile = null;
-        loadSoundboardSounds();
+        const formData = new FormData();
+        formData.append('file', pendingFile);
+        formData.append('upload_preset', 'skynet_soundboard');
+        formData.append('folder', user.id + '/soundboard');
+        try {
+            const res = await fetch('https://api.cloudinary.com/v1_1/dnfq5swp9/auto/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (!data.secure_url) {
+                alert('Cloudinary upload failed: ' + (data.error?.message || 'Unknown error. Make sure the unsigned preset "skynet_soundboard" exists in your Cloudinary dashboard.'));
+                labelInputRow.style.display = 'none';
+                pendingFile = null;
+                return;
+            }
+            const fileUrl = data.secure_url;
+            // Insert into DB
+            await supabase.from('soundboard_sounds').insert([
+                { user_id: user.id, file_url: fileUrl, label }
+            ]);
+            labelInputRow.style.display = 'none';
+            pendingFile = null;
+            loadSoundboardSounds();
+        } catch (err) {
+            alert('Cloudinary upload error: ' + err.message);
+            labelInputRow.style.display = 'none';
+            pendingFile = null;
+        }
     };
     document.getElementById('soundboardLabelCancel').onclick = () => {
         labelInputRow.style.display = 'none';
