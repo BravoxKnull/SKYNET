@@ -130,12 +130,13 @@ body {
     grid-template-areas:
         "header header"
         "main sidebar"
+        "privatechannels privatechannels"
         "footer footer";
-    grid-template-columns: 1fr 250px; /* Adjusted sidebar width */
-    grid-template-rows: auto 1fr auto; /* Ensure main area takes available space, pushing footer down */
+    grid-template-columns: 1fr 250px;
+    grid-template-rows: auto 1fr auto auto;
     min-height: 100vh;
-    overflow: hidden; /* Prevent double scrollbars */
-    background-color: transparent; /* Make app-container background transparent to show body pattern */
+    overflow: hidden;
+    background-color: transparent;
     position: relative;
 }
 
@@ -1583,6 +1584,7 @@ body {
 
 /* Private Channels Section */
 .private-channels-section {
+    grid-area: privatechannels;
     width: 100vw;
     min-height: 260px;
     height: 320px;
