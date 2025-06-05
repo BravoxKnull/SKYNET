@@ -1005,19 +1005,18 @@ async function updateUsersList(users) {
     for (const userData of uniqueUsers.values()) {
         try {
             const userItem = createUserListItem(userData);
-    usersList.appendChild(userItem);
+            usersList.appendChild(userItem);
 
             if (!userData.avatar_url) {
                 const { data, error } = await supabase
                     .from('users')
                     .select('avatar_url')
                     .eq('id', userData.id)
-                    .single();
-
-                if (!error && data && data.avatar_url) {
+                    .limit(1);
+                if (!error && data && data.length > 0 && data[0].avatar_url) {
                     const img = userItem.querySelector('.user-avatar');
                     if (img) {
-                        img.src = data.avatar_url;
+                        img.src = data[0].avatar_url;
                     }
                 }
             }
