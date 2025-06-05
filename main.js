@@ -1464,31 +1464,25 @@ safeSetOnClick('screenshareBtn', function() {
 
 // Helper: Get friendship status between current user and another user
 async function getFriendshipStatus(currentUserId, otherUserId) {
-    if (!currentUserId || !otherUserId) {
-        console.error('getFriendshipStatus: Missing user IDs', currentUserId, otherUserId);
-        return null;
-    }
-    if (typeof currentUserId !== 'string' || typeof otherUserId !== 'string') {
-        console.error('getFriendshipStatus: IDs must be strings', currentUserId, otherUserId);
-        return null;
-    }
+    if (!currentUserId || !otherUserId) return null;
     try {
-        console.log('Querying user_friends with friendId:', otherUserId, 'status: pending');
-        if (!otherUserId || typeof otherUserId !== 'string') {
-            console.error('Invalid friendId for user_friends query:', otherUserId);
-            return null;
-        }
+        // Check for accepted or pending friendship in either direction
         const { data, error } = await supabase
             .from('user_friends')
-            .select('status')
-            .eq('friend_id', otherUserId)
-            .eq('status', 'pending'); // removed .maybeSingle()
+            .select('user_id, friend_id, status')
+            .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`);
         if (error) {
             console.error('getFriendshipStatus error:', error);
             return null;
         }
-        // data is an array; return the first status if present
-        return (data && data.length > 0) ? data[0].status : null;
+        if (!data || data.length === 0) return null;
+        // If any row is accepted, return 'accepted'
+        if (data.some(row => row.status === 'accepted')) return 'accepted';
+        // If any row is pending and you sent it
+        if (data.some(row => row.status === 'pending' && row.user_id === currentUserId)) return 'pending';
+        // If any row is pending and they sent it
+        if (data.some(row => row.status === 'pending' && row.user_id === otherUserId)) return 'incoming';
+        return null;
     } catch (err) {
         console.error('getFriendshipStatus exception:', err);
         return null;
@@ -1624,6 +1618,16 @@ createUserListItem = function(userData) {
         } else if (status === 'pending') {
             friendBtn.textContent = 'Request Sent';
             friendBtn.disabled = true;
+        } else if (status === 'incoming') {
+            friendBtn.textContent = 'Accept Request';
+            friendBtn.disabled = false;
+            friendBtn.onclick = async (e) => {
+                e.stopPropagation();
+                await acceptFriendRequest(currentUser.id, userData.id);
+                friendBtn.textContent = 'You are friends';
+                friendBtn.disabled = true;
+            };
+            return;
         } else {
             friendBtn.textContent = 'Add Friend';
             friendBtn.disabled = false;
