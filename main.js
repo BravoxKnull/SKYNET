@@ -3725,3 +3725,94 @@ function setPrivateVoiceUserSpeaking(userId, speaking) {
         document.head.appendChild(style);
     }
 })();
+
+// 1. Add a currentChannel state variable
+let currentChannel = { type: 'public', id: null };
+
+// 2. Remove all privateVoiceArea, joinPrivateVoiceBtn, and related DOM/logic
+// (Remove all code that references privateVoiceArea, joinPrivateVoiceBtn, privateVoiceSocket, privateVoicePeerConnections, etc.)
+// Instead, use usersList, muteBtn, deafenBtn, leaveBtn, and channelSection for both public and private channels.
+
+// 3. Refactor join/leave logic for channels
+async function joinChannel(channel) {
+    // channel: { type: 'public'|'private', id: string|null, name: string }
+    // Clean up any existing connections/UI
+    await leaveCurrentChannel();
+    currentChannel = channel;
+    // Update UI
+    welcomeSection.classList.add('hidden');
+    channelSection.classList.remove('hidden');
+    channelSection.classList.add('visible');
+    // Set channel name
+    channelSection.querySelector('.channel-info h2').textContent = channel.type === 'public' ? 'DUNE PC' : channel.name;
+    // Initialize WebRTC and socket for this channel
+    await initializeWebRTC();
+    if (!socket) initializeSocket();
+    // Join the correct room on the server
+    socket.emit('joinChannel', {
+        id: currentUser.id,
+        displayName: displayName,
+        avatar_url: currentUser.avatar_url || null,
+        channelType: channel.type,
+        channelId: channel.id
+    });
+    // Fetch and update user list for this channel
+    // (Assume server sends correct user list for the room)
+}
+
+async function leaveCurrentChannel() {
+    // Clean up peer connections, UI, and socket for the current channel
+    channelSection.classList.remove('visible');
+    channelSection.classList.add('hidden');
+    usersList.innerHTML = '';
+    if (socket) {
+        socket.emit('leaveChannel', { channelType: currentChannel.type, channelId: currentChannel.id });
+        socket.disconnect();
+        socket = null;
+    }
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+    peerConnections = {};
+    users = [];
+}
+
+// 4. Update event listeners for joining/leaving channels
+joinBtn.addEventListener('click', async () => {
+    const name = displayNameInput.value.trim();
+    if (!name) {
+        warningMessage.textContent = 'Please enter your display name';
+        return;
+    }
+    if (!currentUser) {
+        warningMessage.textContent = 'User data not found. Please log in again.';
+        return;
+    }
+    joinBtn.classList.add('loading');
+    joinBtn.innerHTML = '<i class="fas fa-spinner"></i> Connecting...';
+    joinBtn.disabled = true;
+    displayName = name;
+    // Join DUNEPC (public channel)
+    await joinChannel({ type: 'public', id: null, name: 'DUNE PC' });
+    displayNameInput.disabled = true;
+    warningMessage.textContent = '';
+    joinBtn.classList.remove('loading');
+    joinBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
+    joinBtn.disabled = true;
+});
+
+// When selecting a private channel:
+async function handleSelectPrivateChannel(channelId, channelName) {
+    await joinChannel({ type: 'private', id: channelId, name: channelName });
+}
+
+// 5. Update all socket and peer connection logic to use currentChannel context
+// (Update socket event handlers, peer connection management, and user list updates to always use currentChannel)
+// ...
+// Remove all duplicate private voice chat logic and DOM usage
+// ... existing code ...
