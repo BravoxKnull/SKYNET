@@ -885,5 +885,82 @@
         // Initial load
         loadChannels();
     </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Create Channel Modal logic
+        const createChannelBtn = document.getElementById('createChannelBtn');
+        const createChannelModal = document.getElementById('createChannelModal');
+        if (createChannelBtn && createChannelModal) {
+            createChannelBtn.onclick = () => {
+                createChannelModal.innerHTML = `<div style='background:rgba(36,37,54,0.98);padding:2rem 2.5rem;border-radius:18px;max-width:340px;margin:2rem auto;box-shadow:0 8px 32px #000a;'>
+                    <h2 style='font-family:Orbitron,sans-serif;font-size:1.3rem;color:#a370f7;margin-bottom:1.2rem;'>Create Channel</h2>
+                    <input id='newChannelName' type='text' placeholder='Channel name' style='width:100%;padding:0.7rem 1rem;margin-bottom:1rem;border-radius:8px;border:1px solid #a370f7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                    <select id='newChannelType' style='width:100%;padding:0.7rem 1rem;margin-bottom:1.2rem;border-radius:8px;border:1px solid #0db9d7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                        <option value='public'>Public</option>
+                        <option value='private'>Private</option>
+                    </select>
+                    <button id='createChannelSubmit' style='width:100%;padding:0.8rem 0;font-weight:700;background:linear-gradient(90deg,#a370f7,#0db9d7);color:#fff;border:none;border-radius:8px;font-size:1.1rem;cursor:pointer;'>Create</button>
+                    <button id='createChannelCancel' style='width:100%;padding:0.7rem 0;margin-top:0.7rem;background:none;border:none;color:#aaa;font-size:1rem;cursor:pointer;'>Cancel</button>
+                </div>`;
+                createChannelModal.style.display = 'block';
+                document.getElementById('createChannelCancel').onclick = () => {
+                    createChannelModal.style.display = 'none';
+                };
+                document.getElementById('createChannelSubmit').onclick = async () => {
+                    const name = document.getElementById('newChannelName').value.trim();
+                    const type = document.getElementById('newChannelType').value;
+                    if (!name) return alert('Enter a channel name');
+                    // Insert channel
+                    const { data: channel, error } = await supabase.from('channels').insert([
+                        { name, type, owner_id: user.id }
+                    ]).select().single();
+                    if (error) return alert('Error creating channel');
+                    // Add creator to memberships as owner
+                    await supabase.from('memberships').insert([
+                        { user_id: user.id, channel_id: channel.id, role: 'owner' }
+                    ]);
+                    createChannelModal.style.display = 'none';
+                    loadChannels();
+                };
+            };
+        }
+        // Join Channel Modal logic
+        const joinChannelBtn = document.getElementById('joinChannelBtn');
+        const joinChannelModal = document.getElementById('joinChannelModal');
+        if (joinChannelBtn && joinChannelModal) {
+            joinChannelBtn.onclick = () => {
+                joinChannelModal.innerHTML = `<div style='background:rgba(36,37,54,0.98);padding:2rem 2.5rem;border-radius:18px;max-width:340px;margin:2rem auto;box-shadow:0 8px 32px #000a;'>
+                    <h2 style='font-family:Orbitron,sans-serif;font-size:1.3rem;color:#0db9d7;margin-bottom:1.2rem;'>Join Channel</h2>
+                    <input id='inviteCodeInput' type='text' placeholder='Invite code' style='width:100%;padding:0.7rem 1rem;margin-bottom:1.2rem;border-radius:8px;border:1px solid #0db9d7;background:rgba(26,27,38,0.8);color:#e0e0e0;font-size:1rem;'>
+                    <button id='joinChannelSubmit' style='width:100%;padding:0.8rem 0;font-weight:700;background:linear-gradient(90deg,#a370f7,#0db9d7);color:#fff;border:none;border-radius:8px;font-size:1.1rem;cursor:pointer;'>Join</button>
+                    <button id='joinChannelCancel' style='width:100%;padding:0.7rem 0;margin-top:0.7rem;background:none;border:none;color:#aaa;font-size:1rem;cursor:pointer;'>Cancel</button>
+                </div>`;
+                joinChannelModal.style.display = 'block';
+                document.getElementById('joinChannelCancel').onclick = () => {
+                    joinChannelModal.style.display = 'none';
+                };
+                document.getElementById('joinChannelSubmit').onclick = async () => {
+                    const code = document.getElementById('inviteCodeInput').value.trim();
+                    if (!code) return alert('Enter an invite code');
+                    // Validate invite
+                    const { data: invite, error } = await supabase.from('invites').select('*').eq('code', code).single();
+                    if (error || !invite) return alert('Invalid invite code');
+                    // Check if expired or max uses
+                    if (invite.expires_at && new Date(invite.expires_at) < new Date()) return alert('Invite expired');
+                    if (invite.max_uses && invite.uses >= invite.max_uses) return alert('Invite max uses reached');
+                    // Add to memberships
+                    const { error: joinError } = await supabase.from('memberships').insert([
+                        { user_id: user.id, channel_id: invite.channel_id, role: 'member' }
+                    ]);
+                    if (joinError) return alert('Error joining channel');
+                    // Increment uses
+                    await supabase.from('invites').update({ uses: (invite.uses || 0) + 1 }).eq('id', invite.id);
+                    joinChannelModal.style.display = 'none';
+                    loadChannels();
+                };
+            };
+        }
+    });
+    </script>
 </body>
 </html> 
