@@ -3725,3 +3725,59 @@ function setPrivateVoiceUserSpeaking(userId, speaking) {
         document.head.appendChild(style);
     }
 })();
+
+// ================= UNIFIED VOICE CHAT ENVIRONMENT =================
+// Remove all privateVoice* state, socket, and UI logic.
+// When joining a channel (DUNE PC or private), use the main channelSection and its logic.
+// Scope signaling/room to either 'dunepc' or 'private-<channel_id>' as needed.
+
+// --- Helper: Join Voice Channel (DUNE PC or Private) ---
+async function joinVoiceChannel(channelType, channelId = null) {
+    // channelType: 'dunepc' or 'private'
+    // channelId: private channel id if channelType is 'private'
+    let roomName = 'dunepc';
+    if (channelType === 'private' && channelId) {
+        roomName = 'private-' + channelId;
+    }
+    // Disconnect from any existing socket
+    if (socket) {
+        socket.disconnect();
+        socket = null;
+    }
+    // Reset peer connections and UI
+    Object.keys(peerConnections).forEach(userId => closePeerConnection(userId));
+    peerConnections = {};
+    users = [];
+    updateUsersList(users);
+    // Get audio stream
+    localStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false
+    });
+    // Connect to Socket.io with room
+    socket = io('https://skynet-mdy7.onrender.com', {
+        path: '/socket.io/',
+        transports: ['websocket', 'polling'],
+        query: { room: roomName },
+        forceNew: true,
+        withCredentials: true
+    });
+    // Reuse all main channelSection logic and event handlers
+    initializeSocket();
+    // Show main channelSection, hide others
+    welcomeSection.classList.add('hidden');
+    channelSection.classList.remove('hidden');
+    channelSection.classList.add('visible');
+    // Update UI title
+    const channelInfo = channelSection.querySelector('.channel-info h2');
+    if (channelType === 'private' && channelId) {
+        const privateChan = privateChannels.find(c => c.id === channelId);
+        channelInfo.textContent = privateChan ? privateChan.name : 'Private Channel';
+    } else {
+        channelInfo.textContent = 'DUNE PC';
+    }
+}
+
+// --- Patch: When user selects a private channel and clicks Join Voice, call joinVoiceChannel('private', channelId) ---
+// --- When user clicks Join DUNE PC, call joinVoiceChannel('dunepc') ---
+// --- Ensure only one voice chat area is ever visible ---
