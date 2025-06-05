@@ -634,6 +634,19 @@ async function loadChannels(serverId) {
 function renderChannelSidebar() {
     const header = channelSidebar.querySelector('.server-header');
     header.textContent = servers.find(s => s.id === currentServerId)?.name || '';
+    // Add dropdown for owned servers
+    const dropdown = document.createElement('span');
+    dropdown.className = 'dropdown';
+    dropdown.innerHTML = '<i class="fas fa-chevron-down"></i>';
+    const owned = serverIsOwned(currentServerId);
+    if (owned) {
+        dropdown.style.cursor = 'pointer';
+        dropdown.onclick = (e) => {
+            e.stopPropagation();
+            openInviteCodeModal(currentServerId);
+        };
+        header.appendChild(dropdown);
+    }
     // Remove old channels-section
     let section = channelSidebar.querySelector('.channels-section');
     if (section) section.remove();
@@ -768,6 +781,8 @@ function openAddServerModal() {
         <form id="createServerForm" style="display:block;flex-direction:column;gap:1.1rem;">
           <label style="font-size:1.01rem;font-weight:600;">Server Name</label>
           <input id="createServerName" type="text" required maxlength="32" placeholder="e.g. My Gaming Server" style="width:100%;padding:0.7rem 1rem;border-radius:7px;border:1.5px solid var(--neon2);background:var(--sidebar2-bg);color:var(--text);font-size:1.05rem;margin-bottom:1.1rem;">
+          <label style="font-size:1.01rem;font-weight:600;">Server Icon <span style='color:var(--neon2);font-size:0.95em;'>(optional, PNG/JPG/SVG, max 2MB)</span></label>
+          <input id="createServerIcon" type="file" accept="image/png,image/jpeg,image/svg+xml" style="width:100%;padding:0.5rem 0.2rem;margin-bottom:1.1rem;">
           <button type="submit" style="padding:0.8rem 1.2rem;font-size:1.1rem;background:var(--neon2);color:#fff;border:none;border-radius:8px;cursor:pointer;">Create Server</button>
         </form>
         <form id="joinServerForm" style="display:none;flex-direction:column;gap:1.1rem;">
@@ -776,6 +791,7 @@ function openAddServerModal() {
           <button type="submit" style="padding:0.8rem 1.2rem;font-size:1.1rem;background:var(--neon2);color:#fff;border:none;border-radius:8px;cursor:pointer;">Join Server</button>
         </form>
         <div id="addServerMsg" style="margin-top:1.2rem;font-size:1.01rem;"></div>
+        <div id="inviteCodeBox" style="display:none;margin-top:1.5rem;text-align:center;"></div>
       </div>
     `;
     document.body.appendChild(modal);
@@ -806,20 +822,34 @@ function openAddServerModal() {
     createForm.onsubmit = async (e) => {
       e.preventDefault();
       const name = modal.querySelector('#createServerName').value.trim();
+      const iconFile = modal.querySelector('#createServerIcon').files[0];
       if (!name) return;
       const msg = modal.querySelector('#addServerMsg');
       msg.textContent = 'Creating server...';
       msg.style.color = 'var(--neon2)';
       // Generate invite code
       const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      let iconUrl = null;
       try {
-        // Insert server
+        // Insert server (without icon_url for now)
         const { data: server, error: serverErr } = await supabase
           .from('servers')
           .insert([{ name, invite_code: inviteCode, created_at: new Date().toISOString() }])
           .select()
           .single();
         if (serverErr) throw serverErr;
+        // Upload icon if provided
+        if (iconFile) {
+          const ext = iconFile.name.split('.').pop().toLowerCase();
+          const filePath = `server-icons/${server.id}.${ext}`;
+          const { data: uploadData, error: uploadErr } = await supabase.storage.from('server-assets').upload(filePath, iconFile, { upsert: true, contentType: iconFile.type });
+          if (uploadErr) throw uploadErr;
+          // Get public URL
+          const { data: urlData } = supabase.storage.from('server-assets').getPublicUrl(filePath);
+          iconUrl = urlData.publicUrl;
+          // Update server with icon_url
+          await supabase.from('servers').update({ icon_url: iconUrl }).eq('id', server.id);
+        }
         // Add user as owner
         const { error: memberErr } = await supabase
           .from('server_members')
@@ -827,7 +857,16 @@ function openAddServerModal() {
         if (memberErr) throw memberErr;
         msg.textContent = 'Server created!';
         msg.style.color = 'var(--success)';
-        setTimeout(() => { document.getElementById('addServerModal').remove(); loadServers(); }, 1200);
+        // Show invite code
+        const inviteBox = modal.querySelector('#inviteCodeBox');
+        inviteBox.style.display = 'block';
+        inviteBox.innerHTML = `<div style=\"font-size:1.1rem;color:var(--neon2);margin-bottom:0.7rem;\">Invite Code:</div><div style=\"font-size:1.5rem;font-family:'Orbitron',sans-serif;letter-spacing:2px;background:var(--sidebar2-bg);padding:0.7rem 1.2rem;border-radius:8px;display:inline-block;\">${inviteCode}</div><br><button id=\"copyInviteBtn\" style=\"margin-top:0.7rem;padding:0.5rem 1.2rem;font-size:1.01rem;background:var(--neon2);color:#fff;border:none;border-radius:8px;cursor:pointer;\"><i class=\"fas fa-copy\"></i> Copy</button>`;
+        inviteBox.querySelector('#copyInviteBtn').onclick = () => {
+          navigator.clipboard.writeText(inviteCode);
+          inviteBox.querySelector('#copyInviteBtn').textContent = 'Copied!';
+          setTimeout(() => { inviteBox.querySelector('#copyInviteBtn').innerHTML = '<i class=\"fas fa-copy\"></i> Copy'; }, 1200);
+        };
+        setTimeout(() => { document.getElementById('addServerModal').remove(); loadServers(); }, 3200);
       } catch (err) {
         msg.textContent = 'Error: ' + (err.message || 'Could not create server');
         msg.style.color = 'var(--danger)';
@@ -863,6 +902,38 @@ function openAddServerModal() {
         msg.style.color = 'var(--danger)';
       }
     };
+}
+
+// --- View Invite Code Modal ---
+function openInviteCodeModal(serverId) {
+    if (document.getElementById('inviteCodeModal')) return;
+    const server = servers.find(s => s.id === serverId);
+    if (!server) return;
+    const modal = document.createElement('div');
+    modal.id = 'inviteCodeModal';
+    modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(20,20,30,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:var(--glass);padding:2.2rem 2rem;border-radius:18px;box-shadow:0 8px 40px #000b;min-width:320px;max-width:90vw;position:relative;">
+        <button onclick="document.getElementById('inviteCodeModal').remove()" style="position:absolute;top:18px;right:24px;background:none;border:none;font-size:1.5rem;color:var(--neon2);cursor:pointer;">&times;</button>
+        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.2rem;color:var(--neon2);margin-bottom:1.2rem;">Server Invite Code</h2>
+        <div style="font-size:1.1rem;color:var(--neon2);margin-bottom:0.7rem;">${server.name}</div>
+        <div style="font-size:1.5rem;font-family:'Orbitron',sans-serif;letter-spacing:2px;background:var(--sidebar2-bg);padding:0.7rem 1.2rem;border-radius:8px;display:inline-block;">${server.invite_code}</div><br>
+        <button id="copyInviteBtn2" style="margin-top:0.7rem;padding:0.5rem 1.2rem;font-size:1.01rem;background:var(--neon2);color:#fff;border:none;border-radius:8px;cursor:pointer;"><i class="fas fa-copy"></i> Copy</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('#copyInviteBtn2').onclick = () => {
+      navigator.clipboard.writeText(server.invite_code);
+      modal.querySelector('#copyInviteBtn2').textContent = 'Copied!';
+      setTimeout(() => { modal.querySelector('#copyInviteBtn2').innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 1200);
+    };
+}
+
+function serverIsOwned(serverId) {
+    // Check if user is owner of this server
+    // (Assumes you have a way to check role in servers array or fetch it)
+    // For now, always return true for demo; replace with real check if needed
+    return true;
 }
 
 // --- On Load ---
