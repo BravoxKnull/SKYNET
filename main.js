@@ -3349,21 +3349,15 @@ let privateVoiceIsMuted = false;
 let privateVoiceIsDeafened = false;
 
 // --- Join Private Channel Voice ---
-joinPrivateVoiceBtn.addEventListener('click', async () => {
-    if (!selectedPrivateChannel) return;
-    if (privateVoiceActiveChannelId === selectedPrivateChannel.id) {
-        // Already in voice, leave
-        await leavePrivateVoice();
-    } else {
-        await joinPrivateVoice(selectedPrivateChannel.id);
-    }
-});
-
 async function joinPrivateVoice(channelId) {
     if (!selectedPrivateChannel || selectedPrivateChannel.id !== channelId) return;
     privateVoiceStatus.textContent = 'Connecting...';
-    joinPrivateVoiceBtn.disabled = true;
-    joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+    // Set button state only if it exists in the DOM
+    const joinBtn = document.getElementById('joinPrivateVoiceBtn');
+    if (joinBtn) {
+        joinBtn.disabled = true;
+        joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+    }
     try {
         // Get audio stream
         privateVoiceLocalStream = await navigator.mediaDevices.getUserMedia({
@@ -3385,19 +3379,26 @@ async function joinPrivateVoice(channelId) {
         // Setup socket events (similar to main channel)
         setupPrivateVoiceSocketEvents();
         privateVoiceStatus.textContent = 'Connected';
-        joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Leave Voice';
-        joinPrivateVoiceBtn.disabled = false;
+        if (joinBtn) {
+            joinBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Leave Voice';
+            joinBtn.disabled = false;
+        }
     } catch (err) {
         privateVoiceStatus.textContent = 'Error: ' + err.message;
-        joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
-        joinPrivateVoiceBtn.disabled = false;
+        if (joinBtn) {
+            joinBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
+            joinBtn.disabled = false;
+        }
     }
 }
 
 async function leavePrivateVoice() {
     privateVoiceStatus.textContent = 'Disconnected';
-    joinPrivateVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
-    joinPrivateVoiceBtn.disabled = false;
+    const joinBtn = document.getElementById('joinPrivateVoiceBtn');
+    if (joinBtn) {
+        joinBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
+        joinBtn.disabled = false;
+    }
     privateVoiceActiveChannelId = null;
     // Close all peer connections
     Object.values(privateVoicePeerConnections).forEach(pc => pc.close && pc.close());
