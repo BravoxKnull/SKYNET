@@ -2373,18 +2373,15 @@ function renderSoundboardList() {
     list.appendChild(uploadForm);
 
     // Inline label input UI (hidden by default)
-    let labelInputRow = document.getElementById('soundboardLabelInputRow');
-    if (!labelInputRow) {
-        labelInputRow = document.createElement('div');
-        labelInputRow.id = 'soundboardLabelInputRow';
-        labelInputRow.style.display = 'none';
-        labelInputRow.innerHTML = `
-            <input type="text" id="soundboardLabelInput" class="soundboard-label-input" placeholder="Enter label for sound..." maxlength="40" />
-            <button type="button" id="soundboardLabelConfirm" class="soundboard-label-confirm">Add</button>
-            <button type="button" id="soundboardLabelCancel" class="soundboard-label-cancel">Cancel</button>
-        `;
-        list.insertBefore(labelInputRow, uploadForm.nextSibling);
-    }
+    let labelInputRow = document.createElement('div');
+    labelInputRow.id = 'soundboardLabelInputRow';
+    labelInputRow.style.display = 'none';
+    labelInputRow.innerHTML = `
+        <input type="text" id="soundboardLabelInput" class="soundboard-label-input" placeholder="Enter label for sound..." maxlength="40" />
+        <button type="button" id="soundboardLabelConfirm" class="soundboard-label-confirm">Add</button>
+        <button type="button" id="soundboardLabelCancel" class="soundboard-label-cancel">Cancel</button>
+    `;
+    list.appendChild(labelInputRow);
     let pendingFile = null;
 
     document.getElementById('soundboardUploadBtn').onclick = () => {
@@ -2395,7 +2392,6 @@ function renderSoundboardList() {
         if (!file) return;
         pendingFile = file;
         labelInputRow.style.display = 'flex';
-        // Re-query after showing
         const labelInput = document.getElementById('soundboardLabelInput');
         if (labelInput) {
             labelInput.value = file.name.replace(/\.[^/.]+$/, '');
@@ -2403,7 +2399,8 @@ function renderSoundboardList() {
         }
     };
     document.getElementById('soundboardLabelConfirm').onclick = async () => {
-        const label = document.getElementById('soundboardLabelInput').value.trim();
+        const labelInput = document.getElementById('soundboardLabelInput');
+        const label = labelInput ? labelInput.value.trim() : '';
         if (!label || !pendingFile) return;
         // Upload to Cloudinary
         const user = getCurrentUser();
@@ -2430,7 +2427,7 @@ function renderSoundboardList() {
             ]);
             labelInputRow.style.display = 'none';
             pendingFile = null;
-            loadSoundboardSounds();
+            loadSoundboardSoundsListOnly();
         } catch (err) {
             alert('Cloudinary upload error: ' + err.message);
             labelInputRow.style.display = 'none';
@@ -2442,8 +2439,28 @@ function renderSoundboardList() {
         pendingFile = null;
     };
 
-    // List sounds
-    loadSoundboardSounds();
+    // List sounds (only update the list, not the upload form or label input row)
+    loadSoundboardSoundsListOnly();
+}
+
+// Only update the list of sounds, not the upload form or label input row
+async function loadSoundboardSoundsListOnly() {
+    const list = document.getElementById('soundboardList');
+    // Remove everything except the first two children (uploadForm and labelInputRow)
+    while (list.children.length > 2) list.removeChild(list.lastChild);
+    // Fetch from DB
+    const { data: sounds, error } = await supabase
+        .from('soundboard_sounds')
+        .select('*')
+        .order('created_at', { ascending: false });
+    if (error) return;
+    sounds.forEach(sound => {
+        const btn = document.createElement('button');
+        btn.className = 'soundboard-sound-btn';
+        btn.innerHTML = `<i class='fas fa-play'></i> ${sound.label || 'Sound'}`;
+        btn.onclick = () => playSoundboardSound(sound.file_url);
+        list.appendChild(btn);
+    });
 }
 
 // Add minimal CSS for inline label input
