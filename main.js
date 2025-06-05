@@ -2465,3 +2465,16 @@ function renderSoundboardList() {
         document.head.appendChild(style);
     }
 })();
+
+function openSoundboardModal() {
+    const overlay = document.getElementById('soundboardModalOverlay');
+    overlay.style.display = 'flex';
+    setTimeout(() => overlay.classList.add('active'), 10);
+    renderSoundboardList();
+    document.getElementById('soundboardToggle').checked = soundboardEnabled;
+}
+function closeSoundboardModal() {
+    const overlay = document.getElementById('soundboardModalOverlay');
+    overlay.classList.remove('active');
+    setTimeout(() => { overlay.style.display = 'none'; }, 320);
+}
