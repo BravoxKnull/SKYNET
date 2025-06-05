@@ -148,6 +148,12 @@ io.on('connection', (socket) => {
             io.emit('userLeftSound');
         }
     });
+
+    // Handle soundboard events
+    socket.on('soundboard', ({ fileUrl }) => {
+        // Broadcast to all clients (including sender)
+        io.emit('soundboard', { fileUrl });
+    });
 });
 
 // Start server
