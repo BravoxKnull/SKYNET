@@ -293,6 +293,13 @@ function initializeEventListeners() {
                 audioContext.close();
                 audioContext = null;
             }
+
+            // Clean up voice FX
+            try { if (voiceFxNodes.source) voiceFxNodes.source.disconnect(); } catch (e) {}
+            try { if (voiceFxNodes.effect) voiceFxNodes.effect.disconnect(); } catch (e) {}
+            try { if (voiceFxNodes.destination) voiceFxNodes.destination.disconnect(); } catch (e) {}
+            voiceFxNodes = { source: null, effect: null, destination: null };
+            processedStream = null;
         }, 500);
     });
 }
@@ -3008,144 +3015,91 @@ let currentVoiceFx = 'none';
 let voiceFxNodes = { source: null, effect: null, destination: null };
 let processedStream = null;
 
+// --- PATCH: Robust VoiceFX and WebRTC Audio Handling ---
 function setupVoiceFxChain(effectName) {
     if (!audioContext || !localStream) return;
-    // Disconnect previous nodes
-    if (voiceFxNodes.source) voiceFxNodes.source.disconnect();
-    if (voiceFxNodes.effect) voiceFxNodes.effect.disconnect();
-    if (voiceFxNodes.destination) voiceFxNodes.destination.disconnect();
-
-    // Create nodes
-    const source = audioContext.createMediaStreamSource(localStream);
-    let effectNode = null;
-    const destination = audioContext.createMediaStreamDestination();
-
+    // Only disconnect effect nodes, keep source-destination connection
+    if (voiceFxNodes.effect) {
+        try {
+            voiceFxNodes.source.disconnect(voiceFxNodes.effect);
+            if (voiceFxNodes.effect.disconnect) voiceFxNodes.effect.disconnect();
+        } catch (e) { /* ignore */ }
+    }
+    // Create new source node if needed
+    if (!voiceFxNodes.source) {
+        voiceFxNodes.source = audioContext.createMediaStreamSource(localStream);
+    }
+    // Create destination if needed
+    if (!voiceFxNodes.destination) {
+        voiceFxNodes.destination = audioContext.createMediaStreamDestination();
+    }
     // Effect selection
+    let effectNode = null;
     switch (effectName) {
         case 'robot': {
-            // Simple ring modulator (robotic)
             const ringMod = audioContext.createGain();
             const osc = audioContext.createOscillator();
             osc.type = 'square';
-            osc.frequency.value = 30; // 30Hz for robot
+            osc.frequency.value = 30;
             const oscGain = audioContext.createGain();
             oscGain.gain.value = 0.5;
             osc.connect(oscGain);
             oscGain.connect(ringMod.gain);
             osc.start();
-            source.connect(ringMod);
             effectNode = ringMod;
             break;
         }
         case 'chipmunk': {
-            // Pitch up (chipmunk) - use playbackRate hack
-            // Not perfect, but simple for demo
             const pitch = audioContext.createBiquadFilter();
             pitch.type = 'highshelf';
             pitch.frequency.value = 1500;
             pitch.gain.value = 18;
-            source.connect(pitch);
             effectNode = pitch;
             break;
         }
         case 'deep': {
-            // Pitch down (deep voice) - use lowshelf
             const pitch = audioContext.createBiquadFilter();
             pitch.type = 'lowshelf';
             pitch.frequency.value = 300;
             pitch.gain.value = 15;
-            source.connect(pitch);
             effectNode = pitch;
             break;
         }
         case 'echo': {
-            // Simple echo
             const delay = audioContext.createDelay();
             delay.delayTime.value = 0.18;
             const feedback = audioContext.createGain();
             feedback.gain.value = 0.35;
             delay.connect(feedback);
             feedback.connect(delay);
-            source.connect(delay);
             effectNode = delay;
             break;
         }
         case 'none':
         default: {
-            // Bypass
-            source.connect(destination);
-            effectNode = null;
-            break;
+            // Direct connection for no effect
+            try {
+                voiceFxNodes.source.disconnect();
+            } catch (e) { /* ignore */ }
+            voiceFxNodes.source.connect(voiceFxNodes.destination);
+            voiceFxNodes.effect = null;
+            processedStream = voiceFxNodes.destination.stream;
+            currentVoiceFx = effectName;
+            return;
         }
     }
-    if (effectNode) effectNode.connect(destination);
-    voiceFxNodes = { source, effect: effectNode, destination };
-    processedStream = destination.stream;
-}
-
-// Listen for changes in the Voice FX modal
-window.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById('voiceFxModalOverlay');
-    if (!modal) return;
-    modal.addEventListener('change', (e) => {
-        if (e.target && e.target.name === 'voicefx') {
-            currentVoiceFx = e.target.value;
-            setupVoiceFxChain(currentVoiceFx);
-            // Replace outgoing audio track in all peer connections
-            if (processedStream) {
-                const newTrack = processedStream.getAudioTracks()[0];
-                Object.values(peerConnections).forEach(pc => {
-                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
-                    if (sender && newTrack) {
-                        sender.replaceTrack(newTrack);
-                    }
-                });
-            }
-        }
-    });
-});
-
-// --- PATCHED: Robust Debug Logging and Audio Streaming for WebRTC ---
-
-async function initializeWebRTC() {
+    // Connect nodes: source -> effect -> destination
     try {
-        console.log('[WebRTC] Initializing WebRTC...');
-        localStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-            },
-            video: false
-        });
-        console.log('[WebRTC] Audio stream obtained:', localStream, localStream.getAudioTracks());
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.8;
-        // Setup initial voice FX chain
-        setupVoiceFxChain(currentVoiceFx);
-        // Connect analyser for VAD
-        if (voiceFxNodes.source) voiceFxNodes.source.connect(analyser);
-        // Start audio context if it's suspended
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        startVoiceActivityDetection();
-        // Debug: Log processedStream
-        if (processedStream) {
-            console.log('[WebRTC] Processed stream ready:', processedStream, processedStream.getAudioTracks());
-        } else {
-            console.warn('[WebRTC] No processedStream, will use localStream for outgoing audio');
-        }
-        return true;
-    } catch (error) {
-        console.error('[WebRTC] Error initializing WebRTC:', error);
-        warningMessage.textContent = 'Error accessing microphone. Please check your permissions.';
-        return false;
-    }
+        voiceFxNodes.source.disconnect();
+    } catch (e) { /* ignore */ }
+    voiceFxNodes.source.connect(effectNode);
+    effectNode.connect(voiceFxNodes.destination);
+    voiceFxNodes.effect = effectNode;
+    processedStream = voiceFxNodes.destination.stream;
+    currentVoiceFx = effectName;
 }
 
+// Patch createPeerConnection to use processedStream only if effect is active
 async function createPeerConnection(userId, isInitiator) {
     try {
         console.log(`[WebRTC] Creating peer connection for ${userId}, isInitiator: ${isInitiator}`);
@@ -3171,51 +3125,23 @@ async function createPeerConnection(userId, isInitiator) {
         const peerConnection = new RTCPeerConnection(configuration);
         peerConnections[userId] = peerConnection;
         peerConnection.queuedIceCandidates = [];
-        // Use processedStream for outgoing audio if available, else fallback to localStream
-        let streamToSend = null;
-        if (processedStream && processedStream.getAudioTracks().length > 0) {
-            streamToSend = processedStream;
-            console.log('[WebRTC] Using processedStream for outgoing audio:', processedStream.getAudioTracks()[0]);
-        } else if (localStream && localStream.getAudioTracks().length > 0) {
-            streamToSend = localStream;
-            console.warn('[WebRTC] Using localStream for outgoing audio:', localStream.getAudioTracks()[0]);
-        } else {
-            console.error('[WebRTC] No valid audio stream to send!');
-            return null;
-        }
+        // Use localStream by default, processedStream only if effect is active
+        const streamToSend = (currentVoiceFx !== 'none' && processedStream) ? processedStream : localStream;
         const audioTrack = streamToSend.getAudioTracks()[0];
         if (audioTrack) {
             peerConnection.addTrack(audioTrack, streamToSend);
-            console.log('[WebRTC] Added audio track to peer connection:', audioTrack);
-        } else {
-            console.error('[WebRTC] No audio track found in streamToSend!');
-            return null;
+            console.log('[WebRTC] Added audio track to peer connection:', {
+                track: audioTrack,
+                stream: streamToSend,
+                effect: currentVoiceFx
+            });
         }
-        // Debug: Log when remote tracks are received
-        peerConnection.ontrack = (event) => {
-            console.log('[WebRTC] Received remote track event:', event);
-            if (event.streams && event.streams.length > 0) {
-                const stream = event.streams[0];
-                const tracks = stream.getTracks();
-                console.log('[WebRTC] Remote stream tracks:', tracks);
-                // Remove any existing audio element for this user
-                const existingAudio = document.getElementById(`audio-${userId}`);
-                if (existingAudio) {
-                    existingAudio.remove();
-                }
-                const audioElement = document.createElement('audio');
-                audioElement.id = `audio-${userId}`;
-                audioElement.srcObject = stream;
-                audioElement.autoplay = true;
-                audioElement.muted = isDeafened;
-                audioElement.volume = 1.0;
-                audioElement.onloadedmetadata = () => {
-                    audioElement.play().catch(e => console.error('[WebRTC] Error playing remote audio:', e));
-                };
-                document.body.appendChild(audioElement);
-                console.log('[WebRTC] Audio element created for remote user:', userId);
-            } else {
-                console.error('[WebRTC] No streams in remote track event');
+        // Connection state logging
+        peerConnection.onconnectionstatechange = () => {
+            console.log(`Connection state for ${userId}:`, peerConnection.connectionState);
+            if (peerConnection.connectionState === 'failed') {
+                console.log(`Recreating connection to ${userId}`);
+                createPeerConnection(userId, isInitiator);
             }
         };
         // ... rest of function unchanged ...
@@ -3224,3 +3150,73 @@ async function createPeerConnection(userId, isInitiator) {
         return null;
     }
 }
+
+// Patch initializeWebRTC to always start with 'none' effect and connect analyser
+async function initializeWebRTC() {
+    try {
+        console.log('[WebRTC] Initializing WebRTC...');
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            },
+            video: false
+        });
+        console.log('[WebRTC] Audio stream obtained:', localStream, localStream.getAudioTracks());
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        // Initialize with no effect first
+        setupVoiceFxChain('none');
+        // Connect analyser to source for VAD
+        if (voiceFxNodes.source) {
+            voiceFxNodes.source.connect(analyser);
+        }
+        startVoiceActivityDetection();
+        if (processedStream) {
+            console.log('[WebRTC] Processed stream ready:', processedStream, processedStream.getAudioTracks());
+        } else {
+            console.warn('[WebRTC] No processedStream, will use localStream for outgoing audio');
+        }
+        return true;
+    } catch (error) {
+        console.error('[WebRTC] Error initializing WebRTC:', error);
+        warningMessage.textContent = 'Error accessing microphone. Please check your permissions.';
+        return false;
+    }
+}
+
+// Patch VoiceFX change listener for robust error handling and fallback
+window.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('voiceFxModalOverlay');
+    if (!modal) return;
+    modal.addEventListener('change', (e) => {
+        if (e.target && e.target.name === 'voicefx') {
+            const newEffect = e.target.value;
+            try {
+                setupVoiceFxChain(newEffect);
+                if (processedStream) {
+                    const newTrack = processedStream.getAudioTracks()[0];
+                    Object.values(peerConnections).forEach(pc => {
+                        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+                        if (sender && newTrack) {
+                            sender.replaceTrack(newTrack).catch(err => {
+                                console.error('Error replacing track:', err);
+                                // Fallback to local stream
+                                if (localStream) {
+                                    sender.replaceTrack(localStream.getAudioTracks()[0]);
+                                }
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error applying voice effect:', err);
+                // Fallback to no effect
+                setupVoiceFxChain('none');
+            }
+        }
+    });
+});
