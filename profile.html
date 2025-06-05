@@ -40,6 +40,15 @@
 
         <main class="main-content">
             <div class="profile-container">
+                <!-- Profile Banner Section (add above .profile-header) -->
+                <div class="profile-banner-container">
+                    <img id="profileBanner" src="assets/images/default-banner.jpg" alt="Profile Banner" />
+                    <button class="change-banner-btn" title="Change Banner">
+                        <i class="fa fa-camera"></i>
+                    </button>
+                    <input type="file" id="bannerInput" accept="image/*" hidden>
+                </div>
+
                 <div class="profile-header">
                     <div class="profile-avatar">
                         <img id="avatarPreview" src="assets/images/default-avatar.svg" alt="Profile Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'" />
@@ -178,6 +187,19 @@
         </main>
     </div>
 
+    <!-- Cropping Modal (add before </body>) -->
+    <div id="bannerCropModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img id="bannerCropImage" />
+            <button id="saveBannerCrop" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+
+    <!-- Cropper.js CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <script>
         // Initialize Supabase client
         const supabaseUrl = 'https://jvjlvzidmcwcshbeielf.supabase.co'
@@ -266,6 +288,11 @@
                         if (voiceActivityToggle) voiceActivityToggle.checked = data.user_settings.voice_activity
                         if (pushToTalkToggle) pushToTalkToggle.checked = data.user_settings.push_to_talk
                         if (customStatus) customStatus.value = data.user_settings.custom_status || ''
+                    }
+
+                    const banner = document.getElementById('profileBanner')
+                    if (data.banner_url && banner) {
+                        banner.src = data.banner_url
                     }
                 } catch (error) {
                     console.error('Error loading profile:', error)
@@ -632,6 +659,82 @@
                 }
             };
         }
+
+        // Banner Cropping & Upload
+        let bannerCropper;
+        const bannerInput = document.getElementById('bannerInput');
+        const bannerCropModal = document.getElementById('bannerCropModal');
+        const bannerCropImage = document.getElementById('bannerCropImage');
+        const saveBannerCrop = document.getElementById('saveBannerCrop');
+        const closeBannerCrop = bannerCropModal.querySelector('.close');
+        const profileBanner = document.getElementById('profileBanner');
+
+        document.querySelector('.change-banner-btn').onclick = () => bannerInput.click();
+
+        bannerInput.onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    bannerCropImage.src = evt.target.result;
+                    bannerCropModal.style.display = 'flex';
+                    if (bannerCropper) bannerCropper.destroy();
+                    bannerCropper = new Cropper(bannerCropImage, {
+                        aspectRatio: 3.5,
+                        viewMode: 1,
+                        minContainerWidth: 600,
+                        minContainerHeight: 200,
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        saveBannerCrop.onclick = async function() {
+            const canvas = bannerCropper.getCroppedCanvas({
+                width: 1400,
+                height: 400,
+                imageSmoothingQuality: 'high'
+            });
+            canvas.toBlob(async blob => {
+                // Upload to Supabase (same bucket as avatar, but prefix as 'banner-')
+                const fileExt = 'jpg';
+                const fileName = `${storedUser.id}-banner-${Date.now()}.${fileExt}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, blob, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
+                if (uploadError) {
+                    showMessage('Error uploading banner', 'error');
+                    return;
+                }
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName);
+                // Save URL to user profile
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ banner_url: publicUrl })
+                    .eq('id', storedUser.id);
+                if (updateError) {
+                    showMessage('Error saving banner', 'error');
+                    return;
+                }
+                profileBanner.src = publicUrl;
+                // Update local storage
+                storedUser.banner_url = publicUrl;
+                localStorage.setItem('user', JSON.stringify(storedUser));
+                bannerCropModal.style.display = 'none';
+                showMessage('Banner updated!', 'success');
+            }, 'image/jpeg', 0.95);
+        };
+
+        closeBannerCrop.onclick = () => {
+            bannerCropModal.style.display = 'none';
+            if (bannerCropper) bannerCropper.destroy();
+        };
     </script>
 
     <style>

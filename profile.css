@@ -295,3 +295,86 @@ input:checked + .slider:before {
     height: auto;
     width: auto;
 } 
+
+/* Profile Banner Styles */
+.profile-banner-container {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    border-radius: 18px 18px 0 0;
+    overflow: hidden;
+    background: rgba(30, 20, 50, 0.7);
+    box-shadow: 0 4px 32px 0 rgba(0,0,0,0.25);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    animation: fadeInBanner 1s cubic-bezier(.4,0,.2,1);
+}
+@keyframes fadeInBanner {
+    from { opacity: 0; transform: translateY(-30px);}
+    to { opacity: 1; transform: none;}
+}
+#profileBanner {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.4s;
+    border-radius: 18px 18px 0 0;
+}
+.change-banner-btn {
+    position: absolute;
+    bottom: 18px;
+    right: 24px;
+    background: rgba(60,0,120,0.7);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 1.5rem;
+    padding: 10px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 2;
+}
+.profile-banner-container:hover .change-banner-btn {
+    opacity: 1;
+}
+
+/* Cropping Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(10, 10, 30, 0.85);
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background: rgba(30, 20, 50, 0.95);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+.modal-content img {
+    max-width: 600px;
+    max-height: 300px;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+}
+.modal .close {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    font-size: 2rem;
+    color: #fff;
+    cursor: pointer;
+    z-index: 10;
+} 
