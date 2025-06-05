@@ -3396,8 +3396,10 @@ async function joinPrivateVoice(channelId) {
 }
 
 async function leavePrivateVoice() {
+    // Update status if element exists
     const statusEl = document.getElementById('privateVoiceStatus');
     if (statusEl) statusEl.textContent = 'Disconnected';
+    // Update join button if it exists
     const joinBtn = document.getElementById('joinPrivateVoiceBtn');
     if (joinBtn) {
         joinBtn.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
@@ -3418,6 +3420,13 @@ async function leavePrivateVoice() {
     if (privateVoiceSocket) {
         privateVoiceSocket.disconnect();
         privateVoiceSocket = null;
+    }
+    // Render Join Voice button if area exists
+    const area = document.getElementById('privateVoiceArea');
+    if (area) {
+        area.innerHTML = `<button id="joinPrivateVoiceBtn" class="voice-btn"><i class="fas fa-microphone"></i> Join Voice</button><span class="private-voice-status" id="privateVoiceStatus"></span>`;
+        const btn = document.getElementById('joinPrivateVoiceBtn');
+        if (btn) btn.onclick = () => joinPrivateVoice(selectedPrivateChannel.id);
     }
 }
 
