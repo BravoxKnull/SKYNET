@@ -3104,12 +3104,20 @@ async function openFriendProfileModal(friend, avatarEl) {
     // Modal element
     const modal = document.createElement('div');
     modal.className = 'friend-profile-modal';
-    // Position modal at avatar
+    // Position modal to the left of the avatar
     const rect = avatarEl.getBoundingClientRect();
+    const modalWidth = 360; // Approximate modal width
+    let left = rect.left - modalWidth;
+    // If not enough space on the left, fallback to right
+    if (left < 8) left = rect.right + 8;
+    let top = rect.top + rect.height/2;
+    // Prevent overflow at bottom
+    if (top + 320 > window.innerHeight) top = window.innerHeight - 340;
+    if (top < 8) top = 8;
     modal.style.position = 'fixed';
-    modal.style.left = rect.left + rect.width/2 + 'px';
-    modal.style.top = rect.top + rect.height/2 + 'px';
-    modal.style.transformOrigin = 'top left';
+    modal.style.left = left + 'px';
+    modal.style.top = top + 'px';
+    modal.style.transformOrigin = left < rect.left ? 'top right' : 'top left';
     // Modal content
     modal.innerHTML = `
       <button class="close-friend-profile-modal" title="Close">&times;</button>
