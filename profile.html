@@ -191,6 +191,20 @@
     <!-- ffmpeg.wasm CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 
+    <!-- Banner Video Crop Modal -->
+    <div id="bannerVideoCropModal" class="modal">
+        <div class="modal-content" style="max-width:520px;">
+            <span class="close">&times;</span>
+            <h3>Adjust Video Banner</h3>
+            <video id="bannerVideoCropPreview" style="width:100%;max-width:420px;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.2);margin-bottom:1rem;" controls></video>
+            <div style="width:100%;margin-bottom:1rem;">
+                <label>Start: <input type="range" id="videoTrimStart" min="0" max="0" value="0" step="0.01" style="width:40%;"></label>
+                <label style="float:right;">End: <input type="range" id="videoTrimEnd" min="0" max="0" value="0" step="0.01" style="width:40%;"></label>
+            </div>
+            <button id="saveBannerVideoCrop" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+
     <script>
         // Cloudinary config (reuse from soundboard)
         const cloudName = "dnfq5swp9";
@@ -710,22 +724,55 @@
                 showMessage('Video size should be less than 30MB', 'error');
                 return;
             }
-            // Check for audio track and strip if needed
-            let processedFile = file;
-            try {
-                const hasAudio = await checkVideoHasAudio(file);
-                if (hasAudio) {
-                    showMessage('Removing audio from video...', 'info');
-                    processedFile = await stripAudioFromVideo(file);
-                }
-            } catch (err) {
-                showMessage('Error processing video: ' + err.message, 'error');
+            // Show crop modal
+            let bannerVideoFile = file;
+            let bannerVideoDuration = 0;
+            const bannerVideoCropPreview = document.getElementById('bannerVideoCropPreview');
+            bannerVideoCropPreview.src = URL.createObjectURL(file);
+            bannerVideoCropPreview.currentTime = 0;
+            bannerVideoCropPreview.onloadedmetadata = function() {
+                bannerVideoDuration = bannerVideoCropPreview.duration;
+                const videoTrimStart = document.getElementById('videoTrimStart');
+                const videoTrimEnd = document.getElementById('videoTrimEnd');
+                videoTrimStart.max = bannerVideoDuration;
+                videoTrimEnd.max = bannerVideoDuration;
+                videoTrimEnd.value = bannerVideoDuration;
+                videoTrimStart.value = 0;
+            };
+            const bannerVideoCropModal = document.getElementById('bannerVideoCropModal');
+            bannerVideoCropModal.style.display = 'flex';
+        };
+        // Close crop modal
+        const closeBannerVideoCrop = document.getElementById('closeBannerVideoCrop');
+        closeBannerVideoCrop.onclick = () => {
+            const bannerVideoCropPreview = document.getElementById('bannerVideoCropPreview');
+            bannerVideoCropPreview.src = '';
+            bannerVideoFile = null;
+            bannerVideoCropModal.style.display = 'none';
+        };
+        // Save cropped video
+        const saveBannerVideoCrop = document.getElementById('saveBannerVideoCrop');
+        saveBannerVideoCrop.onclick = async function() {
+            if (!bannerVideoFile) return;
+            const start = parseFloat(document.getElementById('videoTrimStart').value);
+            const end = parseFloat(document.getElementById('videoTrimEnd').value);
+            if (end - start < 1) {
+                showMessage('Please select at least 1 second of video.', 'error');
                 return;
             }
+            showMessage('Processing video...', 'info');
+            // Use ffmpeg.wasm to trim video
+            const { createFFmpeg, fetchFile } = FFmpeg;
+            const ffmpeg = createFFmpeg({ log: false });
+            await ffmpeg.load();
+            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(bannerVideoFile));
+            await ffmpeg.run('-ss', String(start), '-to', String(end), '-i', 'input.mp4', '-an', '-c:v', 'copy', 'output.mp4');
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+            const trimmedFile = new File([data.buffer], 'output.mp4', { type: 'video/mp4' });
             // Upload to Cloudinary
             showMessage('Uploading video banner...', 'info');
             const formData = new FormData();
-            formData.append('file', processedFile);
+            formData.append('file', trimmedFile);
             formData.append('upload_preset', uploadPreset);
             formData.append('folder', storedUser.id + '/banner');
             try {
@@ -748,45 +795,11 @@
                 storedUser.banner_type = 'video';
                 localStorage.setItem('user', JSON.stringify(storedUser));
                 showMessage('Video banner updated!', 'success');
+                bannerVideoCropModal.style.display = 'none';
             } catch (err) {
                 showMessage('Cloudinary upload error: ' + err.message, 'error');
             }
         };
-        // Check if video has audio
-        async function checkVideoHasAudio(file) {
-            return new Promise((resolve, reject) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.muted = true;
-                video.src = URL.createObjectURL(file);
-                video.onloadedmetadata = function() {
-                    const audioTracks = video.mozHasAudio || video.webkitAudioDecodedByteCount || video.audioTracks?.length;
-                    // Fallback: try to play and check audioTracks
-                    if (typeof audioTracks === 'number') {
-                        resolve(audioTracks > 0);
-                    } else if (video.audioTracks && video.audioTracks.length) {
-                        resolve(video.audioTracks.length > 0);
-                    } else {
-                        // Try to check by duration and videoTracks
-                        resolve(video.mozHasAudio || false);
-                    }
-                    URL.revokeObjectURL(video.src);
-                };
-                video.onerror = function() {
-                    reject(new Error('Failed to load video metadata.'));
-                };
-            });
-        }
-        // Strip audio from video using ffmpeg.wasm
-        async function stripAudioFromVideo(file) {
-            const { createFFmpeg, fetchFile } = FFmpeg;
-            const ffmpeg = createFFmpeg({ log: false });
-            await ffmpeg.load();
-            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-            await ffmpeg.run('-i', 'input.mp4', '-an', '-c:v', 'copy', 'output.mp4');
-            const data = ffmpeg.FS('readFile', 'output.mp4');
-            return new File([data.buffer], 'output.mp4', { type: 'video/mp4' });
-        }
         // Banner display logic (image or video)
         function updateBannerDisplay() {
             if (storedUser.banner_type === 'video' && storedUser.banner_url) {
