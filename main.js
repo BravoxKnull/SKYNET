@@ -3359,15 +3359,23 @@ async function openFriendProfileModal(friend, avatarEl) {
         .sidebar-friend-name-wrapper {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
         }
         .sidebar-friend-star {
             color: gold;
-            font-size: 1.05em;
+            font-size: 0.85em;
             margin-right: 2px;
             vertical-align: middle;
             display: inline-block;
+            line-height: 1;
+            height: 1em;
+            width: 1em;
+            opacity: 0.85;
             transition: opacity 0.18s;
+        }
+        .sidebar-friend-star i {
+            font-size: 0.85em;
+            line-height: 1;
         }
         `;
         document.head.appendChild(style);
