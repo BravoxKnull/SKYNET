@@ -1568,444 +1568,6 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Use auto-fill for many users */
 }
 
-/* Add specific styles for user status indicators for clarity */
-.user-status-indicator.online {
-    background-color: var(--success-color); /* Green */
-}
-
-.user-status-indicator.muted {
-    background-color: var(--danger-color) !important; /* Red */
-}
-
-.user-status-indicator.deafened {
-    background-color: var(--warning-color) !important; /* Purple */
-}
-
-.user-status-indicator.speaking {
-    background-color: var(--accent-color) !important; /* Blue */
-    box-shadow: 0 0 10px rgba(13, 185, 215, 0.6); /* Shadow matching accent color */
-}
-
-/* Ensure speaking animation is only for speaking users */
-.user-item:not(.speaking) .user-status-indicator.speaking {
-    animation: none;
-}
-
-/* Adjust speaking animation for better visibility */
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0.7); /* Use accent color */
-    }
-    70% {
-        transform: scale(1.2); /* More pronounced pulse */
-        box-shadow: 0 0 0 15px rgba(13, 185, 215, 0); /* More spread pulse */
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(13, 185, 215, 0); /* Use accent color */
-    }
-}
-
-/* Add styles for error messages */
-.error-message {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--danger-color);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 2000;
-    opacity: 1;
-    transition: opacity 0.5s ease;
-}
-
-.error-message.fade-out {
-    opacity: 0;
-}
-
-/* Add styles for connection status updates */
-.connection-status {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--secondary-color);
-    margin-left: 10px;
-}
-
-.connection-status.status-connecting {
-    background-color: var(--warning-color);
-}
-
-.connection-status.status-connected {
-    background-color: var(--success-color);
-}
-
-.connection-status.status-disconnected,
-.connection-status.status-failed {
-    background-color: var(--danger-color);
-}
-
-/* Add styles for theme preview */
-.theme-preview .control-btn {
-    background: var(--primary-color);
-    color: var(--secondary-color);
-    border: none;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    gap: 0.3rem;
-    box-shadow: none;
-}
-
-.theme-preview .input-field {
-    background: var(--input-bg);
-    border-color: var(--border-color);
-    color: var(--text-color);
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-}
-
-.theme-preview .user-item {
-    background: var(--card-bg);
-    border-color: var(--border-color);
-    padding: 0.8rem;
-}
-
-.theme-preview .user-item .user-name, 
-.theme-preview .user-item .user-status {
-    color: var(--text-color);
-}
-
-.theme-preview .user-item .user-avatar-container {
-    border-color: var(--primary-color);
-}
-
-.theme-preview .user-item .user-status-indicator {
-    background-color: var(--success-color);
-}
-
-.theme-preview .device-status {
-    background: rgba(100, 255, 218, 0.1);
-}
-
-.theme-preview .device-status i {
-    color: var(--primary-color);
-}
-
-.theme-preview .device-status .status-text {
-    color: var(--text-color);
-}
-
-/* Add style for the input wrapper */
-.input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.input-wrapper .input-field {
-    padding-right: 2.8rem; /* Make space for the icon */
-}
-
-.input-wrapper .input-icon {
-    position: absolute;
-    right: 1rem; /* Adjust icon position */
-    color: var(--primary-color); /* Use primary color for icon */
-    pointer-events: none;
-    font-size: 1.2rem; /* Larger icon */
-}
-
-/* Add style for the join button icon */
-.join-btn i {
-    margin-right: 0.6rem; /* Slightly reduced margin */
-    font-size: 1.2rem; /* Slightly smaller icon */
-}
-
-/* Style for the logout button in the nav menu */
-.nav-menu #logoutBtn {
-    margin-top: auto; /* Push logout button to the bottom */
-    background: rgba(255, 107, 107, 0.15); /* Background matching danger color */
-    color: var(--danger-color); /* Use danger color */
-    border: 1px solid var(--danger-color); /* Use danger color */
-    border-left: none; /* Remove left border for active style consistency */
-    display: flex;
-    align-items: center;
-    justify-content: center; /* Center content */
-    width: calc(100% - 4rem); /* Adjust width to account for padding */
-    margin: 2rem auto; /* Center button and add margin */
-    padding: 1rem; /* More padding */
-    border-radius: 8px; /* More rounded */
-}
-
-.nav-menu #logoutBtn:hover {
-    background: rgba(255, 107, 107, 0.3); /* Darker background on hover */
-    border-color: var(--danger-color);
-}
-
-.nav-menu #logoutBtn i {
-    color: var(--danger-color); /* Use danger color */
-    margin-right: 0.5rem;
-    font-size: 1.2rem; /* Larger icon */
-}
-
-/* Update styles for welcome section elements */
-.welcome-section h1 {
-    font-size: 3rem; /* Slightly smaller font size */
-    margin-bottom: 1rem; /* Slightly reduced margin */
-    background: var(--gradient-primary); /* Use gradient */
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    text-shadow: 0 0 25px rgba(163, 112, 247, 0.6); /* Stronger shadow */
-    animation: textGlow 2s infinite alternate; /* Add text glow animation */
-}
-
-.welcome-content .animated-text {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2.8rem; /* Adjusted size */
-    font-weight: 700;
-        text-align: center;
-    position: relative;
-    color: var(--primary-color); /* Use primary color */
-    text-shadow: 0 0 18px rgba(163, 112, 247, 0.5); /* Adjusted shadow */
-    animation: none; /* Remove glitch animation */
-    }
-
-.welcome-content .glitch-text {
-    position: relative;
-}
-
-/* Ensure welcome section elements are centered */
-.welcome-content {
-    display: flex;
-        flex-direction: column;
-    align-items: center;
-}
-
-/* Adjust sidebar padding on smaller screens */
-@media (max-width: 1024px) {
-    .sidebar {
-        padding: 1.5rem; /* More padding */
-    }
-}
-
-/* Adjust footer social icons */
-.social-icons i {
-    font-size: 1.5rem; /* Larger size */
-}
-
-/* Add styling for the channel name in the channel header */
-.channel-info h2 {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.3rem; /* Slightly smaller font size */
-    color: var(--primary-color); /* Use primary color */
-    margin: 0;
-    text-shadow: 0 0 12px rgba(163, 112, 247, 0.3); /* Shadow matching primary color */
-}
-
-/* Ensure user items are not too wide in responsive grid */
-.users-grid .user-item {
-    max-width: 100%; /* Ensure user items don't exceed grid column width */
-}
-
-/* Adjust padding for main content and sidebar to prevent content from being hidden by fixed header/footer */
-.main-content, .sidebar {
-    padding-top: calc(1rem + 70px); /* Header height + padding */
-    padding-bottom: calc(1rem + 80px); /* Footer height + padding */
-}
-
-.footer {
-    margin-top: 0; /* Remove top margin as padding is handled by main-content */
-    padding-top: 2.5rem; /* Add back some padding */
-}
-
-/* Ensure channel controls are not hidden by footer */
-.channel-controls {
-    bottom: 0;
-}
-
-/* Adjust users grid max height */
-.users-grid {
-    max-height: calc(100vh - 140px - 80px); /* Full height - header - channel header - controls - some margin */
-}
-
-@media (max-width: 768px) {
-    .main-content, .sidebar {
-        padding-top: calc(0.75rem + 60px); /* Adjusted header height */
-        padding-bottom: calc(0.75rem + 60px); /* Adjusted footer height */
-    }
-
-    .channel-controls {
-        padding: 1rem; /* Adjusted padding */
-    }
-
-    .sidebar {
-        padding: 1rem; /* Adjusted padding */
-    }
-}
-
-@media (max-width: 480px) {
-    .main-content, .sidebar {
-        padding-top: calc(0.5rem + 50px); /* Adjusted header height */
-        padding-bottom: calc(0.5rem + 50px); /* Adjusted footer height */
-    }
-
-    .channel-controls {
-        padding: 0.8rem; /* Adjusted padding */
-    }
-
-    .sidebar {
-        padding: 0.8rem; /* Adjusted padding */
-    }
-}
-
-/* Ensure the channel section takes full width on small screens */
-@media (max-width: 1024px) {
-    .channel-section {
-    position: static; /* Remove absolute positioning */
-    width: 100%;
-    height: auto; /* Allow height to be determined by content */
-    padding-top: calc(1rem + 70px); /* Adjust padding to not be hidden by header */
-    padding-bottom: 90px; /* Adjusted padding for controls */
-    }
-
-    .channel-section.visible {
-        display: flex;
-    }
-}
-
-@media (max-width: 768px) {
-     .channel-section {
-        padding-top: calc(0.75rem + 60px); /* Adjusted header height */
-        padding-bottom: 70px; /* Adjusted controls height */
-    }
-}
-
-@media (max-width: 480px) {
-     .channel-section {
-        padding-top: calc(0.5rem + 50px); /* Adjusted header height */
-        padding-bottom: 60px; /* Adjusted controls height */
-    }
-}
-
-/* Ensure the welcome section takes full width on small screens */
-@media (max-width: 1024px) {
-    .welcome-section {
-        width: 100%;
-        padding: 2rem; /* Adjusted padding */
-        min-height: auto; /* Allow height to shrink */
-    }
-}
-
-@media (max-width: 768px) {
-    .welcome-section {
-        padding: 1.5rem; /* Adjusted padding */
-    }
-}
-
-@media (max-width: 480px) {
-    .welcome-section {
-        padding: 1rem; /* Adjusted padding */
-    }
-}
-
-/* Adjustments for user item layout on smaller screens */
-@media (max-width: 480px) {
-    .user-item {
-        flex-direction: column; /* Stack content */
-        gap: 0.8rem; /* Adjusted gap */
-        padding: 1rem; /* Adjusted padding */
-    }
-
-     .user-avatar-container {
-        width: 70px; /* Adjusted size */
-        height: 70px; /* Adjusted size */
-    }
-
-    .user-details {
-        align-items: center;
-    }
-
-    .user-device-status {
-        flex-direction: row; /* Keep in row */
-        justify-content: center;
-        gap: 8px; /* Adjusted gap */
-    }
-
-    .device-status {
-        padding: 3px 6px; /* Adjusted padding */
-    }
-
-    .status-text {
-        display: none; /* Hide text to save space */
-    }
-
-    .device-status i {
-        font-size: 1.1rem; /* Adjusted icon size */
-    }
-
-    .user-name {
-        font-size: 1rem; /* Adjusted font size */
-    }
-
-    .user-status {
-        font-size: 0.8rem; /* Adjusted font size */
-    }
-}
-
-/* When there's only one user */
-.users-grid:has(.user-item:only-child) {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: visible;
-    }
-
-.users-grid:has(.user-item:only-child) .user-item {
-    max-width: 350px; /* Adjusted max width */
-    margin: 0 auto;
-    flex-direction: row; /* Layout in a row for single user */
-    gap: 1.5rem; /* Adjusted gap */
-    padding: 1.5rem; /* Adjusted padding */
-}
-
-.users-grid:has(.user-item:only-child) .user-avatar-container {
-    width: 100px; /* Larger avatar for single user */
-    height: 100px; /* Larger avatar for single user */
-}
-
-.users-grid:has(.user-item:only-child) .user-details {
-    align-items: flex-start; /* Align text to the start */
-}
-
-.users-grid:has(.user-item:only-child) .user-device-status {
-    justify-content: flex-start; /* Align device status to the start */
-}
-
-/* Auto-resize based on number of users */
-.users-grid:has(.user-item:nth-child(4):last-child) { /* 4 items */
-    grid-template-columns: repeat(2, 1fr);
-}
-
-.users-grid:has(.user-item:nth-child(5):last-child), /* 5 items */
-.users-grid:has(.user-item:nth-child(6):last-child) { /* 6 items */
-    grid-template-columns: repeat(3, 1fr);
-}
-
-.users-grid:has(.user-item:nth-child(7):last-child), /* 7 items */
-.users-grid:has(.user-item:nth-child(8):last-child) { /* 8 items */
-     grid-template-columns: repeat(4, 1fr);
-}
-
-.users-grid:has(.user-item:nth-child(9):last-child), /* 9 items or more */
-.users-grid:has(.user-item:nth-child(10):last-child) { 
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Use auto-fill for many users */
-} 
-
 /* Add styles for privacy link */
 .privacy-link {
     color: var(--primary-color, #a370f7);
@@ -2017,4 +1579,51 @@ body {
 .privacy-link:hover {
     color: var(--accent-color, #0db9d7);
     text-shadow: 0 0 8px var(--primary-color, #a370f7), 0 0 16px var(--accent-color, #0db9d7);
+}
+
+.video-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem 0 1rem 0;
+  min-height: 180px;
+  background: rgba(36, 37, 54, 0.35);
+  border-radius: 22px;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
+  padding: 1.5rem 1rem;
+}
+.video-element {
+  background: rgba(163,112,247,0.10);
+  border: 2px solid rgba(163,112,247,0.18);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px 0 rgba(163,112,247,0.12);
+  max-width: 320px;
+  max-height: 200px;
+  min-width: 160px;
+  min-height: 90px;
+  object-fit: cover;
+  margin: 0 0.5rem;
+  transition: box-shadow 0.3s, border 0.3s;
+}
+.local-video {
+  border: 2.5px solid #a370f7;
+  box-shadow: 0 0 16px #a370f7cc;
+}
+.remote-video {
+  border: 2.5px solid #0db9d7;
+  box-shadow: 0 0 16px #0db9d7cc;
+}
+@media (max-width: 900px) {
+  .video-grid {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 0.5rem;
+  }
+  .video-element {
+    max-width: 98vw;
+    min-width: 60vw;
+    max-height: 180px;
+  }
 } 

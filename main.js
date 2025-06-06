@@ -8,6 +8,8 @@ let usersList;
 let muteBtn;
 let deafenBtn;
 let leaveBtn;
+let videoBtn;
+let videoGrid;
 
 // Audio elements for notifications
 let userJoinedSound;
@@ -28,6 +30,8 @@ let speakingTimeout = null;
 let currentUser = null;
 let users = [];
 let socketInitialized = false;
+let isVideoEnabled = false;
+let localVideoTrack = null;
 
 // --- UNREAD MESSAGE BADGES AND SORTING FOR SIDEBAR FRIENDS ---
 let sidebarUnreadCounts = {};
@@ -101,6 +105,8 @@ function initializeDOMElements() {
     muteBtn = document.getElementById('muteBtn');
     deafenBtn = document.getElementById('deafenBtn');
     leaveBtn = document.getElementById('leaveBtn');
+    videoBtn = document.getElementById('videoBtn');
+    videoGrid = document.getElementById('videoGrid');
 
     // Get references to audio elements
     userJoinedSound = document.getElementById('userJoinedSound');
@@ -295,22 +301,69 @@ function initializeEventListeners() {
             }
         }, 500);
     });
+
+    videoBtn.addEventListener('click', async () => {
+        if (!isVideoEnabled) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                localVideoTrack = stream.getVideoTracks()[0];
+                if (localStream) {
+                    localStream.addTrack(localVideoTrack);
+                } else {
+                    localStream = stream;
+                }
+                isVideoEnabled = true;
+                videoBtn.querySelector('i').className = 'fas fa-video-slash';
+                videoBtn.querySelector('span').textContent = 'Stop Video';
+                updateLocalVideoElement();
+                // Add video track to all peer connections
+                Object.values(peerConnections).forEach(pc => {
+                    pc.addTrack(localVideoTrack, localStream);
+                });
+            } catch (err) {
+                console.error('Could not start video:', err);
+            }
+        } else {
+            // Stop video
+            if (localVideoTrack) {
+                localVideoTrack.stop();
+                if (localStream) {
+                    localStream.removeTrack(localVideoTrack);
+                }
+                // Remove video track from all peer connections
+                Object.values(peerConnections).forEach(pc => {
+                    pc.getSenders().forEach(sender => {
+                        if (sender.track && sender.track.kind === 'video') {
+                            pc.removeTrack(sender);
+                        }
+                    });
+                });
+                localVideoTrack = null;
+            }
+            isVideoEnabled = false;
+            videoBtn.querySelector('i').className = 'fas fa-video';
+            videoBtn.querySelector('span').textContent = 'Start Video';
+            updateLocalVideoElement();
+        }
+    });
 }
 
 // Initialize WebRTC with simplified constraints
 async function initializeWebRTC() {
     try {
         console.log('Initializing WebRTC...');
-        
-        // Simplified audio constraints
         localStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: true,
                 noiseSuppression: true,
                 autoGainControl: true
             },
-            video: false
+            video: isVideoEnabled
         });
+        if (isVideoEnabled) {
+            localVideoTrack = localStream.getVideoTracks()[0];
+        }
+        updateLocalVideoElement();
         
         console.log('Audio stream obtained successfully');
 
@@ -460,54 +513,31 @@ async function createPeerConnection(userId, isInitiator) {
                     readyState: t.readyState
                 })));
 
-                // Remove any existing audio element for this user
+                // Remove any existing video/audio element for this user
+                const existingVideo = document.getElementById(`video-${userId}`);
+                if (existingVideo) existingVideo.remove();
                 const existingAudio = document.getElementById(`audio-${userId}`);
-                if (existingAudio) {
-                    console.log('Removing existing audio element');
-                    existingAudio.remove();
+                if (existingAudio) existingAudio.remove();
+                // Add video if present
+                if (stream.getVideoTracks().length > 0) {
+                    const videoElement = document.createElement('video');
+                    videoElement.id = `video-${userId}`;
+                    videoElement.srcObject = stream;
+                    videoElement.autoplay = true;
+                    videoElement.playsInline = true;
+                    videoElement.className = 'video-element remote-video';
+                    videoGrid.appendChild(videoElement);
                 }
-
-                const audioElement = document.createElement('audio');
-                audioElement.id = `audio-${userId}`;
-                audioElement.srcObject = stream;
-                audioElement.autoplay = true;
-                audioElement.muted = isDeafened;
-                audioElement.volume = 1.0;
-                
-                // Add event listeners for debugging
-                audioElement.onloadedmetadata = () => {
-                    console.log(`Audio element loaded metadata for ${userId}`);
-                    audioElement.play().catch(e => console.error('Error playing audio:', e));
-                };
-                
-                audioElement.onplay = () => console.log(`Audio started playing for ${userId}`);
-                audioElement.onpause = () => console.log(`Audio paused for ${userId}`);
-                audioElement.onended = () => console.log(`Audio ended for ${userId}`);
-                audioElement.onerror = (e) => console.error(`Audio error for ${userId}:`, e);
-                
-                document.body.appendChild(audioElement);
-                console.log('Audio element created and added to DOM:', {
-                    id: audioElement.id,
-                    muted: audioElement.muted,
-                    volume: audioElement.volume,
-                    readyState: audioElement.readyState,
-                    srcObject: !!audioElement.srcObject
-                });
-
-                // Force play the audio
-                audioElement.play().catch(e => {
-                    console.error('Error playing audio:', e);
-                    // Try to recover by recreating the audio element
-                    audioElement.remove();
-                    const newAudioElement = document.createElement('audio');
-                    newAudioElement.id = `audio-${userId}`;
-                    newAudioElement.srcObject = stream;
-                    newAudioElement.autoplay = true;
-                    newAudioElement.muted = isDeafened;
-                    newAudioElement.volume = 1.0;
-                    document.body.appendChild(newAudioElement);
-                    newAudioElement.play().catch(e => console.error('Error playing recovered audio:', e));
-                });
+                // Add audio if present
+                if (stream.getAudioTracks().length > 0) {
+                    const audioElement = document.createElement('audio');
+                    audioElement.id = `audio-${userId}`;
+                    audioElement.srcObject = stream;
+                    audioElement.autoplay = true;
+                    audioElement.muted = isDeafened;
+                    audioElement.volume = 1.0;
+                    document.body.appendChild(audioElement);
+                }
             } else {
                 console.error('No streams in track event');
             }
@@ -3381,3 +3411,24 @@ async function openFriendProfileModal(friend, avatarEl) {
         document.head.appendChild(style);
     }
 })();
+
+function updateLocalVideoElement() {
+    if (!videoGrid) return;
+    let localVideo = document.getElementById('video-local');
+    if (isVideoEnabled && localVideoTrack && localStream) {
+        if (!localVideo) {
+            localVideo = document.createElement('video');
+            localVideo.id = 'video-local';
+            localVideo.autoplay = true;
+            localVideo.muted = true;
+            localVideo.playsInline = true;
+            localVideo.className = 'video-element local-video';
+            videoGrid.appendChild(localVideo);
+        }
+        localVideo.srcObject = localStream;
+        localVideo.style.display = '';
+    } else if (localVideo) {
+        localVideo.srcObject = null;
+        localVideo.style.display = 'none';
+    }
+}
