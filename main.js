@@ -320,6 +320,7 @@ function initializeEventListeners() {
                 Object.values(peerConnections).forEach(pc => {
                     pc.addTrack(localVideoTrack, localStream);
                 });
+                await renegotiateAllPeers();
             } catch (err) {
                 console.error('Could not start video:', err);
             }
@@ -344,6 +345,7 @@ function initializeEventListeners() {
             videoBtn.querySelector('i').className = 'fas fa-video';
             videoBtn.querySelector('span').textContent = 'Start Video';
             updateLocalVideoElement();
+            await renegotiateAllPeers();
         }
     });
 }
@@ -3430,5 +3432,24 @@ function updateLocalVideoElement() {
     } else if (localVideo) {
         localVideo.srcObject = null;
         localVideo.style.display = 'none';
+    }
+}
+
+// Renegotiate all peer connections (for video add/remove)
+async function renegotiateAllPeers() {
+    for (const userId in peerConnections) {
+        const pc = peerConnections[userId];
+        if (pc.signalingState === 'stable') {
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                socket.emit('offer', {
+                    targetUserId: userId,
+                    offer: offer
+                });
+            } catch (err) {
+                console.error('Renegotiation failed for', userId, err);
+            }
+        }
     }
 }
