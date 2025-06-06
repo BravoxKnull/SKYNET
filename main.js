@@ -3091,12 +3091,12 @@ async function openFriendProfileModal(friend, avatarEl) {
     // Remove any existing modal
     const root = document.getElementById('friendProfileModalRoot');
     root.innerHTML = '';
-    // Fetch extra info (bio, banner, banner_type)
+    // Fetch extra info (bio, banner)
     let userData = friend;
     try {
         const { data } = await supabase
             .from('users')
-            .select('id, display_name, avatar_url, banner_url, banner_type, bio')
+            .select('id, display_name, avatar_url, banner_url, bio')
             .eq('id', friend.id)
             .single();
         if (data) userData = data;
@@ -3118,8 +3118,6 @@ async function openFriendProfileModal(friend, avatarEl) {
     modal.style.left = left + 'px';
     modal.style.top = top + 'px';
     modal.style.transformOrigin = left < rect.left ? 'top right' : 'top left';
-    // Modal content: show video if banner_type is video, else image
-    let bannerHtml = '';
     // Modal content
     modal.innerHTML = `
       <button class="close-friend-profile-modal" title="Close">&times;</button>
