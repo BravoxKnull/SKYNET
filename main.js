@@ -1373,6 +1373,637 @@ function updateConnectionStatus(status) {
     }
 }
 
+// Enhanced Welcome Section Transitions
+function showWelcomeSection() {
+    const welcomeSection = document.querySelector('.welcome-section');
+    if (welcomeSection) {
+        welcomeSection.style.display = 'flex';
+        setTimeout(() => welcomeSection.classList.add('visible'), 50);
+    }
+}
+
+function hideWelcomeSection() {
+    const welcomeSection = document.querySelector('.welcome-section');
+    if (welcomeSection) {
+        welcomeSection.classList.remove('visible');
+        setTimeout(() => welcomeSection.style.display = 'none', 500);
+    }
+}
+
+// Enhanced Channel Section Transitions
+function showChannelSection() {
+    const channelSection = document.querySelector('.channel-section');
+    if (channelSection) {
+        channelSection.style.display = 'flex';
+        setTimeout(() => channelSection.classList.add('visible'), 50);
+    }
+}
+
+function hideChannelSection() {
+    const channelSection = document.querySelector('.channel-section');
+    if (channelSection) {
+        channelSection.classList.remove('visible');
+        setTimeout(() => channelSection.style.display = 'none', 500);
+    }
+}
+
+// Enhanced User List Updates
+function updateUserList(users) {
+    const usersGrid = document.querySelector('.users-grid');
+    if (usersGrid) {
+        usersGrid.innerHTML = '';
+        users.forEach(user => {
+            const userItem = createUserItem(user);
+            usersGrid.appendChild(userItem);
+        });
+    }
+}
+
+function createUserItem(user) {
+    const userItem = document.createElement('div');
+    userItem.className = 'user-item';
+    userItem.setAttribute('data-user-id', user.id);
+
+    userItem.innerHTML = `
+        <div class="avatar-wrapper">
+            <img src="${user.avatar || 'default-avatar.png'}" alt="${user.name}" class="user-avatar">
+            <div class="avatar-status status-${user.status.toLowerCase()}"></div>
+        </div>
+        <span class="user-name">${user.name}</span>
+        <span class="user-status">${user.status}</span>
+        <audio id="audio-${user.id}" autoplay></audio>
+    `;
+
+    return userItem;
+}
+
+// Initialize UI
+document.addEventListener('DOMContentLoaded', () => {
+    setupAudioControls();
+    showWelcomeSection();
+});
+
+// Friend system and notifications
+
+// --- FRIEND REQUEST SYSTEM ---
+
+// Helper: Get current user from localStorage
+function getCurrentUser() {
+    return JSON.parse(localStorage.getItem('user'));
+}
+
+// --- SAFE EVENT LISTENER ASSIGNMENTS ---
+function safeAddEventListener(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(event, handler);
+    } else {
+        console.warn('Element not found for event listener:', id);
+    }
+}
+function safeSetOnClick(id, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.onclick = handler;
+    } else {
+        console.warn('Element not found for onclick:', id);
+    }
+}
+// Use safeAddEventListener and safeSetOnClick for all event listeners
+safeSetOnClick('soundboardBtn', openSoundboardModal);
+safeSetOnClick('closeSoundboardModal', closeSoundboardModal);
+safeAddEventListener('soundboardModalOverlay', 'click', function(e) {
+    if (e.target === this) closeSoundboardModal();
+});
+safeAddEventListener('soundboardToggle', 'change', function(e) {
+    soundboardEnabled = e.target.checked;
+});
+safeSetOnClick('screenshareBtn', function() {
+    alert('Screenshare coming soon!');
+});
+
+// Helper: Get friendship status between current user and another user
+async function getFriendshipStatus(currentUserId, otherUserId) {
+    if (!currentUserId || !otherUserId) return null;
+    try {
+        // Check for accepted or pending friendship in either direction
+        const { data, error } = await supabase
+            .from('user_friends')
+            .select('user_id, friend_id, status')
+            .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`);
+        if (error) {
+            console.error('getFriendshipStatus error:', error);
+            return null;
+        }
+        if (!data || data.length === 0) return null;
+        // If any row is accepted, return 'accepted'
+        if (data.some(row => row.status === 'accepted')) return 'accepted';
+        // If any row is pending and you sent it
+        if (data.some(row => row.status === 'pending' && row.user_id === currentUserId)) return 'pending';
+        // If any row is pending and they sent it
+        if (data.some(row => row.status === 'pending' && row.user_id === otherUserId)) return 'incoming';
+        return null;
+    } catch (err) {
+        console.error('getFriendshipStatus exception:', err);
+        return null;
+    }
+}
+
+// Helper: Send friend request
+async function sendFriendRequest(currentUserId, otherUserId, otherDisplayName) {
+    if (!currentUserId || !otherUserId) {
+        console.error('sendFriendRequest: Missing user IDs', currentUserId, otherUserId);
+        return;
+    }
+    if (typeof currentUserId !== 'string' || typeof otherUserId !== 'string') {
+        console.error('sendFriendRequest: IDs must be strings', currentUserId, otherUserId);
+        return;
+    }
+    console.log('Sending friend request with friend_id:', otherUserId, 'status: pending');
+    if (!otherUserId || typeof otherUserId !== 'string') {
+        console.error('Invalid friendId for user_friends upsert:', otherUserId);
+        return;
+    }
+    await supabase.from('user_friends').upsert([
+        { user_id: currentUserId, friend_id: otherUserId, status: 'pending' }
+    ]);
+    await supabase.from('user_notifications').insert([
+        {
+            user_id: otherUserId,
+            type: 'friend_request',
+            message: `${getCurrentUser().displayName} sent you a friend request!`,
+            is_read: false
+        }
+    ]);
+}
+
+// Helper: Accept friend request
+async function acceptFriendRequest(currentUserId, otherUserId) {
+    // Update both directions to accepted
+    await supabase.from('user_friends')
+        .update({ status: 'accepted' })
+        .or(`and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId})`);
+    // Optionally, mark notification as read
+    await supabase.from('user_notifications')
+        .update({ is_read: true })
+        .eq('user_id', currentUserId)
+        .eq('type', 'friend_request');
+}
+
+// Helper: Decline friend request
+async function declineFriendRequest(currentUserId, otherUserId) {
+    await supabase.from('user_friends')
+        .delete()
+        .or(`and(user_id.eq.${otherUserId},friend_id.eq.${currentUserId}),and(user_id.eq.${currentUserId},friend_id.eq.${otherUserId})`);
+    await supabase.from('user_notifications')
+        .update({ is_read: true })
+        .eq('user_id', currentUserId)
+        .eq('type', 'friend_request');
+}
+
+// Helper: Show push notification for friend requests
+function showFriendRequestNotification(fromUserId, fromDisplayName) {
+    // Create notification element
+    const notif = document.createElement('div');
+    notif.className = 'friend-request-toast';
+    notif.innerHTML = `
+        <span>${fromDisplayName} sent you a friend request!</span>
+        <button class="accept-btn">Accept</button>
+        <button class="decline-btn">Decline</button>
+    `;
+    document.body.appendChild(notif);
+    // Accept
+    notif.querySelector('.accept-btn').onclick = async () => {
+        await acceptFriendRequest(getCurrentUser().id, fromUserId);
+        notif.remove();
+        updateUsersList(users); // Refresh UI
+        renderFriendsSidebarList(); // Also refresh sidebar
+    };
+    // Decline
+    notif.querySelector('.decline-btn').onclick = async () => {
+        await declineFriendRequest(getCurrentUser().id, fromUserId);
+        notif.remove();
+        updateUsersList(users); // Refresh UI
+        renderFriendsSidebarList(); // Also refresh sidebar
+    };
+    setTimeout(() => notif.remove(), 10000);
+}
+
+// Poll for new friend request notifications
+setInterval(async () => {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    const { data, error } = await supabase
+        .from('user_notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('type', 'friend_request')
+        .eq('is_read', false);
+    if (data && data.length > 0) {
+        for (const notif of data) {
+            // Find who sent the request
+            const { data: friendRows } = await supabase
+                .from('user_friends')
+                .select('user_id')
+                .eq('friend_id', currentUser.id)
+                .eq('status', 'pending')
+                .limit(1);
+            if (friendRows && friendRows.length > 0) {
+                // Get sender's display name
+                const { data: senderRows } = await supabase
+                    .from('users')
+                    .select('display_name')
+                    .eq('id', friendRows[0].user_id)
+                    .limit(1);
+                showFriendRequestNotification(friendRows[0].user_id, senderRows && senderRows.length > 0 ? senderRows[0].display_name : 'Someone');
+            }
+        }
+    }
+}, 5000);
+
+// --- PATCH createUserListItem to add friend button ---
+const origCreateUserListItem = createUserListItem;
+createUserListItem = function(userData) {
+    const userItem = origCreateUserListItem(userData);
+    const currentUser = getCurrentUser();
+    if (!currentUser || userData.id === currentUser.id) return userItem;
+    // Add friend button
+    const friendBtn = document.createElement('button');
+    friendBtn.className = 'friend-btn';
+    // Check friendship status
+    getFriendshipStatus(currentUser.id, userData.id).then(status => {
+        if (status === 'accepted') {
+            friendBtn.textContent = 'You are friends';
+            friendBtn.disabled = true;
+        } else if (status === 'pending') {
+            friendBtn.textContent = 'Request Sent';
+            friendBtn.disabled = true;
+        } else if (status === 'incoming') {
+            friendBtn.textContent = 'Accept Request';
+            friendBtn.disabled = false;
+            friendBtn.onclick = async (e) => {
+                e.stopPropagation();
+                await acceptFriendRequest(currentUser.id, userData.id);
+                friendBtn.textContent = 'You are friends';
+                friendBtn.disabled = true;
+            };
+            return;
+        } else {
+            friendBtn.textContent = 'Add Friend';
+            friendBtn.disabled = false;
+        }
+    });
+    friendBtn.onclick = async (e) => {
+        e.stopPropagation();
+        await sendFriendRequest(currentUser.id, userData.id, userData.displayName);
+        friendBtn.textContent = 'Request Sent';
+        friendBtn.disabled = true;
+    };
+    userItem.appendChild(friendBtn);
+    return userItem;
+};
+
+// --- Minimal CSS for friend button and notification ---
+const friendStyle = document.createElement('style');
+friendStyle.textContent = `
+.friend-btn {
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--primary-color, #a370f7);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+.friend-btn[disabled] {
+  background: #aaa;
+  cursor: not-allowed;
+}
+.friend-request-toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #222;
+  color: #fff;
+  padding: 18px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.friend-request-toast .accept-btn, .friend-request-toast .decline-btn {
+  margin-left: 10px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+.friend-request-toast .accept-btn { background: #2ecc71; color: #fff; }
+.friend-request-toast .decline-btn { background: #e74c3c; color: #fff; }
+`;
+document.head.appendChild(friendStyle);
+
+// --- REMOVE CHAT SECTION FROM SIDEBAR, SHOW ONLY FRIENDS LIST ---
+// Patch: Remove chat-section logic and DOM refs
+// Sidebar now only shows friends list
+
+// --- PATCH: Ensure unread badge always appears and is styled correctly ---
+(function injectSidebarUnreadBadgeCSS() {
+    if (!document.getElementById('sidebar-unread-badge-style')) {
+        const style = document.createElement('style');
+        style.id = 'sidebar-unread-badge-style';
+        style.textContent = `
+        .sidebar-friend-unread {
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.78rem;
+            min-width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+            font-weight: bold;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+            position: relative;
+            top: 0;
+            right: 0;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+// PATCH renderFriendsSidebarList to always append badge
+async function renderFriendsSidebarList() {
+    const user = getCurrentUser();
+    if (!user) return;
+    const sidebarList = document.getElementById('friendsSidebarList');
+    if (!sidebarList) return;
+    // Get all accepted friends
+    const { data, error } = await supabase
+        .from('user_friends')
+        .select('user_id, friend_id, status')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+    if (error) return;
+    const friendIds = data
+        .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
+        .filter(id => id !== user.id);
+    if (friendIds.length === 0) {
+        sidebarList.innerHTML = '<div style="color:#aaa;padding:10px;">No friends yet.</div>';
+        return;
+    }
+    const { data: friends } = await supabase
+        .from('users')
+        .select('id, display_name, avatar_url')
+        .in('id', friendIds);
+    // Sort: friends with unread messages first, then by name
+    friends.sort((a, b) => {
+        const aUnread = sidebarUnreadCounts[a.id] || 0;
+        const bUnread = sidebarUnreadCounts[b.id] || 0;
+        if (aUnread !== bUnread) return bUnread - aUnread;
+        return a.display_name.localeCompare(b.display_name);
+    });
+    sidebarList.innerHTML = '';
+    // Debug log for unread counts
+    console.log('sidebarUnreadCounts:', sidebarUnreadCounts);
+    friends.forEach(friend => {
+        const div = document.createElement('div');
+        div.className = 'sidebar-friend';
+        // Check starred state (for icon)
+        let starred = false;
+        try {
+            const user = getCurrentUser();
+            // This is a synchronous check, but we need the value for the icon
+            // We'll fetch it below for the menu, but here we use a cache or fallback
+            // For now, we will fetch it again below for the menu
+        } catch {}
+        // We'll fetch the real value for the menu, but for now, we need to fetch it here synchronously
+        // So, instead, after the menu is used, we re-render the list, so the icon will update
+        // Render avatar, name, and star icon if starred
+        div.innerHTML = `
+          <img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar" style="cursor:pointer;">
+          <span class="sidebar-friend-name-wrapper">
+            <span class="sidebar-friend-name" style="cursor:pointer;">${friend.display_name}</span>
+            <span class="sidebar-friend-star" style="display:none;"><i class="fas fa-star"></i></span>
+          </span>
+          <button class="sidebar-friend-kebab" title="More options">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>`;
+        // Fetch starred state and show icon if needed
+        (async () => {
+            try {
+                const user = getCurrentUser();
+                const { data } = await supabase
+                    .from('user_friends')
+                    .select('starred')
+                    .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`)
+                    .eq('status', 'accepted')
+                    .single();
+                if (data && data.starred) {
+                    const starEl = div.querySelector('.sidebar-friend-star');
+                    if (starEl) {
+                        starEl.style.display = 'inline-block';
+                    }
+                }
+            } catch {}
+        })();
+        if (sidebarUnreadCounts[friend.id] > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'sidebar-friend-unread';
+            badge.textContent = sidebarUnreadCounts[friend.id];
+            div.appendChild(badge);
+        }
+        // Avatar click: open profile modal
+        div.querySelector('.sidebar-friend-avatar').onclick = (e) => {
+            e.stopPropagation();
+            openFriendProfileModal(friend, e.target);
+        };
+        // Name click: open chat modal
+        div.querySelector('.sidebar-friend-name').onclick = (e) => {
+            e.stopPropagation();
+            openChatModal(friend);
+        };
+        // Kebab menu logic
+        const kebabBtn = div.querySelector('.sidebar-friend-kebab');
+        let kebabMenu = null;
+        kebabBtn.onclick = async (e) => {
+            e.stopPropagation();
+            // Close any open menu
+            document.querySelectorAll('.sidebar-friend-kebab-menu').forEach(m => m.remove());
+            // Fetch friendship date
+            let since = '';
+            try {
+                const user = getCurrentUser();
+                const { data } = await supabase
+                    .from('user_friends')
+                    .select('created_at')
+                    .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`)
+                    .eq('status', 'accepted')
+                    .single();
+                if (data && data.created_at) {
+                    since = new Date(data.created_at).toLocaleDateString();
+                }
+            } catch {}
+            // Check starred state (local fallback)
+            let starred = false;
+            try {
+                const user = getCurrentUser();
+                const { data } = await supabase
+                    .from('user_friends')
+                    .select('starred')
+                    .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`)
+                    .eq('status', 'accepted')
+                    .single();
+                starred = data && data.starred;
+            } catch {}
+            kebabMenu = document.createElement('div');
+            kebabMenu.className = 'sidebar-friend-kebab-menu';
+            kebabMenu.innerHTML = `
+              <div class="kebab-menu-option" data-action="since"><i class="fas fa-calendar-alt"></i> Friends Since <span style="float:right;color:#a370f7;font-weight:600;">${since || '?'}</span></div>
+              <div class="kebab-menu-option" data-action="star"><i class="fas fa-star${starred ? '' : '-o'}"></i> ${starred ? 'Unstar' : 'Add Star'}</div>
+              <div class="kebab-menu-option" data-action="unfriend"><i class="fas fa-user-slash"></i> Unfriend</div>
+            `;
+            // Position menu
+            const rect = kebabBtn.getBoundingClientRect();
+            const menuWidth = 200;
+            const menuHeight = 140;
+            let left = rect.right - 10;
+            let top = rect.top + 8;
+            // If menu would overflow right, open to the left
+            if (left + menuWidth > window.innerWidth - 8) {
+                left = rect.left - menuWidth - 8;
+            }
+            // If menu would overflow left, clamp to 8px
+            if (left < 8) left = 8;
+            // If menu would overflow bottom, move up
+            if (top + menuHeight > window.innerHeight - 8) {
+                top = window.innerHeight - menuHeight - 8;
+            }
+            if (top < 8) top = 8;
+            kebabMenu.style.position = 'fixed';
+            kebabMenu.style.left = left + 'px';
+            kebabMenu.style.top = top + 'px';
+            document.body.appendChild(kebabMenu);
+            // Click outside closes
+            setTimeout(() => {
+                function outside(e2) {
+                    if (!kebabMenu.contains(e2.target) && e2.target !== kebabBtn) {
+                        kebabMenu.remove();
+                        document.removeEventListener('mousedown', outside);
+                    }
+                }
+                document.addEventListener('mousedown', outside);
+            }, 30);
+            // Option actions
+            kebabMenu.querySelectorAll('.kebab-menu-option').forEach(opt => {
+                opt.onclick = async (ev) => {
+                    const action = opt.dataset.action;
+                    if (action === 'since') {
+                        // Just close menu (date is shown)
+                        kebabMenu.remove();
+                    } else if (action === 'unfriend') {
+                        if (confirm('Unfriend this user?')) {
+                            const user = getCurrentUser();
+                            await supabase.from('user_friends')
+                                .delete()
+                                .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`);
+                            kebabMenu.remove();
+                            renderFriendsSidebarList();
+                        }
+                    } else if (action === 'star') {
+                        const user = getCurrentUser();
+                        await supabase.from('user_friends')
+                            .update({ starred: !starred })
+                            .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`);
+                        kebabMenu.remove();
+                        renderFriendsSidebarList();
+                    }
+                };
+            });
+        };
+        div.dataset.friendId = friend.id;
+        sidebarList.appendChild(div);
+    });
+}
+
+// --- CHAT MODAL LOGIC ---
+let chatModalCurrentFriend = null;
+
+function openChatModal(friend) {
+    chatModalCurrentFriend = friend;
+    const overlay = document.getElementById('chatModalOverlay');
+    overlay.style.display = 'flex';
+    setTimeout(() => overlay.classList.add('active'), 10);
+    renderChatModalFriends(friend.id);
+    renderChatModalHeader(friend);
+    loadChatModalMessages(friend.id);
+}
+
+function closeChatModal() {
+    const overlay = document.getElementById('chatModalOverlay');
+    overlay.classList.remove('active');
+    setTimeout(() => { overlay.style.display = 'none'; }, 320);
+    chatModalCurrentFriend = null;
+}
+
+// Render friends list in modal (for quick switching)
+async function renderChatModalFriends(selectedId) {
+    const user = getCurrentUser();
+    if (!user) return;
+    const modalFriends = document.getElementById('chatModalFriends');
+    if (!modalFriends) return;
+    const { data, error } = await supabase
+        .from('user_friends')
+        .select('user_id, friend_id, status')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+    if (error) return;
+    const friendIds = data
+        .map(row => row.user_id === user.id ? row.friend_id : row.user_id)
+        .filter(id => id !== user.id);
+    if (friendIds.length === 0) {
+        modalFriends.innerHTML = '<div style="color:#aaa;padding:10px;">No friends yet.</div>';
+        return;
+    }
+    const { data: friends } = await supabase
+        .from('users')
+        .select('id, display_name, avatar_url')
+        .in('id', friendIds);
+    modalFriends.innerHTML = '';
+    friends.forEach(friend => {
+        const div = document.createElement('div');
+        div.className = 'modal-friend' + (friend.id === selectedId ? ' selected' : '');
+        div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="modal-friend-avatar"><span class="modal-friend-name">${friend.display_name}</span>`;
+        div.onclick = () => openChatModal(friend);
+        div.dataset.friendId = friend.id;
+        modalFriends.appendChild(div);
+    });
+}
+
+function renderChatModalHeader(friend) {
+    document.getElementById('chatModalHeader').textContent = friend.display_name;
+}
+
+async function loadChatModalMessages(friendId) {
+    const user = getCurrentUser();
+    if (!user) return;
+    const { data, error } = await supabase
+        .from('user_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true })
+        .limit(50);
+    if (error) return;
+    renderChatModalMessages(data || [], user.id);
+}
+
 // --- PATCH: Animate new chat messages ---
 (function injectChatMessageAnimationCSS() {
     if (!document.getElementById('chat-message-animate-style')) {

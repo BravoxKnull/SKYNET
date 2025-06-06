@@ -371,7 +371,14 @@ body {
 
 /* Welcome Section */
 .welcome-section {
-    display: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); /* Slower, smoother transition */
+    position: relative;
 }
 
 .welcome-section.hidden {
@@ -379,7 +386,14 @@ body {
 }
 
 .welcome-content {
-    display: none;
+    text-align: center;
+    padding: 2rem; /* Slightly reduced padding */
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px); /* Increased blur */
+    border-radius: 20px; /* Maintain rounded corners */
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    animation: fadeInScale 1s ease; /* New animation */
 }
 
 /* New Animation for welcome content */
@@ -395,7 +409,15 @@ body {
 }
 
 .welcome-section h1 {
-    display: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem; /* Slightly smaller font size */
+    margin-bottom: 1rem; /* Slightly reduced margin */
+    background: var(--gradient-primary); /* Use gradient */
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 25px rgba(163, 112, 247, 0.6); /* Stronger shadow */
+    animation: textGlow 2s infinite alternate; /* Add text glow animation */
 }
 
 @keyframes textGlow {
@@ -408,15 +430,30 @@ body {
 }
 
 .welcome-subtitle {
-    display: none;
+    font-size: 1.2rem; /* Slightly smaller font size */
+    color: var(--accent-color); /* Use accent color */
+    margin: 1rem 0; /* Slightly reduced margin */
+    opacity: 0.9; /* Slightly more opaque */
 }
 
 .welcome-features {
-    display: none;
+    display: flex;
+    justify-content: center;
+    gap: 2rem; /* Slightly reduced gap */
+    margin-top: 2rem; /* Slightly reduced margin */
 }
 
 .feature {
-    display: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem; /* More space */
+    padding: 1rem; /* Slightly reduced padding */
+    background: var(--card-bg); /* Use card background */
+    border-radius: 15px; /* More rounded */
+    border: 1px solid var(--border-color); /* Use border color */
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); /* Smoother transition */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle initial shadow */
 }
 
 .feature:hover {
@@ -426,11 +463,14 @@ body {
 }
 
 .feature i {
-    display: none;
+    font-size: 1.8rem; /* Slightly smaller icons */
+    color: var(--primary-color); /* Use primary color */
 }
 
 .feature span {
-    display: none;
+    font-size: 0.9rem; /* Slightly smaller font size */
+    color: var(--text-color);
+    font-weight: 500;
 }
 
 /* Channel Section Styles */
