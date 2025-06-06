@@ -300,8 +300,7 @@ input:checked + .slider:before {
 
 /* Profile Banner Styles */
 .profile-banner-container {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    position: relative;
     width: 100%;
     height: 100%;
     z-index: 0;
@@ -311,22 +310,21 @@ input:checked + .slider:before {
     box-shadow: 0 4px 32px 0 rgba(0,0,0,0.25);
     animation: fadeInBanner 1s cubic-bezier(.4,0,.2,1);
 }
-@keyframes fadeInBanner {
-    from { opacity: 0; transform: translateY(-30px);}
-    to { opacity: 1; transform: none;}
-}
-#profileBanner {
+#profileBanner, #profileBannerVideo {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: opacity 0.4s;
     border-radius: 12px 12px 0 0;
+    transition: opacity 0.4s;
 }
-.change-banner-btn {
+#profileBannerVideo {
+    display: none;
+    background: #181926;
+}
+.remove-banner-btn {
     position: absolute;
-    bottom: 18px;
-    right: 24px;
-    z-index: 2;
+    top: 18px;
+    left: 24px;
     background: rgba(60,0,120,0.7);
     border: none;
     border-radius: 50%;
@@ -334,16 +332,36 @@ input:checked + .slider:before {
     font-size: 1.5rem;
     padding: 10px;
     cursor: pointer;
-    opacity: 0;
+    z-index: 2;
+    opacity: 0.85;
     transition: opacity 0.2s;
 }
-.profile-banner-container:hover .change-banner-btn {
+.remove-banner-btn:hover {
     opacity: 1;
+    background: #a370f7;
 }
-.profile-header > .profile-avatar,
-.profile-header > .profile-info {
-    position: relative;
-    z-index: 2;
+#bannerTypeModal .modal-content {
+    max-width: 340px;
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+#bannerTypeModal h3 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+#chooseBannerImage, #chooseBannerVideo {
+    width: 100%;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+@media (max-width: 600px) {
+    #profileBanner, #profileBannerVideo {
+        border-radius: 8px 8px 0 0;
+    }
+    .profile-banner-container {
+        border-radius: 8px 8px 0 0;
+    }
 }
 
 /* Cropping Modal Styles */

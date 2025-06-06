@@ -42,11 +42,18 @@
             <div class="profile-container">
                 <div class="profile-header">
                     <div class="profile-banner-container">
-                        <img id="profileBanner" src="assets/images/default-banner.jpg" alt="Profile Banner" />
-                        <button class="change-banner-btn" title="Change Banner">
+                        <div id="profileBannerMediaWrapper">
+                            <img id="profileBanner" src="assets/images/default-banner.jpg" alt="Profile Banner" style="display:block;" />
+                            <video id="profileBannerVideo" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:12px 12px 0 0;" loop autoplay muted playsinline></video>
+                        </div>
+                        <button class="change-banner-btn" title="Change Banner" id="changeBannerBtn">
                             <i class="fa fa-camera"></i>
                         </button>
+                        <button class="remove-banner-btn" title="Remove Banner" id="removeBannerBtn" style="display:none; position:absolute; top:18px; left:24px; background:rgba(60,0,120,0.7); border:none; border-radius:50%; color:#fff; font-size:1.5rem; padding:10px; cursor:pointer; z-index:2;">
+                            <i class="fa fa-trash"></i>
+                        </button>
                         <input type="file" id="bannerInput" accept="image/*" hidden>
+                        <input type="file" id="bannerVideoInput" accept="video/*" hidden>
                     </div>
                     <div class="profile-avatar">
                         <img id="avatarPreview" src="assets/images/default-avatar.svg" alt="Profile Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'" />
@@ -170,6 +177,19 @@
     <!-- Cropper.js CDN -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <!-- Banner Type Modal -->
+    <div id="bannerTypeModal" class="modal">
+        <div class="modal-content" style="max-width:340px;">
+            <span class="close">&times;</span>
+            <h3>Upload Banner</h3>
+            <button id="chooseBannerImage" class="btn btn-primary" style="margin-bottom:1rem;">Image</button>
+            <button id="chooseBannerVideo" class="btn btn-primary">Video</button>
+        </div>
+    </div>
+
+    <!-- ffmpeg.wasm CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 
     <script>
         // Initialize Supabase client
@@ -631,179 +651,159 @@
             };
         }
 
-        // Banner Cropping & Upload
-        let bannerCropper;
+        // Banner type modal logic
+        const bannerTypeModal = document.getElementById('bannerTypeModal');
+        const chooseBannerImage = document.getElementById('chooseBannerImage');
+        const chooseBannerVideo = document.getElementById('chooseBannerVideo');
+        const closeBannerType = bannerTypeModal.querySelector('.close');
+        const changeBannerBtn = document.getElementById('changeBannerBtn');
         const bannerInput = document.getElementById('bannerInput');
-        const bannerCropModal = document.getElementById('bannerCropModal');
-        const bannerCropImage = document.getElementById('bannerCropImage');
-        const saveBannerCrop = document.getElementById('saveBannerCrop');
-        const closeBannerCrop = bannerCropModal.querySelector('.close');
+        const bannerVideoInput = document.getElementById('bannerVideoInput');
+        const removeBannerBtn = document.getElementById('removeBannerBtn');
         const profileBanner = document.getElementById('profileBanner');
+        const profileBannerVideo = document.getElementById('profileBannerVideo');
+        const profileBannerMediaWrapper = document.getElementById('profileBannerMediaWrapper');
 
-        document.querySelector('.change-banner-btn').onclick = () => bannerInput.click();
-
-        bannerInput.onchange = function(e) {
+        changeBannerBtn.onclick = () => {
+            bannerTypeModal.style.display = 'flex';
+        };
+        closeBannerType.onclick = () => {
+            bannerTypeModal.style.display = 'none';
+        };
+        chooseBannerImage.onclick = () => {
+            bannerTypeModal.style.display = 'none';
+            bannerInput.click();
+        };
+        chooseBannerVideo.onclick = () => {
+            bannerTypeModal.style.display = 'none';
+            bannerVideoInput.click();
+        };
+        // Remove banner logic
+        removeBannerBtn.onclick = async () => {
+            // Remove banner from DB and UI
+            await supabase.from('users').update({ banner_url: null, banner_type: null }).eq('id', storedUser.id);
+            profileBanner.src = 'assets/images/default-banner.jpg';
+            profileBanner.style.display = 'block';
+            profileBannerVideo.style.display = 'none';
+            removeBannerBtn.style.display = 'none';
+            storedUser.banner_url = null;
+            storedUser.banner_type = null;
+            localStorage.setItem('user', JSON.stringify(storedUser));
+            showMessage('Banner removed!', 'success');
+        };
+        // Banner video upload logic
+        bannerVideoInput.onchange = async function(e) {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    bannerCropImage.src = evt.target.result;
-                    bannerCropModal.style.display = 'flex';
-                    if (bannerCropper) bannerCropper.destroy();
-                    bannerCropper = new Cropper(bannerCropImage, {
-                        aspectRatio: 3.5,
-                        viewMode: 1,
-                        minContainerWidth: 600,
-                        minContainerHeight: 200,
-                    });
-                };
-                reader.readAsDataURL(file);
+            if (!file) return;
+            // Validate file type and size
+            const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('Please upload a valid video file (MP4, WebM, OGG)', 'error');
+                return;
+            }
+            const maxSize = 30 * 1024 * 1024; // 30MB
+            if (file.size > maxSize) {
+                showMessage('Video size should be less than 30MB', 'error');
+                return;
+            }
+            // Check for audio track and strip if needed
+            let processedFile = file;
+            try {
+                const hasAudio = await checkVideoHasAudio(file);
+                if (hasAudio) {
+                    showMessage('Removing audio from video...', 'info');
+                    processedFile = await stripAudioFromVideo(file);
+                }
+            } catch (err) {
+                showMessage('Error processing video: ' + err.message, 'error');
+                return;
+            }
+            // Upload to Cloudinary
+            showMessage('Uploading video banner...', 'info');
+            const formData = new FormData();
+            formData.append('file', processedFile);
+            formData.append('upload_preset', uploadPreset);
+            formData.append('folder', storedUser.id + '/banner');
+            try {
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!data.secure_url) {
+                    showMessage('Cloudinary upload failed: ' + (data.error?.message || 'Unknown error.'), 'error');
+                    return;
+                }
+                // Save video URL to user profile
+                await supabase.from('users').update({ banner_url: data.secure_url, banner_type: 'video' }).eq('id', storedUser.id);
+                profileBannerVideo.src = data.secure_url;
+                profileBannerVideo.style.display = 'block';
+                profileBanner.style.display = 'none';
+                removeBannerBtn.style.display = 'block';
+                storedUser.banner_url = data.secure_url;
+                storedUser.banner_type = 'video';
+                localStorage.setItem('user', JSON.stringify(storedUser));
+                showMessage('Video banner updated!', 'success');
+            } catch (err) {
+                showMessage('Cloudinary upload error: ' + err.message, 'error');
             }
         };
-
-        saveBannerCrop.onclick = async function() {
-            const canvas = bannerCropper.getCroppedCanvas({
-                width: 1400,
-                height: 400,
-                imageSmoothingQuality: 'high'
-            });
-            canvas.toBlob(async blob => {
-                // Upload to Supabase (same bucket as avatar, but prefix as 'banner-')
-                const fileExt = 'jpg';
-                const fileName = `${storedUser.id}-banner-${Date.now()}.${fileExt}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('avatars')
-                    .upload(fileName, blob, {
-                        cacheControl: '3600',
-                        upsert: true
-                    });
-                if (uploadError) {
-                    showMessage('Error uploading banner', 'error');
-                    return;
-                }
-                const { data: { publicUrl } } = supabase.storage
-                    .from('avatars')
-                    .getPublicUrl(fileName);
-                // Save URL to user profile
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ banner_url: publicUrl })
-                    .eq('id', storedUser.id);
-                if (updateError) {
-                    showMessage('Error saving banner', 'error');
-                    return;
-                }
-                profileBanner.src = publicUrl;
-                // Update local storage
-                storedUser.banner_url = publicUrl;
-                localStorage.setItem('user', JSON.stringify(storedUser));
-                bannerCropModal.style.display = 'none';
-                showMessage('Banner updated!', 'success');
-            }, 'image/jpeg', 0.95);
-        };
-
-        closeBannerCrop.onclick = () => {
-            bannerCropModal.style.display = 'none';
-            if (bannerCropper) bannerCropper.destroy();
-        };
-
-        // Avatar Cropping & Upload
-        let avatarCropper;
-        const avatarInput = document.getElementById('avatarInput');
-        const avatarCropModal = document.getElementById('avatarCropModal');
-        const avatarCropImage = document.getElementById('avatarCropImage');
-        const saveAvatarCrop = document.getElementById('saveAvatarCrop');
-        const closeAvatarCrop = avatarCropModal.querySelector('.close');
-        const avatarPreview = document.getElementById('avatarPreview');
-
-        avatarInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                // Validate file type
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-                if (!allowedTypes.includes(file.type)) {
-                    showMessage('Please upload a valid image file (JPEG, PNG, GIF, or WebP)', 'error');
-                    return;
-                }
-                // Validate file size (max 5MB)
-                const maxSize = 5 * 1024 * 1024; // 5MB
-                if (file.size > maxSize) {
-                    showMessage('Image size should be less than 5MB', 'error');
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    avatarCropImage.src = evt.target.result;
-                    avatarCropModal.style.display = 'flex';
-                    if (avatarCropper) avatarCropper.destroy();
-                    avatarCropper = new Cropper(avatarCropImage, {
-                        aspectRatio: 1,
-                        viewMode: 1,
-                        minContainerWidth: 300,
-                        minContainerHeight: 300,
-                        dragMode: 'move',
-                        guides: true,
-                        center: true,
-                        highlight: true,
-                        background: false,
-                        movable: true,
-                        rotatable: true,
-                        scalable: true,
-                        zoomable: true,
-                        cropBoxResizable: true,
-                        cropBoxMovable: true
-                    });
+        // Check if video has audio
+        async function checkVideoHasAudio(file) {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.muted = true;
+                video.src = URL.createObjectURL(file);
+                video.onloadedmetadata = function() {
+                    const audioTracks = video.mozHasAudio || video.webkitAudioDecodedByteCount || video.audioTracks?.length;
+                    // Fallback: try to play and check audioTracks
+                    if (typeof audioTracks === 'number') {
+                        resolve(audioTracks > 0);
+                    } else if (video.audioTracks && video.audioTracks.length) {
+                        resolve(video.audioTracks.length > 0);
+                    } else {
+                        // Try to check by duration and videoTracks
+                        resolve(video.mozHasAudio || false);
+                    }
+                    URL.revokeObjectURL(video.src);
                 };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        saveAvatarCrop.onclick = async function() {
-            if (!avatarCropper) return;
-            const canvas = avatarCropper.getCroppedCanvas({
-                width: 400,
-                height: 400,
-                imageSmoothingQuality: 'high'
+                video.onerror = function() {
+                    reject(new Error('Failed to load video metadata.'));
+                };
             });
-            canvas.toBlob(async blob => {
-                // Upload to Supabase
-                const fileExt = 'jpg';
-                const fileName = `${storedUser.id}-avatar-${Date.now()}.${fileExt}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('avatars')
-                    .upload(fileName, blob, {
-                        cacheControl: '3600',
-                        upsert: true
-                    });
-                if (uploadError) {
-                    showMessage('Error uploading avatar', 'error');
-                    return;
-                }
-                const { data: { publicUrl } } = supabase.storage
-                    .from('avatars')
-                    .getPublicUrl(fileName);
-                // Save URL to user profile
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ avatar_url: publicUrl })
-                    .eq('id', storedUser.id);
-                if (updateError) {
-                    showMessage('Error saving avatar', 'error');
-                    return;
-                }
-                avatarPreview.src = publicUrl;
-                // Update local storage
-                storedUser.avatar_url = publicUrl;
-                localStorage.setItem('user', JSON.stringify(storedUser));
-                avatarCropModal.style.display = 'none';
-                showMessage('Avatar updated!', 'success');
-            }, 'image/jpeg', 0.95);
-        };
-
-        closeAvatarCrop.onclick = () => {
-            avatarCropModal.style.display = 'none';
-            if (avatarCropper) avatarCropper.destroy();
-        };
+        }
+        // Strip audio from video using ffmpeg.wasm
+        async function stripAudioFromVideo(file) {
+            const { createFFmpeg, fetchFile } = FFmpeg;
+            const ffmpeg = createFFmpeg({ log: false });
+            await ffmpeg.load();
+            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+            await ffmpeg.run('-i', 'input.mp4', '-an', '-c:v', 'copy', 'output.mp4');
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+            return new File([data.buffer], 'output.mp4', { type: 'video/mp4' });
+        }
+        // Banner display logic (image or video)
+        function updateBannerDisplay() {
+            if (storedUser.banner_type === 'video' && storedUser.banner_url) {
+                profileBannerVideo.src = storedUser.banner_url;
+                profileBannerVideo.style.display = 'block';
+                profileBanner.style.display = 'none';
+                removeBannerBtn.style.display = 'block';
+            } else if (storedUser.banner_url) {
+                profileBanner.src = storedUser.banner_url;
+                profileBanner.style.display = 'block';
+                profileBannerVideo.style.display = 'none';
+                removeBannerBtn.style.display = 'block';
+            } else {
+                profileBanner.src = 'assets/images/default-banner.jpg';
+                profileBanner.style.display = 'block';
+                profileBannerVideo.style.display = 'none';
+                removeBannerBtn.style.display = 'none';
+            }
+        }
+        // Call updateBannerDisplay on load
+        updateBannerDisplay();
     </script>
 
     <style>
