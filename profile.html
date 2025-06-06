@@ -40,16 +40,14 @@
 
         <main class="main-content">
             <div class="profile-container">
-                <!-- Profile Banner Section (add above .profile-header) -->
-                <div class="profile-banner-container">
-                    <img id="profileBanner" src="assets/images/default-banner.jpg" alt="Profile Banner" />
-                    <button class="change-banner-btn" title="Change Banner">
-                        <i class="fa fa-camera"></i>
-                    </button>
-                    <input type="file" id="bannerInput" accept="image/*" hidden>
-                </div>
-
                 <div class="profile-header">
+                    <div class="profile-banner-container">
+                        <img id="profileBanner" src="assets/images/default-banner.jpg" alt="Profile Banner" />
+                        <button class="change-banner-btn" title="Change Banner">
+                            <i class="fa fa-camera"></i>
+                        </button>
+                        <input type="file" id="bannerInput" accept="image/*" hidden>
+                    </div>
                     <div class="profile-avatar">
                         <img id="avatarPreview" src="assets/images/default-avatar.svg" alt="Profile Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI1Ii8+PHBhdGggZD0iTTIwIDIxYTggOCAwIDAgMC0xNiAwIi8+PC9zdmc+'" />
                         <div class="avatar-upload">

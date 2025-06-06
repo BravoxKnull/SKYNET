@@ -11,12 +11,14 @@
 
 /* Profile Header Styles */
 .profile-header {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 2rem;
     margin-bottom: 2rem;
     padding-bottom: 2rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    min-height: 200px;
 }
 
 .profile-avatar {
@@ -298,17 +300,15 @@ input:checked + .slider:before {
 
 /* Profile Banner Styles */
 .profile-banner-container {
-    position: relative;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
     width: 100%;
-    height: 180px;
-    border-radius: 18px 18px 0 0;
+    height: 100%;
+    z-index: 0;
     overflow: hidden;
+    border-radius: 12px 12px 0 0;
     background: rgba(30, 20, 50, 0.7);
     box-shadow: 0 4px 32px 0 rgba(0,0,0,0.25);
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
     animation: fadeInBanner 1s cubic-bezier(.4,0,.2,1);
 }
 @keyframes fadeInBanner {
@@ -320,12 +320,13 @@ input:checked + .slider:before {
     height: 100%;
     object-fit: cover;
     transition: opacity 0.4s;
-    border-radius: 18px 18px 0 0;
+    border-radius: 12px 12px 0 0;
 }
 .change-banner-btn {
     position: absolute;
     bottom: 18px;
     right: 24px;
+    z-index: 2;
     background: rgba(60,0,120,0.7);
     border: none;
     border-radius: 50%;
@@ -335,10 +336,14 @@ input:checked + .slider:before {
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.2s;
-    z-index: 2;
 }
 .profile-banner-container:hover .change-banner-btn {
     opacity: 1;
+}
+.profile-header > .profile-avatar,
+.profile-header > .profile-info {
+    position: relative;
+    z-index: 2;
 }
 
 /* Cropping Modal Styles */
