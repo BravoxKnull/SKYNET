@@ -44,9 +44,6 @@
         }
     </script>
 
-    <!-- Particle.js Background -->
-    <div id="particles-js"></div>
-
     <!-- Cursor following background -->
     <div id="cursor-background"></div>
 
@@ -619,6 +616,31 @@
             80% { clip-path: inset(40% 0 0 0); transform: translate(1px, 1px); }
             100% { clip-path: inset(60% 0 0 0); transform: translate(0, 0); }
         }
+
+        #spline-bg {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        #spline-bg spline-viewer {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            pointer-events: none;
+        }
+        body, html {
+            background: transparent !important;
+        }
     </style>
+
+    <!-- Spline 3D Background (full code, valid HTML) -->
+    <div id="spline-bg">
+      <spline-viewer url="https://prod.spline.design/qKwmasJmRKBoJXDF/scene.splinecode"></spline-viewer>
+    </div>
+    <script type="module" src="https://unpkg.com/@splinetool/viewer@1.10.2/build/spline-viewer.js"></script>
 </body>
 </html> 
