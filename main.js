@@ -125,6 +125,37 @@ function initializeDOMElements() {
 // Initialize event listeners
 function initializeEventListeners() {
     joinBtn.addEventListener('click', async () => {
+        // --- ANIMATION: Start transition effect ---
+        // 1. Animate welcome section sliding left
+        welcomeSection.classList.add('slide-left');
+        // 2. Animate channel section expanding from button
+        const btnRect = joinBtn.getBoundingClientRect();
+        const channelRect = channelSection.getBoundingClientRect();
+        channelSection.style.display = 'flex';
+        channelSection.style.opacity = '0';
+        channelSection.style.transformOrigin = 'top left';
+        // Calculate scale and translate to make channelSection overlay the button
+        const scaleX = btnRect.width / channelRect.width;
+        const scaleY = btnRect.height / channelRect.height;
+        const translateX = btnRect.left - channelRect.left;
+        const translateY = btnRect.top - channelRect.top;
+        channelSection.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
+        // Force reflow
+        void channelSection.offsetWidth;
+        // Animate to full size
+        setTimeout(() => {
+            channelSection.style.transition = 'transform 0.7s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.7s cubic-bezier(0.23, 1, 0.32, 1)';
+            channelSection.style.opacity = '1';
+            channelSection.style.transform = 'translate(0,0) scale(1,1)';
+        }, 10);
+        // After animation, clean up
+        await new Promise(res => setTimeout(res, 800));
+        channelSection.style.transition = '';
+        channelSection.style.transform = '';
+        channelSection.style.opacity = '';
+        welcomeSection.classList.add('hidden');
+        channelSection.classList.add('visible');
+
         const name = displayNameInput.value.trim();
         if (!name) {
             warningMessage.textContent = 'Please enter your display name';
@@ -165,10 +196,6 @@ function initializeEventListeners() {
             if (error) {
                 console.error('Error fetching user avatar:', error);
             }
-
-            welcomeSection.classList.add('hidden');
-            channelSection.classList.remove('hidden');
-            channelSection.classList.add('visible');
 
             socket.emit('joinChannel', {
                 id: currentUser.id,
