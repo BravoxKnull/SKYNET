@@ -1779,7 +1779,10 @@ async function renderFriendsSidebarList() {
         // Split avatar and name for separate click handlers
         div.innerHTML = `
           <img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar" style="cursor:pointer;">
-          <span class="sidebar-friend-name" style="cursor:pointer;">${friend.display_name}</span>`;
+          <span class="sidebar-friend-name" style="cursor:pointer;">${friend.display_name}</span>
+          <button class="sidebar-friend-kebab" title="More options">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>`;
         if (sidebarUnreadCounts[friend.id] > 0) {
             const badge = document.createElement('span');
             badge.className = 'sidebar-friend-unread';
@@ -1795,6 +1798,89 @@ async function renderFriendsSidebarList() {
         div.querySelector('.sidebar-friend-name').onclick = (e) => {
             e.stopPropagation();
             openChatModal(friend);
+        };
+        // Kebab menu logic
+        const kebabBtn = div.querySelector('.sidebar-friend-kebab');
+        let kebabMenu = null;
+        kebabBtn.onclick = async (e) => {
+            e.stopPropagation();
+            // Close any open menu
+            document.querySelectorAll('.sidebar-friend-kebab-menu').forEach(m => m.remove());
+            // Fetch friendship date
+            let since = '';
+            try {
+                const user = getCurrentUser();
+                const { data } = await supabase
+                    .from('user_friends')
+                    .select('created_at')
+                    .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`)
+                    .eq('status', 'accepted')
+                    .single();
+                if (data && data.created_at) {
+                    since = new Date(data.created_at).toLocaleDateString();
+                }
+            } catch {}
+            // Check starred state (local fallback)
+            let starred = false;
+            try {
+                const user = getCurrentUser();
+                const { data } = await supabase
+                    .from('user_friends')
+                    .select('starred')
+                    .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`)
+                    .eq('status', 'accepted')
+                    .single();
+                starred = data && data.starred;
+            } catch {}
+            kebabMenu = document.createElement('div');
+            kebabMenu.className = 'sidebar-friend-kebab-menu';
+            kebabMenu.innerHTML = `
+              <div class="kebab-menu-option" data-action="since"><i class="fas fa-calendar-alt"></i> Friends Since <span style="float:right;color:#a370f7;font-weight:600;">${since || '?'}</span></div>
+              <div class="kebab-menu-option" data-action="star"><i class="fas fa-star${starred ? '' : '-o'}"></i> ${starred ? 'Unstar' : 'Add Star'}</div>
+              <div class="kebab-menu-option" data-action="unfriend"><i class="fas fa-user-slash"></i> Unfriend</div>
+            `;
+            // Position menu
+            const rect = kebabBtn.getBoundingClientRect();
+            kebabMenu.style.position = 'fixed';
+            kebabMenu.style.left = (rect.right - 10) + 'px';
+            kebabMenu.style.top = (rect.top + 8) + 'px';
+            document.body.appendChild(kebabMenu);
+            // Click outside closes
+            setTimeout(() => {
+                function outside(e2) {
+                    if (!kebabMenu.contains(e2.target) && e2.target !== kebabBtn) {
+                        kebabMenu.remove();
+                        document.removeEventListener('mousedown', outside);
+                    }
+                }
+                document.addEventListener('mousedown', outside);
+            }, 30);
+            // Option actions
+            kebabMenu.querySelectorAll('.kebab-menu-option').forEach(opt => {
+                opt.onclick = async (ev) => {
+                    const action = opt.dataset.action;
+                    if (action === 'since') {
+                        // Just close menu (date is shown)
+                        kebabMenu.remove();
+                    } else if (action === 'unfriend') {
+                        if (confirm('Unfriend this user?')) {
+                            const user = getCurrentUser();
+                            await supabase.from('user_friends')
+                                .delete()
+                                .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`);
+                            kebabMenu.remove();
+                            renderFriendsSidebarList();
+                        }
+                    } else if (action === 'star') {
+                        const user = getCurrentUser();
+                        await supabase.from('user_friends')
+                            .update({ starred: !starred })
+                            .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`);
+                        kebabMenu.remove();
+                        renderFriendsSidebarList();
+                    }
+                };
+            });
         };
         div.dataset.friendId = friend.id;
         sidebarList.appendChild(div);
@@ -3150,3 +3236,70 @@ async function openFriendProfileModal(friend, avatarEl) {
         document.addEventListener('mousedown', outsideClick);
     }, 50);
 }
+
+// Add kebab menu styles
+(function injectSidebarFriendKebabCSS() {
+    if (!document.getElementById('sidebar-friend-kebab-style')) {
+        const style = document.createElement('style');
+        style.id = 'sidebar-friend-kebab-style';
+        style.textContent = `
+        .sidebar-friend-kebab {
+            background: none;
+            border: none;
+            color: #bdb6d6;
+            font-size: 1.1rem;
+            margin-left: auto;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 5px;
+            transition: background 0.18s;
+        }
+        .sidebar-friend-kebab:hover {
+            background: #2a2340;
+            color: #a370f7;
+        }
+        .sidebar-friend-kebab-menu {
+            min-width: 170px;
+            max-width: 220px;
+            min-height: 120px;
+            background: rgba(40,30,60,0.98);
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.22), 0 1.5px 8px rgba(163,112,247,0.08);
+            padding: 10px 0 10px 0;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: fixed;
+            animation: kebabMenuIn 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes kebabMenuIn {
+            0% { opacity: 0; transform: scale(0.85) translateY(18px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .kebab-menu-option {
+            color: #eae6fa;
+            font-size: 1.01rem;
+            padding: 10px 18px 10px 18px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            text-align: left;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.16s, color 0.16s;
+        }
+        .kebab-menu-option:hover {
+            background: #2a2340;
+            color: #a370f7;
+        }
+        .kebab-menu-option i {
+            min-width: 18px;
+            text-align: center;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
