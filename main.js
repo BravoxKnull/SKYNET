@@ -1841,9 +1841,24 @@ async function renderFriendsSidebarList() {
             `;
             // Position menu
             const rect = kebabBtn.getBoundingClientRect();
+            const menuWidth = 200;
+            const menuHeight = 140;
+            let left = rect.right - 10;
+            let top = rect.top + 8;
+            // If menu would overflow right, open to the left
+            if (left + menuWidth > window.innerWidth - 8) {
+                left = rect.left - menuWidth - 8;
+            }
+            // If menu would overflow left, clamp to 8px
+            if (left < 8) left = 8;
+            // If menu would overflow bottom, move up
+            if (top + menuHeight > window.innerHeight - 8) {
+                top = window.innerHeight - menuHeight - 8;
+            }
+            if (top < 8) top = 8;
             kebabMenu.style.position = 'fixed';
-            kebabMenu.style.left = (rect.right - 10) + 'px';
-            kebabMenu.style.top = (rect.top + 8) + 'px';
+            kebabMenu.style.left = left + 'px';
+            kebabMenu.style.top = top + 'px';
             document.body.appendChild(kebabMenu);
             // Click outside closes
             setTimeout(() => {
