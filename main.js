@@ -1776,13 +1776,44 @@ async function renderFriendsSidebarList() {
     friends.forEach(friend => {
         const div = document.createElement('div');
         div.className = 'sidebar-friend';
-        // Split avatar and name for separate click handlers
+        // Check starred state (for icon)
+        let starred = false;
+        try {
+            const user = getCurrentUser();
+            // This is a synchronous check, but we need the value for the icon
+            // We'll fetch it below for the menu, but here we use a cache or fallback
+            // For now, we will fetch it again below for the menu
+        } catch {}
+        // We'll fetch the real value for the menu, but for now, we need to fetch it here synchronously
+        // So, instead, after the menu is used, we re-render the list, so the icon will update
+        // Render avatar, name, and star icon if starred
         div.innerHTML = `
           <img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar" style="cursor:pointer;">
-          <span class="sidebar-friend-name" style="cursor:pointer;">${friend.display_name}</span>
+          <span class="sidebar-friend-name-wrapper">
+            <span class="sidebar-friend-star" style="display:none;"><i class="fas fa-star"></i></span>
+            <span class="sidebar-friend-name" style="cursor:pointer;">${friend.display_name}</span>
+          </span>
           <button class="sidebar-friend-kebab" title="More options">
             <i class="fas fa-ellipsis-v"></i>
           </button>`;
+        // Fetch starred state and show icon if needed
+        (async () => {
+            try {
+                const user = getCurrentUser();
+                const { data } = await supabase
+                    .from('user_friends')
+                    .select('starred')
+                    .or(`and(user_id.eq.${user.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${user.id})`)
+                    .eq('status', 'accepted')
+                    .single();
+                if (data && data.starred) {
+                    const starEl = div.querySelector('.sidebar-friend-star');
+                    if (starEl) {
+                        starEl.style.display = 'inline-block';
+                    }
+                }
+            } catch {}
+        })();
         if (sidebarUnreadCounts[friend.id] > 0) {
             const badge = document.createElement('span');
             badge.className = 'sidebar-friend-unread';
@@ -3313,6 +3344,30 @@ async function openFriendProfileModal(friend, avatarEl) {
         .kebab-menu-option i {
             min-width: 18px;
             text-align: center;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// Add gold star CSS
+(function injectSidebarFriendStarCSS() {
+    if (!document.getElementById('sidebar-friend-star-style')) {
+        const style = document.createElement('style');
+        style.id = 'sidebar-friend-star-style';
+        style.textContent = `
+        .sidebar-friend-name-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .sidebar-friend-star {
+            color: gold;
+            font-size: 1.05em;
+            margin-right: 2px;
+            vertical-align: middle;
+            display: inline-block;
+            transition: opacity 0.18s;
         }
         `;
         document.head.appendChild(style);
