@@ -158,6 +158,14 @@
             <button id="saveBannerCrop" class="btn btn-primary">Save</button>
         </div>
     </div>
+    <!-- Avatar Cropping Modal -->
+    <div id="avatarCropModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img id="avatarCropImage" />
+            <button id="saveAvatarCrop" class="btn btn-primary">Save</button>
+        </div>
+    </div>
 
     <!-- Cropper.js CDN -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
@@ -697,6 +705,104 @@
         closeBannerCrop.onclick = () => {
             bannerCropModal.style.display = 'none';
             if (bannerCropper) bannerCropper.destroy();
+        };
+
+        // Avatar Cropping & Upload
+        let avatarCropper;
+        const avatarInput = document.getElementById('avatarInput');
+        const avatarCropModal = document.getElementById('avatarCropModal');
+        const avatarCropImage = document.getElementById('avatarCropImage');
+        const saveAvatarCrop = document.getElementById('saveAvatarCrop');
+        const closeAvatarCrop = avatarCropModal.querySelector('.close');
+        const avatarPreview = document.getElementById('avatarPreview');
+
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!allowedTypes.includes(file.type)) {
+                    showMessage('Please upload a valid image file (JPEG, PNG, GIF, or WebP)', 'error');
+                    return;
+                }
+                // Validate file size (max 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    showMessage('Image size should be less than 5MB', 'error');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    avatarCropImage.src = evt.target.result;
+                    avatarCropModal.style.display = 'flex';
+                    if (avatarCropper) avatarCropper.destroy();
+                    avatarCropper = new Cropper(avatarCropImage, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        minContainerWidth: 300,
+                        minContainerHeight: 300,
+                        dragMode: 'move',
+                        guides: true,
+                        center: true,
+                        highlight: true,
+                        background: false,
+                        movable: true,
+                        rotatable: true,
+                        scalable: true,
+                        zoomable: true,
+                        cropBoxResizable: true,
+                        cropBoxMovable: true
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        saveAvatarCrop.onclick = async function() {
+            if (!avatarCropper) return;
+            const canvas = avatarCropper.getCroppedCanvas({
+                width: 400,
+                height: 400,
+                imageSmoothingQuality: 'high'
+            });
+            canvas.toBlob(async blob => {
+                // Upload to Supabase
+                const fileExt = 'jpg';
+                const fileName = `${storedUser.id}-avatar-${Date.now()}.${fileExt}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, blob, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
+                if (uploadError) {
+                    showMessage('Error uploading avatar', 'error');
+                    return;
+                }
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName);
+                // Save URL to user profile
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ avatar_url: publicUrl })
+                    .eq('id', storedUser.id);
+                if (updateError) {
+                    showMessage('Error saving avatar', 'error');
+                    return;
+                }
+                avatarPreview.src = publicUrl;
+                // Update local storage
+                storedUser.avatar_url = publicUrl;
+                localStorage.setItem('user', JSON.stringify(storedUser));
+                avatarCropModal.style.display = 'none';
+                showMessage('Avatar updated!', 'success');
+            }, 'image/jpeg', 0.95);
+        };
+
+        closeAvatarCrop.onclick = () => {
+            avatarCropModal.style.display = 'none';
+            if (avatarCropper) avatarCropper.destroy();
         };
     </script>
 
