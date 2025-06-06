@@ -299,7 +299,13 @@ function initializeEventListeners() {
             usersList.innerHTML = '';
             warningMessage.textContent = '';
 
-            welcomeSection.classList.remove('hidden');
+            // Animate welcome section sliding in
+            welcomeSection.classList.remove('hidden', 'slide-left');
+            void welcomeSection.offsetWidth;
+            welcomeSection.classList.add('slide-in');
+            setTimeout(() => {
+                welcomeSection.classList.remove('slide-in');
+            }, 800);
 
             Object.keys(peerConnections).forEach(userId => {
                 closePeerConnection(userId);
