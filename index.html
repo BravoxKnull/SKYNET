@@ -35,6 +35,12 @@
     </script>
 </head>
 <body>
+    <!-- Spline 3D background -->
+    <div id="spline-bg-container" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;overflow:hidden;pointer-events:none;">
+        <!-- Replace the src below with your Spline scene URL -->
+        <iframe src="https://my.spline.design/your-spline-scene-url" frameborder="0" width="100%" height="100%" style="display:block;width:100vw;height:100vh;"></iframe>
+    </div>
+
     <!-- Auth Check Script -->
     <script>
         // Check if user is authenticated
@@ -43,6 +49,9 @@
             window.location.href = 'auth.html'
         }
     </script>
+
+    <!-- Particle.js Background -->
+    <div id="particles-js"></div>
 
     <!-- Cursor following background -->
     <div id="cursor-background"></div>
@@ -102,19 +111,7 @@
         <!-- Main Content -->
         <main class="main-content">
             <!-- Welcome Section -->
-            <section class="welcome-section" id="welcomeSection">
-                <div class="welcome-content">
-                    <div class="animated-text">
-                        <span class="glitch-text" data-text="Welcome to SKYNET">Welcome to SKYNET</span>
-                    </div>
-                    <div class="welcome-subtitle">
-                        Experience the future of voice communication
-                    </div>
-                    <div class="welcome-features" id="welcomeFeaturesCarousel">
-                        <!-- Carousel cards will be injected here -->
-                    </div>
-                </div>
-            </section>
+            <!-- <section class="welcome-section" id="welcomeSection"> ... </section> -->
 
             <!-- Channel Section -->
             <section class="channel-section hidden" id="channelSection">
@@ -616,31 +613,6 @@
             80% { clip-path: inset(40% 0 0 0); transform: translate(1px, 1px); }
             100% { clip-path: inset(60% 0 0 0); transform: translate(0, 0); }
         }
-
-        #spline-bg {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-        #spline-bg spline-viewer {
-            width: 100vw;
-            height: 100vh;
-            display: block;
-            pointer-events: none;
-        }
-        body, html {
-            background: transparent !important;
-        }
     </style>
-
-    <!-- Spline 3D Background (full code, valid HTML) -->
-    <div id="spline-bg">
-      <spline-viewer url="https://prod.spline.design/qKwmasJmRKBoJXDF/scene.splinecode"></spline-viewer>
-    </div>
-    <script type="module" src="https://unpkg.com/@splinetool/viewer@1.10.2/build/spline-viewer.js"></script>
 </body>
 </html> 
