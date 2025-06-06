@@ -1790,8 +1790,8 @@ async function renderFriendsSidebarList() {
         div.innerHTML = `
           <img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar" style="cursor:pointer;">
           <span class="sidebar-friend-name-wrapper">
-            <span class="sidebar-friend-star" style="display:none;"><i class="fas fa-star"></i></span>
             <span class="sidebar-friend-name" style="cursor:pointer;">${friend.display_name}</span>
+            <span class="sidebar-friend-star" style="display:none;"><i class="fas fa-star"></i></span>
           </span>
           <button class="sidebar-friend-kebab" title="More options">
             <i class="fas fa-ellipsis-v"></i>
