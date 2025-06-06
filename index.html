@@ -6,7 +6,7 @@
     <title>SKYNET - Next-Gen Voice Chat</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23232a3a'/%3E%3Cellipse cx='32' cy='40' rx='18' ry='10' fill='%230db9d7'/%3E%3Crect x='18' y='22' width='28' height='14' rx='7' fill='%23a370f7'/%3E%3Ccircle cx='32' cy='29' r='4' fill='white'/%3E%3C/svg%3E">
     
     <!-- WebRTC and Socket.IO Scripts -->
@@ -94,22 +94,6 @@
                         <i class="fas fa-user-cog" target="_blank"></i>
                         <span>Profile</span>
                     </a>
-                    <a href="privacy.html" class="nav-link privacy-link">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Privacy Policy</span>
-                    </a>
-                    <a href="terms.html" class="nav-link privacy-link">
-                        <i class="fas fa-gavel"></i>
-                        <span>Terms of Service</span>
-                    </a>
-                    <a href="cookies.html" class="nav-link privacy-link">
-                        <i class="fas fa-cookie-bite"></i>
-                        <span>Cookie Policy</span>
-                    </a>
-                    <a href="licenses.html" class="nav-link privacy-link">
-                        <i class="fas fa-certificate"></i>
-                        <span>Licenses</span>
-                    </a>
                     <button id="logoutBtn" class="nav-link">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
@@ -120,18 +104,36 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Welcome Section -->
-            <section class="welcome-section" id="welcomeSection">
-                <div class="welcome-content">
-                    <div class="animated-text">
-                        <span class="glitch-text" data-text="Welcome to SKYNET">Welcome to SKYNET</span>
+            <!-- HERO Welcome Section (Redesigned) -->
+            <section class="hero-welcome-section">
+                <div class="hero-bg-animated" aria-hidden="true">
+                    <!-- SVG/CANVAS Animated Background -->
+                    <svg id="heroGridBG" width="100%" height="100%" viewBox="0 0 1440 600" preserveAspectRatio="none" style="position:absolute;top:0;left:0;width:100vw;height:100vh;z-index:0;">
+                        <defs>
+                            <linearGradient id="gridGradient" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#a370f7"/>
+                                <stop offset="100%" stop-color="#0db9d7"/>
+                            </linearGradient>
+                        </defs>
+                        <g id="gridLines"></g>
+                    </svg>
+                    <canvas id="heroParticles" style="position:absolute;top:0;left:0;width:100vw;height:100vh;z-index:1;pointer-events:none;"></canvas>
+                </div>
+                <div class="hero-glass-card">
+                    <div class="hero-headline-container">
+                        <h1 class="hero-headline animated-hero-headline">
+                            <span class="hero-headline-text">Welcome to <span class="skynet-gradient">SKYNET</span></span>
+                        </h1>
+                        <div class="hero-subtitle">Experience the future of voice communication</div>
                     </div>
-                    <div class="welcome-subtitle">
-                        Experience the future of voice communication
+                    <div class="hero-carousel-container">
+                        <button class="carousel-arrow left" id="heroCarouselPrev" aria-label="Previous Feature"><i class="fas fa-chevron-left"></i></button>
+                        <div class="hero-carousel" id="heroFeatureCarousel">
+                            <!-- Feature cards injected here -->
+                        </div>
+                        <button class="carousel-arrow right" id="heroCarouselNext" aria-label="Next Feature"><i class="fas fa-chevron-right"></i></button>
                     </div>
-                    <div class="welcome-features" id="welcomeFeaturesCarousel">
-                        <!-- Carousel cards will be injected here -->
-                    </div>
+                    <div class="carousel-dots" id="heroCarouselDots"></div>
                 </div>
             </section>
 
@@ -467,57 +469,171 @@
             };
         }
 
-        // Welcome Features Carousel
-        const welcomeFeatures = [
+        // Animated SVG Grid Background
+        function animateHeroGrid() {
+            const grid = document.getElementById('gridLines');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const cols = 24, rows = 10;
+            for (let i = 0; i <= cols; i++) {
+                const x = (i / cols) * 1440;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x); line.setAttribute('y1', 0);
+                line.setAttribute('x2', x); line.setAttribute('y2', 600);
+                line.setAttribute('stroke', 'url(#gridGradient)');
+                line.setAttribute('stroke-width', '1.2');
+                line.setAttribute('opacity', '0.13');
+                grid.appendChild(line);
+            }
+            for (let j = 0; j <= rows; j++) {
+                const y = (j / rows) * 600;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', 0); line.setAttribute('y1', y);
+                line.setAttribute('x2', 1440); line.setAttribute('y2', y);
+                line.setAttribute('stroke', 'url(#gridGradient)');
+                line.setAttribute('stroke-width', '1.2');
+                line.setAttribute('opacity', '0.13');
+                grid.appendChild(line);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', animateHeroGrid);
+        window.addEventListener('resize', animateHeroGrid);
+        // Animated Particles
+        function animateHeroParticles() {
+            const canvas = document.getElementById('heroParticles');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+            const particles = Array.from({length: 36}, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                r: 1.5 + Math.random() * 2.5,
+                dx: -0.5 + Math.random(),
+                dy: -0.5 + Math.random(),
+                color: Math.random() > 0.5 ? '#a370f7' : '#0db9d7',
+                alpha: 0.5 + Math.random() * 0.5
+            }));
+            function draw() {
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                for (const p of particles) {
+                    ctx.globalAlpha = p.alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, 2*Math.PI);
+                    ctx.fillStyle = p.color;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    p.x += p.dx; p.y += p.dy;
+                    if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+                    if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+                }
+                ctx.globalAlpha = 1;
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+        window.addEventListener('DOMContentLoaded', animateHeroParticles);
+        // Feature Carousel Data & Logic
+        const heroFeatures = [
             {
-                icon: 'fas fa-microphone',
-                title: 'Crystal Clear Voice',
-                more: 'Experience ultra-low latency, high-fidelity audio for every conversation.'
+                icon: 'fas fa-robot',
+                title: 'AI-Powered',
+                more: 'Harness advanced AI for automation and insight. Neural networks adapt to your needs.'
             },
             {
-                icon: 'fas fa-shield-alt',
-                title: 'Secure Connection',
-                more: 'End-to-end encryption keeps your chats private and protected.'
+                icon: 'fas fa-chart-line',
+                title: 'Real-Time Analytics',
+                more: 'Monitor and analyze data as it happens for instant decision making.'
             },
             {
-                icon: 'fas fa-bolt',
-                title: 'Real-time Communication',
-                more: 'Instant voice delivery with no lag, even across continents.'
+                icon: 'fas fa-cloud',
+                title: 'Secure Cloud',
+                more: 'Your data is protected with enterprise-grade security and encryption.'
+            },
+            {
+                icon: 'fas fa-brain',
+                title: 'Autonomous Agents',
+                more: 'Deploy self-learning agents that adapt and optimize on their own.'
+            },
+            {
+                icon: 'fas fa-clock',
+                title: '24/7 Uptime',
+                more: 'Always available, always reliable. SKYNET never sleeps.'
+            },
+            {
+                icon: 'fas fa-graduation-cap',
+                title: 'Adaptive Learning',
+                more: 'Systems that evolve and improve with every interaction.'
             }
         ];
-        const welcomeFeaturesCarousel = document.getElementById('welcomeFeaturesCarousel');
-        let currentWelcomeFeature = 0;
-        function renderWelcomeFeature(idx) {
-            welcomeFeaturesCarousel.innerHTML = '';
-            const f = welcomeFeatures[idx];
-            const card = document.createElement('div');
-            card.className = 'feature feature-carousel-card active';
-            card.innerHTML = `
-                <div class="feature-icon"><i class="${f.icon}"></i></div>
-                <div class="feature-title">${f.title}</div>
-                <div class="feature-more">${f.more}</div>
-            `;
-            welcomeFeaturesCarousel.appendChild(card);
-        }
-        function animateWelcomeFeature(nextIdx) {
-            const oldCard = document.querySelector('.feature-carousel-card.active');
-            if (oldCard) {
-                oldCard.classList.remove('active');
-                oldCard.style.transform = 'translateX(-60px) scale(0.98)';
-                oldCard.style.opacity = '0';
-                setTimeout(() => {
-                    renderWelcomeFeature(nextIdx);
-                }, 500);
-            } else {
-                renderWelcomeFeature(nextIdx);
+        let heroCurrent = 0;
+        function renderHeroCarousel(idx) {
+            const carousel = document.getElementById('heroFeatureCarousel');
+            if (!carousel) return;
+            carousel.innerHTML = '';
+            // Previous
+            const prevIdx = (idx - 1 + heroFeatures.length) % heroFeatures.length;
+            const prev = document.createElement('div');
+            prev.className = 'hero-carousel-card prev';
+            prev.innerHTML = `<div class="feature-icon"><i class="${heroFeatures[prevIdx].icon}"></i></div><div class="feature-title">${heroFeatures[prevIdx].title}</div><div class="feature-more">${heroFeatures[prevIdx].more}</div>`;
+            carousel.appendChild(prev);
+            // Active
+            const active = document.createElement('div');
+            active.className = 'hero-carousel-card active';
+            active.innerHTML = `<div class="feature-icon"><i class="${heroFeatures[idx].icon}"></i></div><div class="feature-title">${heroFeatures[idx].title}</div><div class="feature-more">${heroFeatures[idx].more}</div>`;
+            carousel.appendChild(active);
+            // Next
+            const nextIdx = (idx + 1) % heroFeatures.length;
+            const next = document.createElement('div');
+            next.className = 'hero-carousel-card next';
+            next.innerHTML = `<div class="feature-icon"><i class="${heroFeatures[nextIdx].icon}"></i></div><div class="feature-title">${heroFeatures[nextIdx].title}</div><div class="feature-more">${heroFeatures[nextIdx].more}</div>`;
+            carousel.appendChild(next);
+            // Dots
+            const dots = document.getElementById('heroCarouselDots');
+            if (dots) {
+                dots.innerHTML = '';
+                for (let i = 0; i < heroFeatures.length; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'carousel-dot' + (i === idx ? ' active' : '');
+                    dot.addEventListener('click', () => { heroCurrent = i; renderHeroCarousel(heroCurrent); });
+                    dots.appendChild(dot);
+                }
             }
         }
-        renderWelcomeFeature(currentWelcomeFeature);
-        setInterval(() => {
-            const next = (currentWelcomeFeature + 1) % welcomeFeatures.length;
-            animateWelcomeFeature(next);
-            currentWelcomeFeature = next;
-        }, 3200);
+        function heroCarouselNext() {
+            heroCurrent = (heroCurrent + 1) % heroFeatures.length;
+            renderHeroCarousel(heroCurrent);
+        }
+        function heroCarouselPrev() {
+            heroCurrent = (heroCurrent - 1 + heroFeatures.length) % heroFeatures.length;
+            renderHeroCarousel(heroCurrent);
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            renderHeroCarousel(heroCurrent);
+            document.getElementById('heroCarouselNext').onclick = heroCarouselNext;
+            document.getElementById('heroCarouselPrev').onclick = heroCarouselPrev;
+            // Swipe support
+            let startX = null;
+            const carousel = document.getElementById('heroFeatureCarousel');
+            if (carousel) {
+                carousel.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
+                carousel.addEventListener('touchend', e => {
+                    if (startX === null) return;
+                    const dx = e.changedTouches[0].clientX - startX;
+                    if (dx > 40) heroCarouselPrev();
+                    else if (dx < -40) heroCarouselNext();
+                    startX = null;
+                });
+            }
+            // Auto-advance
+            setInterval(heroCarouselNext, 4200);
+        });
     </script>
     <script src="main.js"></script>
 
@@ -526,114 +642,220 @@
     <audio id="userLeftSound" src="assets/sounds/user_left.mp3" preload="auto"></audio>
 
     <style>
-        .feature-carousel-card {
-            min-width: 340px;
-            max-width: 480px;
-            background: var(--card-bg, rgba(36, 37, 54, 0.92));
+        /* HERO Welcome Section Styles */
+        .hero-welcome-section {
+            position: relative;
+            min-height: 80vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .hero-bg-animated {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .hero-glass-card {
+            position: relative;
+            z-index: 2;
+            background: var(--glass-bg, rgba(36,37,54,0.82));
+            border-radius: 32px;
+            box-shadow: 0 12px 48px 0 rgba(0,0,0,0.55);
+            border: 2.5px solid var(--glass-border, rgba(163,112,247,0.25));
+            backdrop-filter: blur(22px) saturate(1.2);
+            padding: 3.5rem 2.5rem 2.5rem 2.5rem;
+            max-width: 600px;
+            width: 98vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2.5rem;
+            margin-top: 2.5rem;
+            animation: fadeInScale 1.2s cubic-bezier(.4,2,.6,1);
+        }
+        .hero-headline-container {
+            text-align: center;
+        }
+        .hero-headline {
+            font-family: 'Audiowide', 'Orbitron', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            margin-bottom: 0.7rem;
+            color: transparent;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow: 0 0 32px #a370f7cc, 0 0 8px #0db9d7cc;
+            position: relative;
+            overflow: visible;
+        }
+        .skynet-gradient {
+            background: linear-gradient(90deg, #a370f7 0%, #0db9d7 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 2px 12px #a370f7aa);
+        }
+        .animated-hero-headline .hero-headline-text {
+            display: inline-block;
+            animation: heroShimmer 3.5s infinite linear, heroPulse 2.5s infinite alternate;
+        }
+        @keyframes heroShimmer {
+            0% { filter: brightness(1) drop-shadow(0 0 0 #fff0); }
+            40% { filter: brightness(1.2) drop-shadow(0 0 16px #a370f7cc); }
+            60% { filter: brightness(1.4) drop-shadow(0 0 32px #0db9d7cc); }
+            100% { filter: brightness(1) drop-shadow(0 0 0 #fff0); }
+        }
+        @keyframes heroPulse {
+            0% { letter-spacing: 2.5px; }
+            100% { letter-spacing: 6px; }
+        }
+        .hero-subtitle {
+            font-family: 'Roboto', sans-serif;
+            font-size: 1.25rem;
+            color: var(--accent-color);
+            opacity: 0.92;
+            margin-bottom: 0.2rem;
+            letter-spacing: 0.5px;
+        }
+        .hero-carousel-container {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            width: 100%;
+            justify-content: center;
+        }
+        .hero-carousel {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            min-width: 320px;
+            max-width: 420px;
+            width: 100%;
+            height: 220px;
+            position: relative;
+            perspective: 1200px;
+            overflow: visible;
+        }
+        .hero-carousel-card {
+            background: var(--card-bg, rgba(36,37,54,0.92));
             border-radius: 22px;
-            box-shadow: var(--glass-shadow, 0 12px 40px 0 rgba(0,0,0,0.5));
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.45);
             border: 2px solid var(--border-color, rgba(163,112,247,0.2));
             padding: 2.2rem 2rem 2rem 2rem;
             color: var(--text-color, #e0e0e0);
-            font-family: 'Orbitron', 'Roboto', sans-serif;
+            font-family: 'Roboto', 'Orbitron', sans-serif;
             font-size: 1.18rem;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-width: 340px;
+            max-width: 420px;
+            width: 100%;
             opacity: 0;
-            transform: translateX(60px) scale(0.98);
+            transform: translateX(60px) scale(0.98) rotateY(40deg);
             transition: opacity 0.7s cubic-bezier(.4,2,.6,1), transform 0.7s cubic-bezier(.4,2,.6,1);
             pointer-events: none;
+            position: absolute;
+            left: 0; right: 0; top: 0; bottom: 0;
+            margin: auto;
         }
-        .feature-carousel-card.active {
+        .hero-carousel-card.active {
             opacity: 1;
-            transform: translateX(0) scale(1.04);
+            transform: translateX(0) scale(1.04) rotateY(0deg);
             pointer-events: auto;
+            z-index: 2;
         }
-        .feature-carousel-card .feature-icon {
-            font-size: 2.2rem;
+        .hero-carousel-card.prev {
+            opacity: 0.5;
+            transform: translateX(-120px) scale(0.95) rotateY(-30deg);
+            z-index: 1;
+        }
+        .hero-carousel-card.next {
+            opacity: 0.5;
+            transform: translateX(120px) scale(0.95) rotateY(30deg);
+            z-index: 1;
+        }
+        .hero-carousel-card .feature-icon {
+            font-size: 2.5rem;
             color: var(--primary-color, #a370f7);
             margin-bottom: 1.1rem;
             filter: drop-shadow(0 2px 12px #a370f7aa);
+            animation: floatIcon 2.5s infinite ease-in-out;
         }
-        .feature-carousel-card .feature-title {
+        @keyframes floatIcon {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px) scale(1.08); }
+            100% { transform: translateY(0); }
+        }
+        .hero-carousel-card .feature-title {
             font-size: 1.3rem;
             font-weight: 700;
             color: var(--primary-color, #a370f7);
             margin-bottom: 0.6rem;
             letter-spacing: 1.5px;
+            font-family: 'Audiowide', 'Orbitron', sans-serif;
         }
-        .feature-carousel-card .feature-more {
+        .hero-carousel-card .feature-more {
             font-size: 1.01rem;
             color: var(--accent-color, #0db9d7);
             opacity: 0.85;
             margin-top: 0.2rem;
             text-align: center;
         }
+        .carousel-arrow {
+            background: rgba(163,112,247,0.12);
+            border: none;
+            border-radius: 50%;
+            width: 44px; height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 12px #a370f7aa;
+            transition: background 0.2s, transform 0.2s;
+            z-index: 3;
+        }
+        .carousel-arrow:hover {
+            background: rgba(163,112,247,0.25);
+            transform: scale(1.12);
+        }
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.2rem;
+        }
+        .carousel-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--border-color, #a370f7);
+            opacity: 0.5;
+            transition: background 0.3s, opacity 0.3s;
+            cursor: pointer;
+        }
+        .carousel-dot.active {
+            background: var(--primary-color, #a370f7);
+            opacity: 1;
+            box-shadow: 0 0 8px #a370f7cc;
+        }
         @media (max-width: 700px) {
-            .feature-carousel-card {
-                min-width: 98vw;
-                max-width: 100vw;
-                font-size: 0.98rem;
-            }
+            .hero-glass-card { padding: 2rem 0.5rem 1.5rem 0.5rem; max-width: 99vw; }
+            .hero-headline { font-size: 2.1rem; }
+            .hero-carousel-card, .hero-carousel { min-width: 98vw; max-width: 100vw; font-size: 0.98rem; }
+            .hero-carousel { height: 180px; }
         }
-
-        /* Unique Infinite Animation for Welcome to SKYNET */
-        .glitch-text {
-            position: relative;
-            display: inline-block;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.7rem;
-            font-weight: 700;
-            background: linear-gradient(90deg, #a370f7, #0db9d7, #a370f7 80%);
-            background-size: 200% auto;
-            color: transparent;
-            background-clip: text;
-            -webkit-background-clip: text;
-            animation: shimmer 3s linear infinite, pulse 2.5s cubic-bezier(.4,2,.6,1) infinite;
-        }
-        .glitch-text::before, .glitch-text::after {
-            content: attr(data-text);
-            position: absolute;
-            left: 0; top: 0;
-            width: 100%;
-            overflow: hidden;
-            color: #fff;
-            z-index: 2;
-            opacity: 0.18;
-            pointer-events: none;
-        }
-        .glitch-text::before {
-            text-shadow: 2px 0 #0ff, -2px 0 #f0f;
-            animation: glitchTop 2.2s infinite linear alternate-reverse;
-        }
-        .glitch-text::after {
-            text-shadow: -2px 0 #0ff, 2px 0 #f0f;
-            animation: glitchBot 1.8s infinite linear alternate-reverse;
-        }
-        @keyframes shimmer {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.045); }
-        }
-        @keyframes glitchTop {
-            0% { clip-path: inset(0 0 60% 0); transform: translate(-1px, -1px); }
-            20% { clip-path: inset(0 0 40% 0); transform: translate(2px, 1px); }
-            40% { clip-path: inset(0 0 50% 0); transform: translate(-2px, 0); }
-            60% { clip-path: inset(0 0 60% 0); transform: translate(1px, 2px); }
-            80% { clip-path: inset(0 0 40% 0); transform: translate(-1px, -1px); }
-            100% { clip-path: inset(0 0 60% 0); transform: translate(0, 0); }
-        }
-        @keyframes glitchBot {
-            0% { clip-path: inset(60% 0 0 0); transform: translate(1px, 1px); }
-            20% { clip-path: inset(40% 0 0 0); transform: translate(-2px, -1px); }
-            40% { clip-path: inset(50% 0 0 0); transform: translate(2px, 0); }
-            60% { clip-path: inset(60% 0 0 0); transform: translate(-1px, -2px); }
-            80% { clip-path: inset(40% 0 0 0); transform: translate(1px, 1px); }
-            100% { clip-path: inset(60% 0 0 0); transform: translate(0, 0); }
+        @media (max-width: 480px) {
+            .hero-glass-card { padding: 1.2rem 0.2rem 1rem 0.2rem; }
+            .hero-headline { font-size: 1.3rem; }
+            .hero-carousel { height: 140px; }
         }
     </style>
 </body>
