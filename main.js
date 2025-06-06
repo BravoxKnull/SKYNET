@@ -1776,14 +1776,26 @@ async function renderFriendsSidebarList() {
     friends.forEach(friend => {
         const div = document.createElement('div');
         div.className = 'sidebar-friend';
-        div.innerHTML = `<img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar"><span class="sidebar-friend-name">${friend.display_name}</span>`;
+        // Split avatar and name for separate click handlers
+        div.innerHTML = `
+          <img src="${friend.avatar_url || 'assets/images/default-avatar.svg'}" class="sidebar-friend-avatar" style="cursor:pointer;">
+          <span class="sidebar-friend-name" style="cursor:pointer;">${friend.display_name}</span>`;
         if (sidebarUnreadCounts[friend.id] > 0) {
             const badge = document.createElement('span');
             badge.className = 'sidebar-friend-unread';
             badge.textContent = sidebarUnreadCounts[friend.id];
             div.appendChild(badge);
         }
-        div.onclick = () => openChatModal(friend);
+        // Avatar click: open profile modal
+        div.querySelector('.sidebar-friend-avatar').onclick = (e) => {
+            e.stopPropagation();
+            openFriendProfileModal(friend, e.target);
+        };
+        // Name click: open chat modal
+        div.querySelector('.sidebar-friend-name').onclick = (e) => {
+            e.stopPropagation();
+            openChatModal(friend);
+        };
         div.dataset.friendId = friend.id;
         sidebarList.appendChild(div);
     });
@@ -2970,3 +2982,163 @@ updateUsersList = function(usersArr) {
         document.head.appendChild(style);
     }
 })();
+
+// --- FRIEND PROFILE MODAL ---
+(function injectFriendProfileModalCSS() {
+    if (!document.getElementById('friend-profile-modal-style')) {
+        const style = document.createElement('style');
+        style.id = 'friend-profile-modal-style';
+        style.textContent = `
+        .friend-profile-modal {
+            position: fixed;
+            z-index: 99999;
+            min-width: 340px;
+            max-width: 96vw;
+            min-height: 260px;
+            max-height: 90vh;
+            background: rgba(40,30,60,0.98);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 1.5px 8px rgba(163,112,247,0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transform: scale(0.7);
+            pointer-events: none;
+            transition: opacity 0.32s cubic-bezier(0.23, 1, 0.32, 1), transform 0.32s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .friend-profile-modal.active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+        .friend-profile-banner {
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+            background: #23243a;
+            border-radius: 18px 18px 0 0;
+        }
+        .friend-profile-header {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            margin-top: -48px;
+            padding: 0 2rem 0.5rem 2rem;
+        }
+        .friend-profile-avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #a370f7;
+            background: #23243a;
+            box-shadow: 0 2px 12px rgba(163,112,247,0.12);
+        }
+        .friend-profile-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .friend-profile-name {
+            color: #fff;
+            font-size: 1.45rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+        .friend-profile-bio {
+            color: #bdb6d6;
+            font-size: 1.01rem;
+            margin-top: 0.2rem;
+            max-width: 340px;
+            word-break: break-word;
+        }
+        .close-friend-profile-modal {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 2.1rem;
+            cursor: pointer;
+            z-index: 2;
+            transition: color 0.18s;
+        }
+        .close-friend-profile-modal:hover {
+            color: #a370f7;
+        }
+        @media (max-width: 600px) {
+            .friend-profile-modal { min-width: 90vw; }
+            .friend-profile-header { flex-direction: column; align-items: flex-start; padding: 0 1rem; }
+            .friend-profile-info { max-width: 90vw; }
+        }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+
+// Modal root
+if (!document.getElementById('friendProfileModalRoot')) {
+    const root = document.createElement('div');
+    root.id = 'friendProfileModalRoot';
+    document.body.appendChild(root);
+}
+
+// Open friend profile modal
+async function openFriendProfileModal(friend, avatarEl) {
+    // Remove any existing modal
+    const root = document.getElementById('friendProfileModalRoot');
+    root.innerHTML = '';
+    // Fetch extra info (bio, banner)
+    let userData = friend;
+    try {
+        const { data } = await supabase
+            .from('users')
+            .select('id, display_name, avatar_url, banner_url, bio')
+            .eq('id', friend.id)
+            .single();
+        if (data) userData = data;
+    } catch {}
+    // Modal element
+    const modal = document.createElement('div');
+    modal.className = 'friend-profile-modal';
+    // Position modal at avatar
+    const rect = avatarEl.getBoundingClientRect();
+    modal.style.position = 'fixed';
+    modal.style.left = rect.left + rect.width/2 + 'px';
+    modal.style.top = rect.top + rect.height/2 + 'px';
+    modal.style.transformOrigin = 'top left';
+    // Modal content
+    modal.innerHTML = `
+      <button class="close-friend-profile-modal" title="Close">&times;</button>
+      <img class="friend-profile-banner" src="${userData.banner_url || 'assets/images/default-banner.jpg'}" alt="Banner">
+      <div class="friend-profile-header">
+        <img class="friend-profile-avatar" src="${userData.avatar_url || 'assets/images/default-avatar.svg'}" alt="Avatar">
+        <div class="friend-profile-info">
+          <div class="friend-profile-name">${userData.display_name}</div>
+          <div class="friend-profile-bio">${userData.bio ? userData.bio : '<span style=\'color:#666\'>No bio provided.</span>'}</div>
+        </div>
+      </div>
+    `;
+    root.appendChild(modal);
+    // Animate in
+    setTimeout(() => { modal.classList.add('active'); }, 10);
+    // Close logic
+    function closeModal() {
+        modal.classList.remove('active');
+        setTimeout(() => { if (modal.parentNode) modal.parentNode.removeChild(modal); }, 320);
+    }
+    modal.querySelector('.close-friend-profile-modal').onclick = closeModal;
+    // Click outside closes
+    setTimeout(() => {
+        function outsideClick(e) {
+            if (!modal.contains(e.target)) {
+                closeModal();
+                document.removeEventListener('mousedown', outsideClick);
+            }
+        }
+        document.addEventListener('mousedown', outsideClick);
+    }, 50);
+}
